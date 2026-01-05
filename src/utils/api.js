@@ -1,0 +1,53 @@
+import axios from 'axios';
+
+// Create axios instance with security defaults
+const api = axios.create({
+  baseURL: 'https://api.festiveguest.com/api',
+  timeout: 10000 // 10 second timeout
+});
+
+// Request interceptor to add JWT token
+api.interceptors.request.use(
+  (config) => {
+    try {
+      // Use localStorage consistently
+      const userStr = localStorage.getItem('user');
+      
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        if (user && user.token) {
+          config.headers.Authorization = `Bearer ${user.token}`;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to read user from storage');
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor to handle token expiration
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      // Token expired or invalid - clear all auth data
+      localStorage.removeItem('user');
+      localStorage.removeItem('userId');
+      
+      // Dispatch storage event to notify other components
+      window.dispatchEvent(new Event('storage'));
+      
+      // Redirect to login only if not already there
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default api;
