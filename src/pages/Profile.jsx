@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { Edit, X, Upload } from 'lucide-react';
 import api from '../utils/api';
 
 function Profile() {
   const [user, setUser] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
   
   const userId = localStorage.getItem('userId');
 
@@ -77,6 +79,7 @@ function Profile() {
       alert('Profile image uploaded successfully!');
       setSelectedFile(null);
       setPreviewUrl('');
+      setIsEditing(false);
       await fetchUser();
     } catch (err) {
       console.error('Upload failed:', err);
@@ -144,11 +147,52 @@ function Profile() {
             alt="Profile" 
             className="profile-img-preview"
           />
-          <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-            <input type="file" accept="image/*" onChange={handleFileChange} />
-            <button className="btn btn-primary" onClick={uploadProfileImage} disabled={!selectedFile}>
-              Upload
-            </button>
+          <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', alignItems: 'center' }}>
+            {!isEditing ? (
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setIsEditing(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}
+              >
+                <Edit size={14} /> Edit Photo
+              </button>
+            ) : (
+              <>
+                <label 
+                  htmlFor="file-input" 
+                  className="btn btn-secondary"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}
+                >
+                  📁 Choose File
+                </label>
+                <input 
+                  id="file-input"
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleFileChange} 
+                  style={{ display: 'none' }}
+                />
+                <button 
+                  className="btn btn-primary" 
+                  onClick={uploadProfileImage} 
+                  disabled={!selectedFile}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}
+                >
+                  <Upload size={14} /> Upload
+                </button>
+                <button 
+                  className="btn btn-secondary" 
+                  onClick={() => {
+                    setIsEditing(false);
+                    setSelectedFile(null);
+                    setPreviewUrl('');
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}
+                >
+                  <X size={14} /> Cancel
+                </button>
+              </>
+            )}
           </div>
           <p style={{ color: '#64748b', fontSize: '0.875rem', textAlign: 'center' }}>Upload a profile photo</p>
         </div>

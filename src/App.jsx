@@ -106,7 +106,7 @@ const AppContent = () => {
   }
 
   return (
-    <div className="app-container">
+    <div className="app-container" style={{ animation: 'fadeIn 0.8s ease-out' }}>
       <nav className="navbar">
         <Link to="/" className="nav-logo" onClick={() => setMenuOpen(false)}>
           <Logo className="nav-logo-img" style={{ height: '50px' }} />

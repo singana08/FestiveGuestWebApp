@@ -9,27 +9,23 @@
   justify-content: center;
   align-items: center;
   z-index: 9999;
-  animation: fadeOut 0.5s ease-in-out 2.5s forwards;
+  animation: containerFadeOut 0.8s ease-out 2.5s forwards;
 }
 
 .logo-loader {
-  animation: zoomOut 3s ease-in-out forwards;
+  animation: logoZoomIn 2s ease-out forwards, logoFadeOut 0.5s ease-out 2s forwards;
 }
 
 .loader-logo {
-  width: 120px;
-  height: 120px;
+  width: 200px;
+  height: 200px;
   object-fit: contain;
 }
 
-@keyframes zoomOut {
+@keyframes logoZoomIn {
   0% {
-    transform: scale(3);
+    transform: scale(0.1);
     opacity: 0;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 1;
   }
   100% {
     transform: scale(1);
@@ -37,9 +33,30 @@
   }
 }
 
-@keyframes fadeOut {
-  to {
+@keyframes logoFadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes containerFadeOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
     opacity: 0;
     visibility: hidden;
+  }
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
   }
 }
