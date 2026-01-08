@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } f
 import { User, Search, ShieldCheck, Menu, X, LayoutDashboard, HelpCircle, LogOut } from 'lucide-react';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import Logo from './components/Logo';
+import Loader from './components/Loader';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Registration from './pages/Registration';
@@ -16,6 +17,7 @@ import Help from './pages/Help';
 import './App.css';
 
 const AppContent = () => {
+  const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState(() => {
     try {
@@ -38,6 +40,11 @@ const AppContent = () => {
 
   // Sync with localStorage on mount and listen for changes
   useEffect(() => {
+    // Show loader for 3 seconds
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+
     const handleStorageChange = () => {
       try {
         const saved = localStorage.getItem('user');
@@ -61,7 +68,10 @@ const AppContent = () => {
 
     // Listen for storage changes from other tabs/windows
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const getDashboardRoute = (u) => {
@@ -90,6 +100,10 @@ const AppContent = () => {
     }
     return location.pathname === path;
   };
+
+  if (loading) {
+    return <Loader />;
+  }
 
   return (
     <div className="app-container">
