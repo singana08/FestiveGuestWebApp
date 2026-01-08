@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Location API Test</title>
+</head>
+<body>
+    <h1>Location API Test</h1>
+    <button onclick="seedLocations()">Seed Locations Table</button>
+    <button onclick="getLocations()">Get Locations</button>
+    <div id="result"></div>
+
+    <script>
+        async function seedLocations() {
+            try {
+                document.getElementById('result').innerHTML = 'Seeding locations...';
+                const response = await fetch('/api/seedLocations', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                document.getElementById('result').innerHTML = 'Seed Result: ' + JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('result').innerHTML = 'Error: ' + error.message;
+            }
+        }
+
+        async function getLocations() {
+            try {
+                document.getElementById('result').innerHTML = 'Getting locations...';
+                const response = await fetch('/api/getLocations');
+                const result = await response.json();
+                document.getElementById('result').innerHTML = 'Locations: ' + JSON.stringify(result, null, 2);
+            } catch (error) {
+                document.getElementById('result').innerHTML = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
