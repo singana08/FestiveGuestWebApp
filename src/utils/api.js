@@ -7,7 +7,7 @@ const getBaseURL = () => {
     return 'http://localhost:7219/api';
   }
   // In production, use your hosted Azure API
-  return 'https://api.festiveguest.com/api';
+  return 'http://api.festiveguest.com/api';
 };
 
 // Create axios instance with security defaults
