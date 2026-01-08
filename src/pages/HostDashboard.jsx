@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { ChevronDown, ChevronRight, MapPin, Plus, Minus } from 'lucide-react';
+import { ChevronDown, ChevronRight, MapPin, Plus, Minus, MessageCircle, Home, Users, Search, Filter, Star, CheckCircle } from 'lucide-react';
 import ChatWidget from '../components/ChatWidget';
 import locationService from '../utils/locationService';
 
@@ -25,8 +25,8 @@ const HostDashboard = ({ user }) => {
 
   const fetchLocations = async () => {
     try {
-      const data = await locationService.getLocations();
-      setLocationData(data);
+      const response = await api.get('location/states-with-cities');
+      setLocationData(response.data);
     } catch (error) {
       console.error('Error fetching locations:', error);
     }
@@ -38,7 +38,7 @@ const HostDashboard = ({ user }) => {
 
   const fetchGuests = async () => {
     try {
-      const res = await api.get('getuser', { params: { role: 'Guest' } });
+      const res = await api.get('user/browse');
       const guestsData = Array.isArray(res.data) ? res.data : [res.data];
       setGuests(guestsData);
     } catch (error) {
@@ -127,7 +127,10 @@ const HostDashboard = ({ user }) => {
       {/* Location Filters Sidebar */}
       <div className={`location-sidebar ${showFilters ? 'mobile-visible' : ''}`}>
         <div className="filter-header">
-          <h3><MapPin size={20} /> Filter Guests by Location</h3>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Filter size={20} style={{ color: 'var(--primary)' }} />
+            Filter by Location
+          </h3>
           {selectedLocations.length > 0 && (
             <button onClick={clearFilters} className="clear-filters-btn">
               Clear ({selectedLocations.length})
@@ -171,10 +174,16 @@ const HostDashboard = ({ user }) => {
       {/* Main Content */}
       <div className="browse-main">
         <div className="browse-header">
-          <h2>🎊 Guests Looking for Festivals</h2>
-          <div className="results-count">
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Star size={24} style={{ color: 'var(--primary)' }} />
+            Guests Looking for Festivals
+          </h2>
+          <div className="results-count" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {!loading && (
-              <span>{filteredGuests.length} guest{filteredGuests.length !== 1 ? 's' : ''} found</span>
+              <>
+                <Users size={16} style={{ color: 'var(--text-light)' }} />
+                <span>{filteredGuests.length} guest{filteredGuests.length !== 1 ? 's' : ''} found</span>
+              </>
             )}
           </div>
         </div>
@@ -197,7 +206,7 @@ const HostDashboard = ({ user }) => {
         ) : (
           <div className="compact-grid">
             {filteredGuests.map(guest => (
-              <div key={guest.rowKey} className="host-card-horizontal">
+              <div key={guest.userId} className="host-card-horizontal">
                 <div className="host-image-section">
                   <img 
                     src={guest.profileImageUrl || 'https://via.placeholder.com/400x300?text=Guest'} 
@@ -206,9 +215,9 @@ const HostDashboard = ({ user }) => {
                   />
                   <button 
                     className="btn btn-primary chat-btn-overlay"
-                    onClick={() => setActiveChat({ id: guest.rowKey, name: guest.name })}
+                    onClick={() => setActiveChat({ id: guest.userId, name: guest.name })}
                   >
-                    <span className="chat-icon">💬</span>
+                    <MessageCircle size={16} className="chat-icon" />
                     <span className="chat-text">Chat</span>
                   </button>
                 </div>

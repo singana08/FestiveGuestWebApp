@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import api from '../utils/api';
-import { ChevronDown, ChevronRight, MapPin, Plus, Minus } from 'lucide-react';
+import { ChevronDown, ChevronRight, MapPin, Plus, Minus, MessageCircle, Home, Users, Search, Filter, Star, CheckCircle } from 'lucide-react';
 import ChatWidget from '../components/ChatWidget';
 import locationService from '../utils/locationService';
+import chatService from '../utils/chatService';
 
 const GuestDashboard = ({ user }) => {
   const [hosts, setHosts] = useState([]);
@@ -13,6 +14,40 @@ const GuestDashboard = ({ user }) => {
   const [activeChat, setActiveChat] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
   const [locationData, setLocationData] = useState({});
+  const [signalRStatus, setSignalRStatus] = useState('Not connected');
+
+  const testSignalR = async () => {
+    try {
+      setSignalRStatus('Connecting...');
+      await chatService.connect();
+      setSignalRStatus('✅ Connected');
+      console.log('SignalR test successful');
+      
+      // Setup message listener
+      chatService.onReceiveMessage((data) => {
+        console.log('✅ Test message received:', data);
+        alert(`Message received from ${data.senderId}: ${data.message}`);
+      });
+    } catch (error) {
+      setSignalRStatus('❌ Failed: ' + error.message);
+      console.error('SignalR test failed:', error);
+    }
+  };
+
+  const sendTestMessage = async () => {
+    try {
+      const testUserId = prompt('Enter recipient userId to test:');
+      if (!testUserId) return;
+      
+      await chatService.joinChat(testUserId);
+      await chatService.sendMessage(testUserId, 'Test message from ' + userId);
+      console.log('✅ Test message sent to:', testUserId);
+      alert('Test message sent! Check console.');
+    } catch (error) {
+      console.error('❌ Failed to send test message:', error);
+      alert('Failed: ' + error.message);
+    }
+  };
 
   useEffect(() => {
     // Only fetch data if user is properly authenticated
@@ -24,8 +59,8 @@ const GuestDashboard = ({ user }) => {
 
   const fetchLocations = async () => {
     try {
-      const data = await locationService.getLocations();
-      setLocationData(data);
+      const response = await api.get('location/states-with-cities');
+      setLocationData(response.data);
     } catch (error) {
       console.error('Error fetching locations:', error);
     }
@@ -69,27 +104,11 @@ const GuestDashboard = ({ user }) => {
 
   const fetchHosts = async () => {
     try {
-      const res = await api.get('getuser', { params: { role: 'Host' } });
+      const res = await api.get('user/browse');
       const hostsData = Array.isArray(res.data) ? res.data : [res.data];
       const activeHosts = hostsData.filter(h => (h.status === 'Active' || h.status === 'Verified'));
       
-      // Get image URLs for hosts
-      const hostsWithImages = await Promise.all(
-        activeHosts.map(async (host) => {
-          if (host.profileImageUrl && host.profileImageUrl.includes('blob.core.windows.net')) {
-            try {
-              const imgRes = await api.get('getimageurl', { params: { userId: host.rowKey } });
-              return { ...host, profileImageUrl: imgRes.data.imageUrl };
-            } catch (e) {
-              console.log('No image for host:', host.rowKey);
-              return host;
-            }
-          }
-          return host;
-        })
-      );
-      
-      setHosts(hostsWithImages);
+      setHosts(activeHosts);
     } catch (error) {
       console.error('Error fetching hosts:', error);
       if (error.response?.status !== 401 && error.response?.status !== 403) {
@@ -101,7 +120,7 @@ const GuestDashboard = ({ user }) => {
   };
 
   const handleContactHost = (host) => {
-    setActiveChat({ id: host.rowKey, name: host.name });
+    setActiveChat({ id: host.userId, name: host.name });
   };
 
   if (loading) return (
@@ -127,7 +146,10 @@ const GuestDashboard = ({ user }) => {
       {/* Location Filters Sidebar */}
       <div className={`location-sidebar ${showFilters ? 'mobile-visible' : ''}`}>
         <div className="filter-header">
-          <h3><MapPin size={20} /> Filter Hosts by Location</h3>
+          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Filter size={20} style={{ color: 'var(--primary)' }} />
+            Filter by Location
+          </h3>
           {selectedLocations.length > 0 && (
             <button onClick={clearFilters} className="clear-filters-btn">
               Clear ({selectedLocations.length})
@@ -171,11 +193,27 @@ const GuestDashboard = ({ user }) => {
       {/* Main Content */}
       <div className="browse-main">
         <div className="browse-header">
-          <h2>🏠 Available Hosts</h2>
-          <div className="results-count">
-            {!loading && (
-              <span>{filteredHosts.length} host{filteredHosts.length !== 1 ? 's' : ''} found</span>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Home size={24} style={{ color: 'var(--primary)' }} />
+            Available Hosts
+          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <button onClick={testSignalR} className="btn btn-outline" style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
+              Test Chat: {signalRStatus}
+            </button>
+            {signalRStatus.includes('✅') && (
+              <button onClick={sendTestMessage} className="btn btn-primary" style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
+                Send Test Message
+              </button>
             )}
+            <div className="results-count" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {!loading && (
+                <>
+                  <Users size={16} style={{ color: 'var(--text-light)' }} />
+                  <span>{filteredHosts.length} host{filteredHosts.length !== 1 ? 's' : ''} found</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
         
@@ -202,7 +240,7 @@ const GuestDashboard = ({ user }) => {
             ) : (
               <div className="compact-grid">
                 {filteredHosts.map(host => (
-                  <div key={host.rowKey} className="host-card-horizontal">
+                  <div key={host.userId} className="host-card-horizontal">
                     <div className="host-image-section">
                       <img 
                         src={host.profileImageUrl || 'https://via.placeholder.com/400x300?text=Host'} 
@@ -218,7 +256,7 @@ const GuestDashboard = ({ user }) => {
                         className="btn btn-primary chat-btn-overlay"
                         onClick={() => handleContactHost(host)}
                       >
-                        <span className="chat-icon">💬</span>
+                        <MessageCircle size={16} className="chat-icon" />
                         <span className="chat-text">Chat</span>
                       </button>
                     </div>

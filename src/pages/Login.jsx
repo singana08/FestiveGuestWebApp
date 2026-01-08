@@ -38,18 +38,8 @@ const Login = ({ setUser }) => {
       navigate('/');
     }
 
-    // Fetch login logo
-    const fetchLoginLogo = async () => {
-      try {
-        const res = await api.get('getimageurl', { params: { logo: 'true', type: 'login' } });
-        if (res.data && res.data.imageUrl) {
-          setLoginLogoUrl(res.data.imageUrl);
-        }
-      } catch (err) {
-        console.error('Failed to fetch login logo:', err);
-      }
-    };
-    fetchLoginLogo();
+    // Use static logo from public folder
+    setLoginLogoUrl('/assets/login-logo.png');
   }, [navigate]);
 
   const showToast = (message, type = 'success') => {
@@ -66,12 +56,12 @@ const Login = ({ setUser }) => {
     e?.preventDefault();
     setLoading(true);
     try {
-      const res = await api.post('login', { email, password });
-      if (res?.data?.token) {
-        const { token, ...user } = res.data;
+      const res = await api.post('auth/login', { email, password });
+      if (res?.data?.success && res?.data?.token) {
+        const { token, user } = res.data;
         const userWithToken = { ...user, token };
         localStorage.setItem('user', JSON.stringify(userWithToken));
-        localStorage.setItem('userId', user.rowKey);
+        localStorage.setItem('userId', user.userId);
         localStorage.setItem('token', token);
         setUser(userWithToken);
         showToast('Login successful! Redirecting...', 'success');
@@ -83,7 +73,7 @@ const Login = ({ setUser }) => {
       if (err.response?.status === 429) {
         showToast('Too many login attempts. Please wait 15 minutes and try again.', 'error');
       } else {
-        showToast('Login failed: ' + (err.response?.data?.error || err.message), 'error');
+        showToast('Login failed: ' + (err.response?.data?.message || err.message), 'error');
       }
     } finally {
       setLoading(false);
@@ -114,13 +104,11 @@ const Login = ({ setUser }) => {
       )}
       <div className="card" style={{ maxWidth: '450px', margin: '50px auto', textAlign: 'center' }}>
         <div style={{ marginBottom: '2rem' }}>
-          {loginLogoUrl && (
-            <img 
-              src={loginLogoUrl} 
-              alt="Festive Guest Logo" 
-              style={{ height: '150px', width: 'auto', marginBottom: '1.5rem' }} 
-            />
-          )}
+          <img 
+            src="/assets/login-logo.png" 
+            alt="Festive Guest Logo" 
+            style={{ height: '150px', width: 'auto', marginBottom: '1.5rem' }} 
+          />
           <p style={{ color: '#64748b', fontSize: '1.1rem' }}>Connect Guests and Hosts for memorable experiences</p>
         </div>
         

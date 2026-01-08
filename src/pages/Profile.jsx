@@ -16,30 +16,15 @@ function Profile() {
 
   const fetchUser = async () => {
     try {
-      const savedUser = JSON.parse(localStorage.getItem('user'));
-      const role = savedUser?.role || savedUser?.partitionKey;
-      const params = { userId };
-      if (role) params.role = role;
-      const res = await api.get('getuser', { params });
+      const res = await api.get('user/profile');
       let fetchedUser = res.data;
 
-      // Always get fresh SAS token for profile image
-      if (fetchedUser.profileImageUrl && fetchedUser.profileImageUrl.includes('blob.core.windows.net')) {
-        try {
-          const imgRes = await api.get('getimageurl', { params: { userId } });
-          if (imgRes.data && imgRes.data.imageUrl) {
-            fetchedUser.profileImageUrl = imgRes.data.imageUrl;
-          }
-        } catch (e) {
-          console.warn('Could not obtain SAS for profile image', e?.response?.data || e.message);
-        }
-      }
-
-      // Preserve token and ensure role is present
+      // Preserve token from localStorage
+      const savedUser = JSON.parse(localStorage.getItem('user'));
       const updatedUser = { 
         ...fetchedUser, 
         token: savedUser?.token,
-        role: fetchedUser.role || fetchedUser.partitionKey || savedUser?.role
+        role: fetchedUser.userType || savedUser?.role
       };
 
       setUser(updatedUser);
@@ -60,41 +45,42 @@ function Profile() {
   };
 
   const uploadProfileImage = async () => {
-    console.log('uploadProfileImage called', { selectedFile, user });
     if (!selectedFile || !user) {
       alert('Please select a file and ensure your profile is loaded before uploading.');
       return;
     }
     try {
+      console.log('Step 1: Compressing image...');
       const compressedFile = await compressImage(selectedFile);
-      const formData = new FormData();
-      formData.append('file', compressedFile);
-      formData.append('userId', user.rowKey || localStorage.getItem('userId'));
-
-      const res = await api.post(`uploadImage`, formData);
-      const imageUrl = res.data.imageUrl;
-
-      // Save image URL to user entity
-      await api.post(`createUpdateUser`, {
-        userId: user.rowKey,
-        role: user.partitionKey || user.role,
-        profileImageUrl: imageUrl
-      });
-
-      // Refresh local state while preserving token
-      const savedUser = JSON.parse(localStorage.getItem('user'));
-      const updatedUser = { 
-        ...user, 
-        profileImageUrl: imageUrl,
-        token: savedUser?.token 
-      };
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
       
-      // Dispatch storage event to sync with App.jsx state
-      window.dispatchEvent(new Event('storage'));
+      console.log('Step 2: Getting SAS token from API...');
+      const tokenRes = await api.get('user/upload-sas-token');
+      console.log('SAS token response:', tokenRes.data);
+      const { sasUrl } = tokenRes.data;
+      
+      console.log('Step 3: Uploading to blob storage...', sasUrl);
+      const uploadResponse = await fetch(sasUrl, {
+        method: 'PUT',
+        headers: { 'x-ms-blob-type': 'BlockBlob', 'Content-Type': 'image/jpeg' },
+        body: compressedFile
+      });
+      console.log('Upload response status:', uploadResponse.status);
+      
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+      }
+      
+      console.log('Step 4: Confirming upload with API...');
+      const imageUrl = sasUrl.split('?')[0];
+      await api.post('user/confirm-upload', { imageUrl });
+
+      alert('Profile image uploaded successfully!');
+      setSelectedFile(null);
+      setPreviewUrl('');
+      await fetchUser();
     } catch (err) {
-      console.error('Upload failed', err);
+      console.error('Upload failed:', err);
+      console.error('Error details:', err.response?.data);
       alert('Image upload failed: ' + (err.response?.data?.error || err.message));
     }
   };
@@ -107,7 +93,7 @@ function Profile() {
       
       img.onload = () => {
         let { width, height } = img;
-        const maxSize = 400;
+        const maxSize = 800;
         
         if (width > height) {
           if (width > maxSize) {
@@ -125,18 +111,9 @@ function Profile() {
         canvas.height = height;
         ctx.drawImage(img, 0, 0, width, height);
         
-        let quality = 0.8;
-        const compress = () => {
-          canvas.toBlob((blob) => {
-            if (blob.size > 100000 && quality > 0.1) {
-              quality -= 0.1;
-              compress();
-            } else {
-              resolve(blob);
-            }
-          }, 'image/jpeg', quality);
-        };
-        compress();
+        canvas.toBlob((blob) => {
+          resolve(blob);
+        }, 'image/jpeg', 0.8);
       };
       
       img.src = URL.createObjectURL(file);
@@ -198,7 +175,7 @@ function Profile() {
             
             <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #10b981' }}>
               <p style={{ margin: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <strong>🎭 Role:</strong> {user.role === 'Host' ? '🏠 Host' : '🎉 Guest'}
+                <strong>🎭 Role:</strong> {user.userType === 'Host' ? '🏠 Host' : '🎉 Guest'}
               </p>
             </div>
             
@@ -210,7 +187,7 @@ function Profile() {
 
             <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #ec4899' }}>
               <p style={{ margin: '0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <strong>{user.role === 'Host' ? '🏠 My Offerings:' : '✨ My Festival Wishes:'}</strong>
+                <strong>{user.userType === 'Host' ? '🏠 My Offerings:' : '✨ My Festival Wishes:'}</strong>
                 <span style={{ color: '#475569', fontSize: '0.95rem', lineHeight: '1.5' }}>{user.bio || 'Not specified'}</span>
               </p>
             </div>
@@ -237,10 +214,10 @@ function Profile() {
                   padding: '0.25rem 0.75rem', 
                   borderRadius: '1rem', 
                   fontSize: '0.875rem',
-                  background: user.contactEnabled ? '#dcfce7' : '#fee2e2',
-                  color: user.contactEnabled ? '#166534' : '#dc2626'
+                  background: user.isVerified ? '#dcfce7' : '#fee2e2',
+                  color: user.isVerified ? '#166534' : '#dc2626'
                 }}>
-                  {user.contactEnabled ? '✓ Yes' : '✗ No'}
+                  {user.isVerified ? '✓ Yes' : '✗ No'}
                 </span>
               </p>
             </div>

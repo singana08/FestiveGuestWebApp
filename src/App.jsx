@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import { User, Search, ShieldCheck, Menu, X } from 'lucide-react';
+import { User, Search, ShieldCheck, Menu, X, LayoutDashboard, HelpCircle, LogOut } from 'lucide-react';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import Logo from './components/Logo';
 import LandingPage from './pages/LandingPage';
@@ -22,8 +22,8 @@ const AppContent = () => {
       const saved = localStorage.getItem('user');
       if (saved) {
         const userData = JSON.parse(saved);
-        // Validate user data structure
-        if (userData && userData.token && userData.email && userData.role) {
+        // Validate user data structure - accept both role and userType
+        if (userData && userData.token && userData.email && (userData.role || userData.userType)) {
           return userData;
         }
       }
@@ -43,8 +43,8 @@ const AppContent = () => {
         const saved = localStorage.getItem('user');
         if (saved) {
           const userData = JSON.parse(saved);
-          // Validate user data structure
-          if (userData && userData.token && userData.email && userData.role) {
+          // Validate user data structure - accept both role and userType
+          if (userData && userData.token && userData.email && (userData.role || userData.userType)) {
             setUser(userData);
           } else {
             setUser(null);
@@ -65,7 +65,7 @@ const AppContent = () => {
   }, []);
 
   const getDashboardRoute = (u) => {
-    const role = u?.role || u?.partitionKey;
+    const role = u?.role || u?.userType || u?.partitionKey;
     if (role === 'Host') return '/host-dashboard';
     if (role === 'Guest') return '/guest-dashboard';
     if (role === 'Admin') return '/admin';
@@ -109,7 +109,7 @@ const AppContent = () => {
         <div className={`nav-links ${menuOpen ? 'mobile-open' : ''}`}>
           {!user ? (
             <>
-              <Link to="/help" className="nav-item" onClick={() => setMenuOpen(false)}>Help</Link>
+              <Link to="/help" className="nav-item" onClick={() => setMenuOpen(false)}><HelpCircle size={20} /> Help</Link>
               <Link to="/login" className="nav-item" onClick={() => setMenuOpen(false)}>Login</Link>
               <Link to="/register" className="nav-item btn btn-primary" style={{ color: 'white', padding: '0.5rem 1rem' }} onClick={() => setMenuOpen(false)}>Register</Link>
             </>
@@ -117,10 +117,10 @@ const AppContent = () => {
             <>
               <div className="user-badge">
                 <span className="user-badge-text">
-                  <strong>{user.name}</strong> <span className="user-badge-role">({user.role || user.partitionKey})</span>
+                  <strong>{user.name}</strong> <span className="user-badge-role">({user.role || user.userType || user.partitionKey})</span>
                 </span>
               </div>
-              <Link to={getDashboardRoute(user)} className={`nav-item ${isActivePage('/dashboard') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}>Dashboard</Link>
+              <Link to={getDashboardRoute(user)} className={`nav-item ${isActivePage('/dashboard') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><LayoutDashboard size={20} /> Dashboard</Link>
               <Link to="/chats" className={`nav-item chat-nav-item ${isActivePage('/chats') ? 'active' : ''}`} onClick={handleChatsClick}>
                 💬 Chats
                 {unreadCount > 0 && (
@@ -130,10 +130,10 @@ const AppContent = () => {
                 )}
               </Link>
               <Link to="/profile" className={`nav-item ${isActivePage('/profile') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><User size={20} /> Profile</Link>
-              <Link to="/help" className={`nav-item ${isActivePage('/help') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}>Help</Link>
-              {user.role === 'Admin' && <Link to="/admin" className={`nav-item ${isActivePage('/admin') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><ShieldCheck size={20} /> Admin</Link>}
+              <Link to="/help" className={`nav-item ${isActivePage('/help') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><HelpCircle size={20} /> Help</Link>
+              {(user.role === 'Admin' || user.userType === 'Admin') && <Link to="/admin" className={`nav-item ${isActivePage('/admin') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><ShieldCheck size={20} /> Admin</Link>}
               <button onClick={handleLogout} className="nav-item logout-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                Logout
+                <LogOut size={20} /> Logout
               </button>
             </>
           )}
@@ -145,14 +145,14 @@ const AppContent = () => {
           <Route path="/" element={<LandingPage user={user} />} />
           <Route path="/login" element={!user ? <Login setUser={setUser} /> : <Navigate to="/" />} />
           <Route path="/register" element={!user ? <Registration setUser={setUser} /> : <Navigate to="/" />} />
-          <Route path="/browse" element={user?.role === 'Guest' ? <GuestDashboard user={user} /> : <Navigate to="/login" />} />
+          <Route path="/browse" element={(user?.role === 'Guest' || user?.userType === 'Guest') ? <GuestDashboard user={user} /> : <Navigate to="/login" />} />
           
-          <Route path="/guest-dashboard" element={user?.role === 'Guest' ? <GuestDashboard user={user} /> : <Navigate to="/login" />} />
-          <Route path="/host-dashboard" element={user?.role === 'Host' ? <HostDashboard user={user} /> : <Navigate to="/login" />} />
+          <Route path="/guest-dashboard" element={(user?.role === 'Guest' || user?.userType === 'Guest') ? <GuestDashboard user={user} /> : <Navigate to="/login" />} />
+          <Route path="/host-dashboard" element={(user?.role === 'Host' || user?.userType === 'Host') ? <HostDashboard user={user} /> : <Navigate to="/login" />} />
           <Route path="/chats" element={user ? <Chats /> : <Navigate to="/login" />} />
           
           <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
-          <Route path="/admin" element={user?.role === 'Admin' ? <Admin /> : <Navigate to="/login" />} />
+          <Route path="/admin" element={(user?.role === 'Admin' || user?.userType === 'Admin') ? <Admin /> : <Navigate to="/login" />} />
           <Route path="/chat/:recipientId" element={user ? <Chat user={user} /> : <Navigate to="/login" />} />
           <Route path="/help" element={<Help />} />
         </Routes>

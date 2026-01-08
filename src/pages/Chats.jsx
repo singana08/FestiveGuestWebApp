@@ -1,187 +1,60 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, Send, X, ArrowLeft } from 'lucide-react';
-import axios from 'axios';
-import { ChatClient } from '@azure/communication-chat';
-import { AzureCommunicationTokenCredential } from '@azure/communication-common';
-
 import api from '../utils/api';
+import chatService from '../utils/chatService';
 
 const Chats = () => {
   const [conversations, setConversations] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
-  const [chatClient, setChatClient] = useState(null);
-  const [showChatView, setShowChatView] = useState(false); // For mobile navigation
+  const [showChatView, setShowChatView] = useState(false);
   const userId = localStorage.getItem('userId');
-  const userAcsIdRef = React.useRef(null);
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    if (userId) {
-      initializeChat();
-    }
-  }, [userId]);
+    fetchConversations();
+  }, []);
 
-  const initializeChat = async () => {
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+  }, [messages]);
+
+  const fetchConversations = async () => {
     try {
-      const tokenRes = await api.get('issuechattoken', { params: { userId } });
-      const { token, user } = tokenRes.data;
-      userAcsIdRef.current = user.communicationUserId;
-      
-      const credential = new AzureCommunicationTokenCredential(token);
-      const client = new ChatClient('https://acs-festive-guest.india.communication.azure.com/', credential);
-      setChatClient(client);
-      
-      await fetchConversations(client);
+      setLoading(true);
+      const response = await api.get('chat/conversations');
+      setConversations(response.data || []);
     } catch (error) {
-      console.error('Failed to initialize chat:', error);
+      console.error('Failed to fetch conversations:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchConversations = async (client) => {
-    try {
-      const chatThreadsIterator = client.listChatThreads();
-      const chatThreads = [];
-      
-      for await (const chatThread of chatThreadsIterator) {
-        const threadClient = client.getChatThreadClient(chatThread.id);
-        
-        // Get participants to find the other user
-        const participantsIterator = threadClient.listParticipants();
-        let otherParticipant = null;
-        
-        for await (const participant of participantsIterator) {
-          if (participant.id.communicationUserId !== userAcsIdRef.current) {
-            otherParticipant = participant;
-            break;
-          }
-        }
-        
-        // Get last message
-        const messagesIterator = threadClient.listMessages({ maxPageSize: 1 });
-        let lastMessage = null;
-        
-        for await (const message of messagesIterator) {
-          if (message.type === 'text') {
-            lastMessage = {
-              content: message.content.message,
-              timestamp: message.createdOn,
-              senderId: message.sender.communicationUserId
-            };
-            break;
-          }
-        }
-        
-        if (lastMessage && otherParticipant) {
-          // Extract user ID from ACS ID - try different patterns
-          const acsId = otherParticipant.id.communicationUserId;
-          let otherUserId = null;
-          
-          // Try different ACS ID patterns
-          if (acsId.includes('_')) {
-            otherUserId = acsId.split('_')[1];
-          } else if (acsId.includes('-')) {
-            otherUserId = acsId.split('-').pop();
-          } else {
-            // If no separator, try to use the whole ID
-            otherUserId = acsId;
-          }
-          
-          let userName = 'Unknown User';
-          let profileImage = null;
-          
-          if (otherUserId) {
-            try {
-              // Try to get user by ID first
-              let userRes;
-              try {
-                userRes = await api.get('getuser', { params: { userId: otherUserId } });
-              } catch (e) {
-                // If that fails, try searching by role
-                console.log('Trying to find user by searching...');
-                const guestRes = await api.get('getuser', { params: { role: 'Guest' } });
-                const hostRes = await api.get('getuser', { params: { role: 'Host' } });
-                
-                const allUsers = [
-                  ...(Array.isArray(guestRes.data) ? guestRes.data : [guestRes.data]),
-                  ...(Array.isArray(hostRes.data) ? hostRes.data : [hostRes.data])
-                ].filter(u => u && u.rowKey);
-                
-                // Find user by matching rowKey with otherUserId
-                const foundUser = allUsers.find(u => u.rowKey === otherUserId);
-                if (foundUser) {
-                  userRes = { data: foundUser };
-                }
-              }
-              
-              if (userRes && userRes.data) {
-                userName = userRes.data.name || 'Unknown User';
-                profileImage = userRes.data.profileImageUrl;
-                
-                // If profile image exists, try to get the actual URL
-                if (profileImage && profileImage.includes('blob.core.windows.net')) {
-                  try {
-                    const imgRes = await api.get('getimageurl', { params: { userId: otherUserId } });
-                    profileImage = imgRes.data.imageUrl;
-                  } catch (imgErr) {
-                    console.log('Could not get image URL for:', otherUserId);
-                  }
-                }
-              }
-            } catch (e) {
-              console.log('Could not fetch user data for:', otherUserId, e.message);
-            }
-          }
-          
-          chatThreads.push({
-            id: chatThread.id,
-            name: userName,
-            profileImage,
-            otherUserId,
-            lastMessage
-          });
-        }
-      }
-      
-      setConversations(chatThreads);
-    } catch (error) {
-      console.error('Failed to fetch conversations:', error);
-    }
+  const handleConversationClick = async (conversation) => {
+    setSelectedChat(conversation);
+    setMessages([]); // Clear previous messages immediately
+    await loadMessages(conversation.otherUserId);
+    setShowChatView(true);
   };
 
-  const loadMessages = async (threadId) => {
-    if (!chatClient) return;
-    
+  const loadMessages = async (recipientId) => {
     try {
-      const threadClient = chatClient.getChatThreadClient(threadId);
-      const messagesIterator = threadClient.listMessages();
-      const messagesList = [];
-      
-      for await (const message of messagesIterator) {
-        if (message.type === 'text') {
-          messagesList.push({
-            id: message.id,
-            sender: message.sender.communicationUserId === userAcsIdRef.current ? 'Me' : 'Other',
-            text: message.content.message,
-            timestamp: message.createdOn
-          });
-        }
-      }
-      
-      setMessages(messagesList.reverse());
+      const response = await api.get(`chat/messages/${recipientId}`);
+      const formattedMessages = response.data.map(msg => ({
+        id: msg.id,
+        sender: msg.senderId === userId ? 'Me' : 'Recipient',
+        text: msg.message,
+        timestamp: new Date(msg.timestamp),
+        status: msg.status
+      }));
+      setMessages(formattedMessages);
     } catch (error) {
       console.error('Failed to load messages:', error);
     }
-  };
-
-  const handleConversationClick = (conversation) => {
-    setSelectedChat(conversation);
-    setShowChatView(true); // Show chat view on mobile
-    loadMessages(conversation.id);
   };
 
   const handleBackToList = () => {
@@ -191,22 +64,22 @@ const Chats = () => {
 
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedChat || !chatClient) return;
+    if (!newMessage.trim() || !selectedChat) return;
     
     try {
       setSending(true);
-      const threadClient = chatClient.getChatThreadClient(selectedChat.id);
       const content = newMessage;
-      
-      const sendResult = await threadClient.sendMessage({ content });
       setNewMessage('');
       
       setMessages(prev => [...prev, {
-        id: sendResult.id,
+        id: Date.now(),
         sender: 'Me',
         text: content,
-        timestamp: new Date()
+        timestamp: new Date(),
+        status: 'Sent'
       }]);
+      
+      await chatService.sendMessage(selectedChat.otherUserId, content);
     } catch (error) {
       console.error('Failed to send message:', error);
     } finally {
@@ -214,16 +87,17 @@ const Chats = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="chats-container">
-        <div className="loading" style={{ padding: '4rem', textAlign: 'center' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>💬</div>
-          <h3>Loading conversations...</h3>
-        </div>
-      </div>
-    );
-  }
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now - date;
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    
+    if (hours < 24) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  };
 
   return (
     <div className="chats-container">
@@ -234,34 +108,52 @@ const Chats = () => {
         </div>
         
         <div className="conversations-list">
-          {conversations.length === 0 ? (
+          {loading ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Loading...</div>
+          ) : conversations.length === 0 ? (
             <div className="no-conversations">
               <p>No conversations yet</p>
             </div>
           ) : (
-            conversations.map(conversation => (
+            conversations.map(conv => (
               <div 
-                key={conversation.id}
-                className={`conversation-item ${selectedChat?.id === conversation.id ? 'active' : ''}`}
-                onClick={() => handleConversationClick(conversation)}
+                key={conv.chatRoom} 
+                className={`conversation-item ${selectedChat?.otherUserId === conv.otherUserId ? 'active' : ''}`}
+                onClick={() => handleConversationClick(conv)}
               >
                 <div className="conversation-avatar">
-                  {conversation.profileImage ? (
-                    <img 
-                      src={conversation.profileImage} 
-                      alt={conversation.name}
-                      style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
-                    />
+                  {conv.profileImageUrl ? (
+                    <img src={conv.profileImageUrl} alt={conv.otherUserName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
                   ) : (
-                    conversation.name.charAt(0).toUpperCase()
+                    <span>👤</span>
                   )}
                 </div>
                 <div className="conversation-content">
-                  <div className="conversation-name">{conversation.name}</div>
+                  <div className="conversation-header">
+                    <div className="conversation-name">{conv.otherUserName}</div>
+                    <div className="conversation-time">{formatTime(conv.timestamp)}</div>
+                  </div>
                   <div className="conversation-preview">
-                    {conversation.lastMessage.content}
+                    {conv.lastSenderId === userId ? 'You: ' : ''}{conv.lastMessage || 'Start chatting'}
                   </div>
                 </div>
+                {conv.unreadCount > 0 && (
+                  <div style={{
+                    minWidth: '20px',
+                    height: '20px',
+                    borderRadius: '10px',
+                    background: '#6366f1',
+                    color: 'white',
+                    fontSize: '11px',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 6px'
+                  }}>
+                    {conv.unreadCount}
+                  </div>
+                )}
               </div>
             ))
           )}
@@ -273,37 +165,34 @@ const Chats = () => {
         {selectedChat ? (
           <>
             <div className="chat-header">
-              <button 
-                className="mobile-back-btn"
-                onClick={handleBackToList}
-              >
+              <button className="mobile-back-btn" onClick={handleBackToList}>
                 <ArrowLeft size={20} />
               </button>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <div className="conversation-avatar" style={{ width: '32px', height: '32px' }}>
-                  {selectedChat.profileImage ? (
-                    <img 
-                      src={selectedChat.profileImage} 
-                      alt={selectedChat.name}
-                      style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
-                    />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  {selectedChat.profileImageUrl ? (
+                    <img src={selectedChat.profileImageUrl} alt={selectedChat.otherUserName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    selectedChat.name.charAt(0).toUpperCase()
+                    <span>👤</span>
                   )}
                 </div>
-                <h4>{selectedChat.name}</h4>
+                <h4 style={{ margin: 0 }}>{selectedChat.otherUserName}</h4>
               </div>
             </div>
             
             <div className="chat-messages">
-              {messages.map((message, index) => (
-                <div key={message.id || index} className={`message ${message.sender === 'Me' ? 'sent' : 'received'}`}>
-                  <div className="message-content">{message.text}</div>
+              {messages.map((msg, i) => (
+                <div key={msg.id || i} className={`message ${msg.sender === 'Me' ? 'sent' : 'received'}`}>
+                  <div className="message-content">{msg.text}</div>
                   <div className="message-time">
-                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {msg.sender === 'Me' && msg.status && (
+                      <span style={{ marginLeft: '4px', fontSize: '10px' }}>• {msg.status}</span>
+                    )}
                   </div>
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
 
             <form onSubmit={sendMessage} className="chat-input">
@@ -323,7 +212,7 @@ const Chats = () => {
           <div className="no-chat-selected">
             <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>💬</div>
             <h3>Select a conversation</h3>
-            <p>Choose a conversation from the sidebar to start chatting</p>
+            <p>Choose a conversation from the list to start chatting</p>
           </div>
         )}
       </div>

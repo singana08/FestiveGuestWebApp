@@ -1,160 +1,168 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
-import { ChatClient } from '@azure/communication-chat';
-import { AzureCommunicationTokenCredential } from '@azure/communication-common';
 import { X, Send } from 'lucide-react';
-import { useNotifications } from '../contexts/NotificationContext';
-
+import chatService from '../utils/chatService';
 import api from '../utils/api';
 
 const ChatWidget = ({ recipientId, recipientName, onClose }) => {
-  const [token, setToken] = useState(null);
-  const [chatClient, setChatClient] = useState(null);
-  const [threadId, setThreadId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const { markChatAsActive, markChatAsInactive } = useNotifications();
+  const [connected, setConnected] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   const userId = localStorage.getItem('userId');
   const messagesEndRef = useRef(null);
-  const initialized = useRef(false);
-  const chatClientRef = useRef(null);
-  const tidRef = useRef(null);
-  const userAcsIdRef = useRef(null);
-
-  const messageHandler = (e) => {
-    if (e.threadId === tidRef.current && e.sender.communicationUserId !== userAcsIdRef.current) {
-      setMessages(prev => {
-        if (prev.find(m => m.id === e.id)) return prev;
-        return [...prev, {
-          id: e.id,
-          sender: 'Recipient',
-          text: e.message,
-          timestamp: new Date()
-        }];
-      });
-    }
-  };
+  const messageHandlerRef = useRef(null);
 
   useEffect(() => {
-    if (userId && recipientId && !initialized.current) {
-      initialized.current = true;
-      initChat();
-    }
-
+    initChat();
     return () => {
-      if (chatClientRef.current) {
-        chatClientRef.current.off('chatMessageReceived', messageHandler);
-        chatClientRef.current.stopRealtimeNotifications().catch(console.error);
-        chatClientRef.current = null;
-      }
-      // Mark chat as inactive when component unmounts
-      if (tidRef.current) {
-        markChatAsInactive(tidRef.current);
+      if (messageHandlerRef.current) {
+        chatService.offReceiveMessage(messageHandlerRef.current);
       }
     };
-  }, [userId, recipientId]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, [recipientId]);
 
   const initChat = async () => {
     try {
       setLoading(true);
+      await chatService.connect();
       
-      const tokenRes = await api.get('issuechattoken', { params: { userId } });
-      const { token, user } = tokenRes.data;
-      setToken(token);
-      userAcsIdRef.current = user.communicationUserId;
-
-      const credential = new AzureCommunicationTokenCredential(token);
-      const client = new ChatClient('https://acs-festive-guest.india.communication.azure.com/', credential);
-      chatClientRef.current = client;
-      setChatClient(client);
-
-      const threadRes = await api.post('getorcreatechatthread', {
-        userId,
-        recipientId
-      });
-      const tid = threadRes.data.threadId;
-      tidRef.current = tid;
-      setThreadId(tid);
-
-      const threadClient = client.getChatThreadClient(tid);
-      const messagesIterator = threadClient.listMessages();
-      const existingMessages = [];
-      for await (const message of messagesIterator) {
-        if (message.type === 'text') {
-          existingMessages.push({
-            id: message.id,
-            sender: message.sender.communicationUserId === user.communicationUserId ? 'Me' : 'Recipient',
-            text: message.content.message,
-            timestamp: message.createdOn
+      console.log('🔗 Joining chat with:', recipientId);
+      await chatService.joinChat(recipientId);
+      console.log('✅ Joined chat successfully');
+      
+      // Setup event listeners FIRST before loading history
+      messageHandlerRef.current = (data) => {
+        console.log('📨 Message received:', data);
+        if (data.senderId === recipientId) {
+          setMessages(prev => {
+            if (prev.find(m => m.id === data.id)) return prev;
+            
+            const newMsg = {
+              id: data.id,
+              sender: 'Recipient',
+              text: data.message,
+              timestamp: new Date(data.timestamp),
+              status: data.status?.toLowerCase() || 'sent'
+            };
+            
+            const chatRoom = `chat_${[userId, recipientId].sort().join('_')}`;
+            console.log('📤 Calling MarkDelivered:', data.id, chatRoom);
+            chatService.markDelivered(data.id, chatRoom);
+            
+            // When we receive a message, refresh status of our sent messages
+            setTimeout(async () => {
+              try {
+                const historyRes = await api.get(`chat/messages/${recipientId}`);
+                if (historyRes.data) {
+                  setMessages(prevMsgs => prevMsgs.map(m => {
+                    const updated = historyRes.data.find(h => h.id === m.id);
+                    if (updated && m.sender === 'Me') {
+                      console.log(`Refreshed status for ${m.id}: ${updated.status}`);
+                      return { ...m, status: updated.status?.toLowerCase() };
+                    }
+                    return m;
+                  }));
+                }
+              } catch (e) { console.error('Failed to refresh status:', e); }
+            }, 500);
+            
+            return [...prev, newMsg];
           });
+        } else {
+          console.log('⚠️ Ignoring message from self or other user');
         }
-      }
-      setMessages(existingMessages.reverse());
-
-      await client.startRealtimeNotifications();
-      client.on('chatMessageReceived', messageHandler);
+      };
       
-      // Mark this chat as active to prevent notifications
-      markChatAsActive(tid);
+      chatService.onReceiveMessage(messageHandlerRef.current);
 
-    } catch (e) {
-      console.error('Failed to init chat:', e);
+      chatService.onMessageStatusUpdated((data) => {
+        console.log('✅ Status updated event received:', data);
+        setMessages(prev => {
+          const updated = prev.map(m => {
+            if (m.id === data.messageId) {
+              console.log(`Updating message ${m.id} from ${m.status} to ${data.status}`);
+              return { ...m, status: data.status?.toLowerCase() || m.status };
+            }
+            return m;
+          });
+          return updated;
+        });
+      });
+
+      chatService.onError((error) => {
+        console.error('Chat error:', error);
+      });
+      
+      // Load message history AFTER setting up listeners
+      try {
+        const historyRes = await api.get(`chat/messages/${recipientId}`);
+        if (historyRes.data && historyRes.data.length > 0) {
+          const formattedHistory = historyRes.data.map(msg => ({
+            id: msg.id,
+            sender: msg.senderId === userId ? 'Me' : 'Recipient',
+            text: msg.message,
+            timestamp: new Date(msg.timestamp),
+            status: msg.status?.toLowerCase() || 'sent'
+          }));
+          setMessages(formattedHistory);
+        }
+      } catch (historyError) {
+        console.error('Failed to load message history:', historyError);
+      }
+      
+      setConnected(true);
+    } catch (error) {
+      console.error('Failed to initialize chat:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    scrollToBottom();
+    
+    const chatRoom = `chat_${[userId, recipientId].sort().join('_')}`;
+    messages.forEach(m => {
+      if (m.sender === 'Recipient' && m.id && m.status !== 'read') {
+        console.log('📖 Marking as read:', m.id, chatRoom);
+        chatService.markRead(m.id, chatRoom);
+      }
+    });
+  }, [messages, userId, recipientId]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
-    
-    if (!chatClientRef.current || !tidRef.current) return;
+    if (!newMessage.trim() || !connected) return;
     
     try {
       setSending(true);
-      const threadClient = chatClientRef.current.getChatThreadClient(tidRef.current);
-      const content = newMessage;
-      
-      const sendResult = await threadClient.sendMessage({ content });
+      const messageText = newMessage;
       setNewMessage('');
       
-      setMessages(prev => {
-        if (prev.find(m => m.id === sendResult.id)) return prev;
-        return [...prev, {
-          id: sendResult.id,
-          sender: 'Me',
-          text: content,
-          timestamp: new Date()
-        }];
-      });
+      await chatService.sendMessage(recipientId, messageText);
+      
+      setMessages(prev => [...prev, {
+        id: Date.now(),
+        sender: 'Me',
+        text: messageText,
+        timestamp: new Date(),
+        status: 'sent'
+      }]);
+      
     } catch (error) {
       console.error('Failed to send message:', error);
+      alert('Failed to send message. Please try again.');
+      setNewMessage(messageText);
     } finally {
       setSending(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="chat-widget loading">
-        <div className="chat-header">
-          <span>Loading chat...</span>
-          <button onClick={onClose} className="close-btn"><X size={16} /></button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="chat-widget">
@@ -163,7 +171,7 @@ const ChatWidget = ({ recipientId, recipientName, onClose }) => {
           <div className="user-avatar">👤</div>
           <div>
             <div className="user-name">{recipientName || 'Chat'}</div>
-            <div className="user-status">● Online</div>
+            <div className="user-status">● {connected ? 'Online' : 'Connecting...'}</div>
           </div>
         </div>
         <button onClick={onClose} className="close-btn">
@@ -172,14 +180,35 @@ const ChatWidget = ({ recipientId, recipientName, onClose }) => {
       </div>
       
       <div className="chat-messages">
-        {messages.map((m, i) => (
-          <div key={m.id || i} className={`message ${m.sender === 'Me' ? 'sent' : 'received'}`}>
-            <div className="message-content">{m.text}</div>
-            <div className="message-time">
-              {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </div>
+        {loading ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+            Loading messages...
           </div>
-        ))}
+        ) : messages.length === 0 ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+            Start a conversation with {recipientName}
+          </div>
+        ) : (
+          messages.map((m, i) => {
+            console.log('Rendering message:', { id: m.id, status: m.status, sender: m.sender });
+            return (
+            <div key={m.id || i} className={`message ${m.sender === 'Me' ? 'sent' : 'received'}`}>
+              <div className="message-content">{m.text}</div>
+              <div style={{ fontSize: '11px', color: '#65676b', marginTop: '2px', textAlign: 'center' }}>
+                {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                {m.sender === 'Me' && (
+                  <span style={{ 
+                    marginLeft: '4px',
+                    color: m.status === 'read' ? '#4ade80' : '#65676b',
+                    fontWeight: '500'
+                  }}>
+                    {m.status === 'read' ? 'Read' : m.status === 'delivered' ? 'Delivered' : 'Sent'}
+                  </span>
+                )}
+              </div>
+            </div>
+          )})
+        )}
         <div ref={messagesEndRef} />
       </div>
 

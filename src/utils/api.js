@@ -1,10 +1,36 @@
 import axios from 'axios';
 
+// Determine base URL based on environment
+const getBaseURL = () => {
+  // In development, use local API
+  if (process.env.NODE_ENV === 'development') {
+    return 'http://localhost:7219/api';
+  }
+  // In production, use relative path or production URL
+  return '/api';
+};
+
 // Create axios instance with security defaults
 const api = axios.create({
-  baseURL: 'https://api.festiveguest.com/api',
+  baseURL: getBaseURL(),
   timeout: 10000 // 10 second timeout
 });
+
+// Add request interceptor for debugging
+api.interceptors.request.use(
+  (config) => {
+    console.log('API Request:', {
+      method: config.method?.toUpperCase(),
+      url: config.baseURL + '/' + config.url,
+      headers: config.headers
+    });
+    return config;
+  },
+  (error) => {
+    console.error('Request Error:', error);
+    return Promise.reject(error);
+  }
+);
 
 // Request interceptor to add JWT token
 api.interceptors.request.use(

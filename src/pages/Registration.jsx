@@ -26,7 +26,6 @@ const Registration = ({ setUser }) => {
     role: 'Guest',
     status: 'Active'
   });
-  const [selectedFile, setSelectedFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
   const [verificationOTP, setVerificationOTP] = useState('');
@@ -41,6 +40,8 @@ const Registration = ({ setUser }) => {
   const [phoneError, setPhoneError] = useState('');
   const [testResult, setTestResult] = useState('');
   const [testing, setTesting] = useState(false);
+  const [agreementAccepted, setAgreementAccepted] = useState(false);
+  const [agreementTimestamp, setAgreementTimestamp] = useState(null);
 
   const passwordRequirements = [
     { label: 'At least 8 characters', test: (pw) => pw.length >= 8 },
@@ -120,63 +121,25 @@ const Registration = ({ setUser }) => {
   useEffect(() => {
     const loadLocations = async () => {
       try {
-        const locations = await locationService.getLocations();
-        setLocationData(locations);
+        console.log('Loading locations from:', api.defaults.baseURL + '/location/states-with-cities');
+        const response = await api.get('location/states-with-cities');
+        console.log('Locations loaded successfully:', response.data);
+        setLocationData(response.data);
       } catch (error) {
         console.error('DEBUG: Failed to load locations:', error);
+        console.error('Error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          url: error.config?.url
+        });
         showToast('Registration Error: ' + error.message, 'error');
       }
     };
     loadLocations().catch(err => console.error('CRITICAL: loadLocations failed', err));
   }, []);
 
-  const handleFileChange = (e) => {
-    setSelectedFile(e.target.files[0]);
-  };
 
-  const compressImage = (file) => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      
-      img.onload = () => {
-        let { width, height } = img;
-        const maxSize = 400;
-        
-        if (width > height) {
-          if (width > maxSize) {
-            height = (height * maxSize) / width;
-            width = maxSize;
-          }
-        } else {
-          if (height > maxSize) {
-            width = (width * maxSize) / height;
-            height = maxSize;
-          }
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        let quality = 0.8;
-        const compress = () => {
-          canvas.toBlob((blob) => {
-            if (blob.size > 100000 && quality > 0.1) {
-              quality -= 0.1;
-              compress();
-            } else {
-              resolve(blob);
-            }
-          }, 'image/jpeg', quality);
-        };
-        compress();
-      };
-      
-      img.src = URL.createObjectURL(file);
-    });
-  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -192,6 +155,16 @@ const Registration = ({ setUser }) => {
     registerUser();
   };
 
+  const handleAgreementChange = (e) => {
+    const isChecked = e.target.checked;
+    setAgreementAccepted(isChecked);
+    if (isChecked) {
+      setAgreementTimestamp(Date.now());
+    } else {
+      setAgreementTimestamp(null);
+    }
+  };
+
   const registerUser = async () => {
     setLoading(true);
     setServerError(null);
@@ -203,66 +176,44 @@ const Registration = ({ setUser }) => {
         return;
       }
 
-      const finalLocation = formData.city === 'Other' ? formData.otherCity : formData.city;
-      const payload = {
-        ...formData,
-        location: `${finalLocation}, ${formData.state}`,
-        status: 'Active',
-        contactEnabled: true,
-        emailVerified: true, // Use literal true since we check it above
-      };
-
-      // Upload image if selected and add to payload before registration
-      if (selectedFile) {
-        try {
-          const compressedFile = await compressImage(selectedFile);
-          const imageFormData = new FormData();
-          imageFormData.append('file', compressedFile);
-          imageFormData.append('userId', formData.userId);
-          
-          const uploadRes = await api.post(`uploadimage`, imageFormData);
-          payload.profileImageUrl = uploadRes.data.imageUrl;
-        } catch (imgErr) {
-          console.error('Image upload failed:', imgErr);
-        }
+      if (!agreementAccepted || !agreementTimestamp) {
+        setServerError('Please accept the terms and conditions to continue.');
+        showToast('You must accept the agreement to register', 'error');
+        setLoading(false);
+        return;
       }
 
+      // Additional security check - ensure agreement was accepted recently
+      if (Date.now() - agreementTimestamp > 300000) { // 5 minutes
+        setServerError('Agreement acceptance expired. Please re-accept the terms.');
+        setAgreementAccepted(false);
+        setAgreementTimestamp(null);
+        showToast('Please re-accept the agreement', 'error');
+        setLoading(false);
+        return;
+      }
+
+      const finalLocation = formData.city === 'Other' ? formData.otherCity : formData.city;
+      const payload = {
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+        phone: formData.phone,
+        userType: formData.role,
+        location: `${finalLocation}, ${formData.state}`,
+        bio: formData.bio
+      };
+
       console.log('Sending registration payload:', payload);
-      const registrationRes = await api.post(`createupdateuser`, payload);
+      const registrationRes = await api.post(`auth/register`, payload);
       let userData = registrationRes.data;
 
-      console.log('Registration response:', userData);
-      showToast('🎉 Registration successful! Welcome to FestiveGuest!', 'success');
-      
-      if (userData && userData.token) {
-        localStorage.setItem('user', JSON.stringify(userData));
-        localStorage.setItem('userId', userData.rowKey || formData.userId);
-        localStorage.setItem('token', userData.token);
-        
-        // Force update the user state immediately
-        if (setUser) {
-          setUser(userData);
-        }
-        
-        // Clear registration state
-        setRegisteredEmail('');
-        setEmailVerified(false);
-        setOtpSent(false);
-        setDevOtpVisible('');
-        
-        // Show success message for 3 seconds before redirecting
-        const redirectPath = userData.role === 'Host' ? '/host-dashboard' : '/guest-dashboard';
-        showToast(`Redirecting to your ${userData.role.toLowerCase()} dashboard...`, 'success');
-        setTimeout(() => {
-          window.location.href = redirectPath;
-        }, 3000);
-      } else {
-        console.error('No token received from registration');
-        showToast('Registration completed but login failed. Please login manually.', 'warning');
+      if (userData.success) {
+        showToast('🎉 Registration successful! Please login to continue.', 'success');
         setTimeout(() => navigate('/login'), 2000);
       }
     } catch (error) {
-      const msg = error.response?.data?.error || error.message;
+      const msg = error.response?.data?.message || error.message;
       if (error.response?.status === 429) {
         const rateLimitMsg = 'Too many attempts. Please wait 15 minutes and try again.';
         setServerError(rateLimitMsg);
@@ -283,19 +234,27 @@ const Registration = ({ setUser }) => {
     }
     setOtpSending(true);
     try {
-      const res = await api.post('verifyregistrationemail', { email: formData.email, userId: formData.userId });
-      setOtpSent(true);
-      setRegisteredEmail(formData.email);
-      if (res?.data?.otp) {
-        setDevOtpVisible(res.data.otp);
-        showToast('DEV OTP: ' + res.data.otp, 'success');
-      } else {
-        setDevOtpVisible('');
+      console.log('Sending OTP request:', { email: formData.email, purpose: 'registration' });
+      const res = await api.post('email/send-otp', { 
+        email: formData.email,
+        purpose: 'registration'
+      });
+      console.log('OTP response:', res.data);
+      if (res.data.success) {
+        setOtpSent(true);
+        setRegisteredEmail(formData.email);
+        showToast('OTP sent to your email', 'success');
       }
-      showToast('OTP sent to your email', 'success');
     } catch (err) {
-      const msg = err.response?.data?.error || err.message;
-      setServerError(msg);
+      console.error('OTP Error Details:', {
+        status: err.response?.status,
+        data: err.response?.data,
+        message: err.message,
+        fullResponse: err.response
+      });
+      console.error('Full error object:', err);
+      const msg = err.response?.data?.message || err.response?.data?.error || err.response?.data || err.message;
+      setServerError(JSON.stringify(err.response?.data) || msg);
       showToast('Failed to send OTP: ' + msg, 'error');
     } finally {
       setOtpSending(false);
@@ -309,13 +268,15 @@ const Registration = ({ setUser }) => {
     }
     setLoading(true);
     try {
-      const res = await api.post('confirmregistrationemail', { email: formData.email, otp: verificationOTP, userId: formData.userId });
-      setEmailVerified(true);
-      setOtpSent(false);
-      setDevOtpVisible('');
-      showToast(res.data?.message || 'Email verified', 'success');
+      const res = await api.post('email/validate-otp', { email: formData.email, otpCode: verificationOTP });
+      if (res.data.success) {
+        setEmailVerified(true);
+        setOtpSent(false);
+        setDevOtpVisible('');
+        showToast(res.data?.message || 'Email verified', 'success');
+      }
     } catch (err) {
-      const msg = err.response?.data?.error || err.message;
+      const msg = err.response?.data?.message || err.message;
       showToast('Verification failed: ' + msg, 'error');
     } finally {
       setLoading(false);
@@ -345,49 +306,69 @@ const Registration = ({ setUser }) => {
         </div>
       )}
       {serverError && (
-        <div style={{ maxWidth: '550px', margin: '10px auto', color: '#b91c1c', background: '#fee2e2', padding: '10px', borderRadius: '6px' }}>
+        <div style={{ maxWidth: '1200px', margin: '10px auto', color: '#b91c1c', background: '#fee2e2', padding: '10px', borderRadius: '6px' }}>
           <strong>Error:</strong> {serverError}
         </div>
       )}
-      <div className="card" style={{ maxWidth: '550px', margin: '50px auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h2 style={{ color: '#1e293b', marginBottom: '0.5rem' }}>
-            Complete Your Registration
-          </h2>
-          <p style={{ color: '#64748b' }}>
-            Join our community of festival enthusiasts
-          </p>
-        </div>
+      
+      {/* Desktop Layout */}
+      <div className="registration-layout">
         
-        {/* Disclaimer */}
-        <div style={{ 
-          marginBottom: '2rem', 
-          padding: '1.5rem', 
-          background: '#fef3c7', 
-          border: '1px solid #f59e0b', 
-          borderRadius: '0.75rem',
-          borderLeft: '4px solid #f59e0b'
-        }}>
-          <h4 style={{ margin: '0 0 1rem 0', color: '#92400e', fontSize: '1rem', fontWeight: '600' }}>⚠️ Important Disclaimer</h4>
-          <div style={{ color: '#92400e', fontSize: '0.9rem', lineHeight: '1.5' }}>
-            <p style={{ margin: '0 0 0.75rem 0' }}>
-              <strong>FestiveGuest</strong> is a platform that connects like-minded people for festival celebrations. By registering, you acknowledge and agree that:
+        {/* Disclaimer Section - Left Side */}
+        <div className="disclaimer-section">
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <h2 style={{ color: '#1e293b', marginBottom: '0.5rem' }}>
+              Welcome to FestiveGuest
+            </h2>
+            <p style={{ color: '#64748b' }}>
+              Connect with festival enthusiasts
             </p>
-            <ul style={{ margin: '0', paddingLeft: '1.25rem' }}>
-              <li style={{ marginBottom: '0.5rem' }}>We are <strong>not responsible</strong> for any incidents, damages, or issues that may occur during your interactions or meetings.</li>
-              <li style={{ marginBottom: '0.5rem' }}>We do <strong>not guarantee</strong> that you will find suitable hosts or guests, as this depends on availability and mutual compatibility.</li>
-              <li style={{ marginBottom: '0.5rem' }}>We act solely as a <strong>platform for introductions</strong> and do not verify the background, intentions, or authenticity of users.</li>
-              <li style={{ marginBottom: '0.5rem' }}>All interactions, arrangements, and meetings are <strong>at your own risk and discretion</strong>.</li>
-              <li style={{ marginBottom: '0.5rem' }}><strong>Payment & Financial Caution:</strong> Hosts may request payment for services (accommodation, food, etc.). It is entirely your responsibility to decide whether to pay in advance or after services are rendered. Both hosts and guests should exercise caution and verify each other's authenticity before any financial transactions.</li>
-              <li>We <strong>strongly recommend</strong> meeting in public places first and taking necessary safety precautions.</li>
-            </ul>
-            <p style={{ margin: '0.75rem 0 0 0', fontWeight: '600' }}>
-              By proceeding with registration, you accept full responsibility for your safety and interactions.
-            </p>
+          </div>
+          
+          {/* Disclaimer */}
+          <div style={{ 
+            padding: '1.5rem', 
+            background: '#fef3c7', 
+            border: '1px solid #f59e0b', 
+            borderRadius: '0.75rem',
+            borderLeft: '4px solid #f59e0b',
+            height: 'fit-content',
+            position: 'sticky',
+            top: '2rem'
+          }}>
+            <h4 style={{ margin: '0 0 1rem 0', color: '#92400e', fontSize: '1rem', fontWeight: '600' }}>⚠️ Important Disclaimer</h4>
+            <div style={{ color: '#92400e', fontSize: '0.9rem', lineHeight: '1.5' }}>
+              <p style={{ margin: '0 0 0.75rem 0' }}>
+                <strong>FestiveGuest</strong> is a platform that connects like-minded people for festival celebrations. By registering, you acknowledge and agree that:
+              </p>
+              <ul style={{ margin: '0', paddingLeft: '1.25rem' }}>
+                <li style={{ marginBottom: '0.5rem' }}>We are <strong>not responsible</strong> for any incidents, damages, or issues that may occur during your interactions or meetings.</li>
+                <li style={{ marginBottom: '0.5rem' }}>We do <strong>not guarantee</strong> that you will find suitable hosts or guests, as this depends on availability and mutual compatibility.</li>
+                <li style={{ marginBottom: '0.5rem' }}>We act solely as a <strong>platform for introductions</strong> and do not verify the background, intentions, or authenticity of users.</li>
+                <li style={{ marginBottom: '0.5rem' }}>All interactions, arrangements, and meetings are <strong>at your own risk and discretion</strong>.</li>
+                <li style={{ marginBottom: '0.5rem' }}><strong>Payment & Financial Caution:</strong> Hosts may request payment for services (accommodation, food, etc.). It is entirely your responsibility to decide whether to pay in advance or after services are rendered. Both hosts and guests should exercise caution and verify each other's authenticity before any financial transactions.</li>
+                <li>We <strong>strongly recommend</strong> meeting in public places first and taking necessary safety precautions.</li>
+              </ul>
+              <p style={{ margin: '0.75rem 0 0 0', fontWeight: '600' }}>
+                By proceeding with registration, you accept full responsibility for your safety and interactions.
+              </p>
+            </div>
           </div>
         </div>
         
-        <form onSubmit={handleSubmit}>
+        {/* Registration Form - Right Side */}
+        <div className="registration-form-section">
+          <div className="card" style={{ margin: '0', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ color: '#1e293b', marginBottom: '0.5rem' }}>
+                Complete Your Registration
+              </h3>
+              <p style={{ color: '#64748b' }}>
+                Join our community of festival enthusiasts
+              </p>
+            </div>
+            
+            <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label style={{ fontWeight: '600', color: '#374151' }}>Choose Your Role</label>
             <select 
@@ -601,50 +582,88 @@ const Registration = ({ setUser }) => {
             </div>
           </div>
 
-          <div className="form-group">
-            <label style={{ fontWeight: '600', color: '#374151' }}>Profile Photo (Optional)</label>
-            <input
-              type="file"
-              onChange={handleFileChange}
-              accept="image/*"
-              style={{ 
-                fontSize: '1rem', 
-                padding: '1rem',
-                border: '2px dashed #e2e8f0',
-                borderRadius: '0.5rem',
-                background: '#f8fafc',
-                width: '100%'
-              }}
-            />
-            {selectedFile && (
-              <p style={{ margin: '0.5rem 0 0 0', color: '#10b981', fontSize: '0.875rem' }}>
-                ✓ {selectedFile.name} selected
-              </p>
-            )}
+
+
+          {/* Agreement Checkbox */}
+          <div style={{ 
+            marginTop: '2rem',
+            padding: '1.5rem', 
+            background: '#f0f9ff', 
+            border: '2px solid #0ea5e9', 
+            borderRadius: '0.75rem'
+          }}>
+            <label style={{ 
+              display: 'flex', 
+              alignItems: 'flex-start', 
+              gap: '1rem',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              lineHeight: '1.5'
+            }}>
+              <input
+                type="checkbox"
+                checked={agreementAccepted}
+                onChange={handleAgreementChange}
+                required
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  marginTop: '2px',
+                  cursor: 'pointer',
+                  accentColor: '#0ea5e9'
+                }}
+              />
+              <span style={{ color: '#0c4a6e', fontWeight: '500' }}>
+                I have read, understood, and agree to the <strong>Important Disclaimer</strong> above. 
+                I acknowledge that I am using this platform at my own risk and accept full responsibility 
+                for my safety and interactions.
+              </span>
+            </label>
           </div>
 
-          <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%', padding: '1rem', fontSize: '1.1rem' }}>
+          <button 
+            type="submit" 
+            className="btn btn-primary" 
+            disabled={loading || !agreementAccepted} 
+            style={{ 
+              width: '100%', 
+              padding: '1rem', 
+              fontSize: '1.1rem',
+              marginTop: '1.5rem',
+              opacity: !agreementAccepted ? 0.5 : 1,
+              cursor: !agreementAccepted ? 'not-allowed' : 'pointer'
+            }}
+          >
             {loading ? 'Registering...' : 'Register Now'}
           </button>
-        </form>
+          
+          {/* Debug info */}
+          {process.env.NODE_ENV === 'development' && (
+            <div style={{ marginTop: '1rem', padding: '0.5rem', background: '#f3f4f6', borderRadius: '0.25rem', fontSize: '0.8rem' }}>
+              <p>Debug: Agreement: {agreementAccepted ? '✓' : '✗'} | Email: {emailVerified ? '✓' : '✗'}</p>
+            </div>
+          )}
+            </form>
 
-        <div style={{ marginTop: '2rem', textAlign: 'center', padding: '1.5rem', background: '#f8fafc', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
-          <p style={{ margin: '0', color: '#64748b', fontSize: '1.05rem' }}>
-            Already have an account? <button className="btn btn-primary" onClick={() => navigate('/login')} style={{ marginLeft: '0.5rem', padding: '0.5rem 1.5rem' }}>Login</button>
-          </p>
-        </div>
-        
-        {/* Debug section - remove in production */}
-        {process.env.NODE_ENV === 'development' && (
-          <div style={{ marginTop: '1rem', padding: '1rem', background: '#f3f4f6', borderRadius: '0.5rem', fontSize: '0.8rem' }}>
-            <p><strong>Debug Info:</strong></p>
-            <p>Location Data Keys: {Object.keys(locationData || {}).length > 0 ? Object.keys(locationData || {}).join(', ') : 'No locations loaded'}</p>
-            <button type="button" onClick={testAndSeedLocations} disabled={testing} style={{ padding: '0.5rem', fontSize: '0.8rem' }}>
-              {testing ? 'Testing...' : 'Test & Seed Locations'}
-            </button>
-            {testResult && <p style={{ marginTop: '0.5rem', color: testResult.includes('✅') ? 'green' : 'red' }}>{testResult}</p>}
+            <div style={{ marginTop: '2rem', textAlign: 'center', padding: '1.5rem', background: '#f8fafc', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
+              <p style={{ margin: '0', color: '#64748b', fontSize: '1.05rem' }}>
+                Already have an account? <button className="btn btn-primary" onClick={() => navigate('/login')} style={{ marginLeft: '0.5rem', padding: '0.5rem 1.5rem' }}>Login</button>
+              </p>
+            </div>
+            
+            {/* Debug section - remove in production */}
+            {process.env.NODE_ENV === 'development' && (
+              <div style={{ marginTop: '1rem', padding: '1rem', background: '#f3f4f6', borderRadius: '0.5rem', fontSize: '0.8rem' }}>
+                <p><strong>Debug Info:</strong></p>
+                <p>Location Data Keys: {Object.keys(locationData || {}).length > 0 ? Object.keys(locationData || {}).join(', ') : 'No locations loaded'}</p>
+                <button type="button" onClick={testAndSeedLocations} disabled={testing} style={{ padding: '0.5rem', fontSize: '0.8rem' }}>
+                  {testing ? 'Testing...' : 'Test & Seed Locations'}
+                </button>
+                {testResult && <p style={{ marginTop: '0.5rem', color: testResult.includes('✅') ? 'green' : 'red' }}>{testResult}</p>}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
