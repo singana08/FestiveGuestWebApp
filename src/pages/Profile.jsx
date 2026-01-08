@@ -125,9 +125,7 @@ function Profile() {
 
   if (!user) return (
     <div className="profile-container text-center" style={{ padding: '3rem' }}>
-      <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>😕</div>
-      <h3>Profile Not Found</h3>
-      <p style={{ color: '#64748b' }}>Please register or login first to view your profile.</p>
+      <div className="loading">Loading profile...</div>
     </div>
   );
 

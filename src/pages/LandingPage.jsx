@@ -5,7 +5,7 @@ const LandingPage = ({ user }) => {
   const navigate = useNavigate();
 
   const getDashboardRoute = () => {
-    const role = user?.role || user?.partitionKey;
+    const role = user?.role || user?.userType || user?.partitionKey;
     if (role === 'Host') return '/host-dashboard';
     if (role === 'Guest') return '/guest-dashboard';
     if (role === 'Admin') return '/admin';

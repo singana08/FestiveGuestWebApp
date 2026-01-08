@@ -17,24 +17,25 @@ import Help from './pages/Help';
 import './App.css';
 
 const AppContent = () => {
-  const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [user, setUser] = useState(() => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Initialize user from localStorage immediately
+  useEffect(() => {
     try {
       const saved = localStorage.getItem('user');
       if (saved) {
         const userData = JSON.parse(saved);
-        // Validate user data structure - accept both role and userType
         if (userData && userData.token && userData.email && (userData.role || userData.userType)) {
-          return userData;
+          setUser(userData);
         }
       }
     } catch (e) {
       console.warn('Invalid user data in localStorage');
       localStorage.removeItem('user');
     }
-    return null;
-  });
+  }, []);
   const { unreadCount, clearUnreadCount } = useNotifications();
   const location = useLocation();
 
