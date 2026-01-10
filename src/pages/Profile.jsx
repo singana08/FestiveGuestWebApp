@@ -1,34 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Edit, X, Upload, Share, Copy, Users, MessageSquare, Send } from 'lucide-react';
 import api from '../utils/api';
-
-const HostImage = ({ src, alt, className, style }) => {
-  const [imgSrc, setImgSrc] = useState(src || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9Ijc1IiBjeT0iNzUiIHI9Ijc1IiBmaWxsPSIjZjFmNWY5Ii8+Cjx0ZXh0IHg9Ijc1IiB5PSI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4YiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0Ij5ObyBJbWFnZTwvdGV4dD4KPHN2Zz4K');
-  const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    if (src && !hasError) {
-      setImgSrc(src);
-    }
-  }, [src, hasError]);
-
-  const handleError = () => {
-    if (!hasError) {
-      setHasError(true);
-      setImgSrc('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgdmlld0JveD0iMCAwIDE1MCAxNTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9Ijc1IiBjeT0iNzUiIHI9Ijc1IiBmaWxsPSIjZjFmNWY5Ii8+Cjx0ZXh0IHg9Ijc1IiB5PSI4MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4YiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjE0Ij5ObyBJbWFnZTwvdGV4dD4KPHN2Zz4K');
-    }
-  };
-
-  return (
-    <img 
-      src={imgSrc}
-      alt={alt}
-      className={className}
-      style={style}
-      onError={handleError}
-    />
-  );
-};
+import ImageWithSas from '../components/ImageWithSas';
 
 function Profile() {
   const [user, setUser] = useState(null);
@@ -218,10 +191,11 @@ function Profile() {
       
       <div className="profile-card">
         <div className="profile-image-section">
-          <HostImage 
+          <ImageWithSas 
             src={previewUrl || user.profileImageUrl} 
             alt="Profile" 
             className="profile-img-preview"
+            fallbackText="Profile"
           />
           <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', alignItems: 'center' }}>
             {!isEditing ? (

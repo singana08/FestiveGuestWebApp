@@ -28,13 +28,18 @@ const storageService = {
       return sasUrl;
     } catch (error) {
       console.error('Error fetching SAS URL:', error);
-      // Fallback to direct URL (will fail if container is private)
-      return `https://festivegueststorage.blob.core.windows.net/${container}/${fileName}`;
+      // Return null to let the component handle fallback
+      return null;
     }
   },
 
   clearCache() {
     this.sasCache.clear();
+  },
+
+  // Helper method to check if URL needs SAS token
+  needsSasToken(url) {
+    return url && url.includes('blob.core.windows.net') && !url.includes('?');
   }
 };
 

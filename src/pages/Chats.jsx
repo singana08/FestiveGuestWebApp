@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, Send, X, ArrowLeft } from 'lucide-react';
 import api from '../utils/api';
 import chatService from '../utils/chatService';
+import ImageWithSas from '../components/ImageWithSas';
 
 const Chats = () => {
   const [conversations, setConversations] = useState([]);
@@ -122,11 +123,12 @@ const Chats = () => {
                 onClick={() => handleConversationClick(conv)}
               >
                 <div className="conversation-avatar">
-                  {conv.profileImageUrl ? (
-                    <img src={conv.profileImageUrl} alt={conv.otherUserName} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
-                  ) : (
-                    <span>👤</span>
-                  )}
+                  <ImageWithSas 
+                    src={conv.profileImageUrl}
+                    alt={conv.otherUserName}
+                    style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                    fallbackText="👤"
+                  />
                 </div>
                 <div className="conversation-content">
                   <div className="conversation-header">
@@ -170,11 +172,12 @@ const Chats = () => {
               </button>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                  {selectedChat.profileImageUrl ? (
-                    <img src={selectedChat.profileImageUrl} alt={selectedChat.otherUserName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <span>👤</span>
-                  )}
+                  <ImageWithSas 
+                    src={selectedChat.profileImageUrl}
+                    alt={selectedChat.otherUserName}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    fallbackText="👤"
+                  />
                 </div>
                 <h4 style={{ margin: 0 }}>{selectedChat.otherUserName}</h4>
               </div>

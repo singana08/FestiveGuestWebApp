@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Send } from 'lucide-react';
 import chatService from '../utils/chatService';
 import api from '../utils/api';
+import ImageWithSas from '../components/ImageWithSas';
 
-const ChatWidget = ({ recipientId, recipientName, onClose }) => {
+const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
@@ -168,7 +169,12 @@ const ChatWidget = ({ recipientId, recipientName, onClose }) => {
     <div className="chat-widget">
       <div className="chat-header">
         <div className="chat-user-info">
-          <div className="user-avatar">👤</div>
+          <ImageWithSas 
+            src={recipientImageUrl}
+            alt={recipientName}
+            className="user-avatar"
+            fallbackText="User"
+          />
           <div>
             <div className="user-name">{recipientName || 'Chat'}</div>
             <div className="user-status">● {connected ? 'Online' : 'Connecting...'}</div>

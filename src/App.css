@@ -3062,11 +3062,23 @@ body {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  background: #3b82f6;
+  background: var(--primary);
   color: white;
-  font-size: 0.7rem;
-  padding: 0.2rem 0.4rem;
+  padding: 0.25rem 0.5rem;
   border-radius: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+/* Modal Profile Image Fixed Placeholder */
+.modal-profile-image {
+  width: 150px;
+  height: 150px;
+  border-radius: 0.5rem;
+  object-fit: cover;
+  border: 2px solid var(--border);
+  background: #f1f5f9;
+  flex-shrink: 0;
 }
 
 .review-stars {

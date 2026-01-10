@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, Calendar, MapPin, MessageCircle } from 'lucide-react';
 import api from '../utils/api';
+import ImageWithSas from '../components/ImageWithSas';
 
 function PublicProfile() {
   const { userName } = useParams();
@@ -97,8 +98,8 @@ function PublicProfile() {
       
       <div className="profile-card">
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <img 
-            src={profile.profileImageUrl || 'https://via.placeholder.com/150'} 
+          <ImageWithSas 
+            src={profile.profileImageUrl}
             alt={profile.name}
             style={{ 
               width: '150px', 
@@ -108,6 +109,7 @@ function PublicProfile() {
               border: '4px solid var(--border)',
               marginBottom: '1rem'
             }}
+            fallbackText="Profile"
           />
           
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>

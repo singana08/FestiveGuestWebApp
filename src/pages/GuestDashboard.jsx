@@ -3,34 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { ChevronDown, ChevronRight, MapPin, Plus, Minus, MessageCircle, Home, Users, Search, Filter, Star, CheckCircle, Eye } from 'lucide-react';
 import ChatWidget from '../components/ChatWidget';
+import ImageWithSas from '../components/ImageWithSas';
 import locationService from '../utils/locationService';
-
-const HostImage = ({ src, alt, className, userId }) => {
-  const [imgSrc, setImgSrc] = useState(src || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjZjFmNWY5Ii8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhiIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiPk5vIEltYWdlPC90ZXh0Pgo8L3N2Zz4K');
-  const [hasError, setHasError] = useState(false);
-
-  useEffect(() => {
-    if (src && !hasError) {
-      setImgSrc(src);
-    }
-  }, [src, hasError]);
-
-  const handleError = () => {
-    if (!hasError) {
-      setHasError(true);
-      setImgSrc('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjZjFmNWY5Ii8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhiIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiPk5vIEltYWdlPC90ZXh0Pgo8L3N2Zz4K');
-    }
-  };
-
-  return (
-    <img 
-      src={imgSrc}
-      alt={alt}
-      className={className}
-      onError={handleError}
-    />
-  );
-};
 
 const GuestDashboard = ({ user }) => {
   const navigate = useNavigate();
@@ -335,11 +309,12 @@ const GuestDashboard = ({ user }) => {
                 {filteredHosts.map(host => (
                   <div key={host.userId} className="host-card-horizontal">
                     <div className="host-image-section">
-                      <HostImage 
+                      <ImageWithSas 
                         src={host.profileImageUrl}
                         alt={host.name}
                         className="host-card-img"
                         userId={host.userId}
+                        fallbackText="Host"
                       />
                       {host.status === 'Verified' && (
                         <div className="verified-badge">
@@ -393,17 +368,11 @@ const GuestDashboard = ({ user }) => {
             </div>
             <div className="modal-body">
               <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                <HostImage 
+                <ImageWithSas 
                   src={selectedProfile.profileImageUrl}
                   alt={selectedProfile.name}
-                  style={{ 
-                    width: '120px', 
-                    height: '120px', 
-                    borderRadius: '50%', 
-                    objectFit: 'cover',
-                    border: '3px solid var(--border)',
-                    marginBottom: '1rem'
-                  }}
+                  className="modal-profile-image"
+                  fallbackText="Profile"
                 />
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                   <span style={{ color: '#64748b' }}>{selectedProfile.location}</span>
@@ -558,6 +527,7 @@ const GuestDashboard = ({ user }) => {
         <ChatWidget 
           recipientId={activeChat.id}
           recipientName={activeChat.name}
+          recipientImageUrl={hosts.find(h => h.userId === activeChat.id)?.profileImageUrl}
           onClose={() => setActiveChat(null)}
         />
       )}
