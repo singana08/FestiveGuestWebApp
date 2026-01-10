@@ -543,12 +543,14 @@ const Registration = ({ setUser }) => {
               name="phone"
               value={formData.phone}
               onChange={(e) => {
-                handleInputChange(e);
-                validatePhone(e.target.value);
+                const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                handleInputChange({ target: { name: 'phone', value } });
+                validatePhone(value);
               }}
               onBlur={(e) => validatePhone(e.target.value)}
               placeholder="Enter your 10-digit mobile number"
               required
+              maxLength={10}
               style={{ fontSize: '1rem', padding: '1rem', borderColor: phoneError ? '#dc2626' : '#cbd5e1' }}
             />
             {phoneError && (

@@ -18,6 +18,7 @@ const GuestDashboard = ({ user }) => {
   const [locationData, setLocationData] = useState({});
   const [signalRStatus, setSignalRStatus] = useState('Not connected');
   const [selectedProfile, setSelectedProfile] = useState(null);
+  const [selectedHostId, setSelectedHostId] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: 0, comment: '' });
@@ -86,6 +87,23 @@ const GuestDashboard = ({ user }) => {
     setSelectedLocations([]);
   };
 
+  const closeModal = () => {
+    setSelectedProfile(null);
+    setSelectedHostId(null);
+    document.body.style.overflow = 'unset';
+  };
+
+  useEffect(() => {
+    if (selectedProfile) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedProfile]);
+
   const fetchHosts = async () => {
     try {
       const res = await api.get('user/browse');
@@ -108,6 +126,7 @@ const GuestDashboard = ({ user }) => {
   };
 
   const handleViewProfile = async (host) => {
+    setSelectedHostId(host.userId);
     setProfileLoading(true);
     try {
       const profileRes = await api.post('user/public-profile', {
@@ -307,7 +326,7 @@ const GuestDashboard = ({ user }) => {
             ) : (
               <div className="compact-grid">
                 {filteredHosts.map(host => (
-                  <div key={host.userId} className="host-card-horizontal">
+                  <div key={host.userId} className={`host-card-horizontal ${selectedHostId === host.userId ? 'selected' : ''}`}>
                     <div className="host-image-section">
                       <ImageWithSas 
                         src={host.profileImageUrl}
@@ -360,26 +379,30 @@ const GuestDashboard = ({ user }) => {
       
       {/* Profile Modal */}
       {selectedProfile && (
-        <div className="modal-overlay" onClick={() => setSelectedProfile(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
             <div className="modal-header">
               <h3>{selectedProfile.name}</h3>
-              <button onClick={() => setSelectedProfile(null)} className="modal-close">×</button>
+              <button onClick={closeModal} className="modal-close">×</button>
             </div>
             <div className="modal-body">
-              <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'flex-start' }}>
                 <ImageWithSas 
                   src={selectedProfile.profileImageUrl}
                   alt={selectedProfile.name}
                   className="modal-profile-image"
                   fallbackText="Profile"
+                  style={{ flexShrink: 0, width: '100px', height: '100px' }}
                 />
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <span style={{ color: '#64748b' }}>{selectedProfile.location}</span>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem' }}>{selectedProfile.name}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <span style={{ color: '#64748b' }}>📍 {selectedProfile.location}</span>
+                  </div>
+                  <p style={{ color: '#64748b', fontSize: '0.9rem', margin: '0' }}>
+                    {selectedProfile.userType} • Joined {new Date(selectedProfile.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
+                  </p>
                 </div>
-                <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-                  {selectedProfile.userType} • Joined {new Date(selectedProfile.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
-                </p>
               </div>
               
               <div style={{ marginBottom: '1.5rem' }}>

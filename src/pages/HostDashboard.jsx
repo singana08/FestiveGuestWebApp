@@ -15,6 +15,7 @@ const HostDashboard = ({ user }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [locationData, setLocationData] = useState({});
   const [selectedProfile, setSelectedProfile] = useState(null);
+  const [selectedGuestId, setSelectedGuestId] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: 0, comment: '' });
@@ -88,7 +89,25 @@ const HostDashboard = ({ user }) => {
     setSelectedLocations([]);
   };
 
+  const closeModal = () => {
+    setSelectedProfile(null);
+    setSelectedGuestId(null);
+    document.body.style.overflow = 'unset';
+  };
+
+  useEffect(() => {
+    if (selectedProfile) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedProfile]);
+
   const handleViewProfile = async (guest) => {
+    setSelectedGuestId(guest.userId);
     setProfileLoading(true);
     try {
       const profileRes = await api.post('user/public-profile', {
@@ -295,7 +314,7 @@ const HostDashboard = ({ user }) => {
         ) : (
           <div className="compact-grid">
             {filteredGuests.map(guest => (
-              <div key={guest.userId} className="host-card-horizontal">
+              <div key={guest.userId} className={`host-card-horizontal ${selectedGuestId === guest.userId ? 'selected' : ''}`}>
                 <div className="host-image-section">
                   <ImageWithSas 
                     src={guest.profileImageUrl} 
@@ -337,26 +356,30 @@ const HostDashboard = ({ user }) => {
       
       {/* Profile Modal */}
       {selectedProfile && (
-        <div className="modal-overlay" onClick={() => setSelectedProfile(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
             <div className="modal-header">
               <h3>{selectedProfile.name}</h3>
-              <button onClick={() => setSelectedProfile(null)} className="modal-close">×</button>
+              <button onClick={closeModal} className="modal-close">×</button>
             </div>
             <div className="modal-body">
-              <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'flex-start' }}>
                 <ImageWithSas 
                   src={selectedProfile.profileImageUrl}
                   alt={selectedProfile.name}
                   className="modal-profile-image"
                   fallbackText="Guest"
-                />                
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                  <span style={{ color: '#64748b' }}>{selectedProfile.location}</span>
+                  style={{ flexShrink: 0, width: '100px', height: '100px' }}
+                />
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem' }}>{selectedProfile.name}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <span style={{ color: '#64748b' }}>📍 {selectedProfile.location}</span>
+                  </div>
+                  <p style={{ color: '#64748b', fontSize: '0.9rem', margin: '0' }}>
+                    {selectedProfile.userType} • Joined {new Date(selectedProfile.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
+                  </p>
                 </div>
-                <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-                  {selectedProfile.userType} • Joined {new Date(selectedProfile.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
-                </p>
               </div>
               
               <div style={{ marginBottom: '1.5rem' }}>
