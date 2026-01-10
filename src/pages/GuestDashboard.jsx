@@ -6,7 +6,7 @@ import ChatWidget from '../components/ChatWidget';
 import locationService from '../utils/locationService';
 
 const HostImage = ({ src, alt, className, userId }) => {
-  const [imgSrc, setImgSrc] = useState(src || 'https://via.placeholder.com/400x300/f1f5f9/64748b?text=No+Image');
+  const [imgSrc, setImgSrc] = useState(src || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjZjFmNWY5Ii8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhiIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiPk5vIEltYWdlPC90ZXh0Pgo8L3N2Zz4K');
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
@@ -18,7 +18,7 @@ const HostImage = ({ src, alt, className, userId }) => {
   const handleError = () => {
     if (!hasError) {
       setHasError(true);
-      setImgSrc('https://via.placeholder.com/400x300/f1f5f9/64748b?text=No+Image');
+      setImgSrc('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjZjFmNWY5Ii8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhiIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiPk5vIEltYWdlPC90ZXh0Pgo8L3N2Zz4K');
     }
   };
 
@@ -394,7 +394,7 @@ const GuestDashboard = ({ user }) => {
             <div className="modal-body">
               <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
                 <img 
-                  src={selectedProfile.profileImageUrl || 'https://via.placeholder.com/120'} 
+                  src={selectedProfile.profileImageUrl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDEyMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9IjYwIiBjeT0iNjAiIHI9IjYwIiBmaWxsPSIjZjFmNWY5Ii8+Cjx0ZXh0IHg9IjYwIiB5PSI2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4YiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIj5ObyBJbWFnZTwvdGV4dD4KPHN2Zz4K'} 
                   alt={selectedProfile.name}
                   style={{ 
                     width: '120px', 
