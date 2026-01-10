@@ -2693,6 +2693,8 @@ body {
 .host-image-section {
   width: 40%;
   position: relative;
+  height: 180px;
+  min-height: 180px;
 }
 
 .host-card-img {
@@ -2788,7 +2790,8 @@ body {
   
   .host-image-section {
     width: 40%;
-    min-height: auto;
+    height: 120px;
+    min-height: 120px;
   }
   
   .host-content-section {

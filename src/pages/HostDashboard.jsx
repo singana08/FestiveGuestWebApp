@@ -4,6 +4,33 @@ import { ChevronDown, ChevronRight, MapPin, Plus, Minus, MessageCircle, Home, Us
 import ChatWidget from '../components/ChatWidget';
 import locationService from '../utils/locationService';
 
+const HostImage = ({ src, alt, className }) => {
+  const [imgSrc, setImgSrc] = useState(src || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjZjFmNWY5Ii8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhiIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiPkd1ZXN0PC90ZXh0Pgo8L3N2Zz4K');
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    if (src && !hasError) {
+      setImgSrc(src);
+    }
+  }, [src, hasError]);
+
+  const handleError = () => {
+    if (!hasError) {
+      setHasError(true);
+      setImgSrc('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjZjFmNWY5Ii8+Cjx0ZXh0IHg9IjIwMCIgeT0iMTUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjQ3NDhiIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTgiPkd1ZXN0PC90ZXh0Pgo8L3N2Zz4K');
+    }
+  };
+
+  return (
+    <img 
+      src={imgSrc}
+      alt={alt}
+      className={className}
+      onError={handleError}
+    />
+  );
+};
+
 const HostDashboard = ({ user }) => {
   const [guests, setGuests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -208,8 +235,8 @@ const HostDashboard = ({ user }) => {
             {filteredGuests.map(guest => (
               <div key={guest.userId} className="host-card-horizontal">
                 <div className="host-image-section">
-                  <img 
-                    src={guest.profileImageUrl || 'https://via.placeholder.com/400x300?text=Guest'} 
+                  <HostImage 
+                    src={guest.profileImageUrl} 
                     alt={guest.name}
                     className="host-card-img"
                   />

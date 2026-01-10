@@ -393,8 +393,8 @@ const GuestDashboard = ({ user }) => {
             </div>
             <div className="modal-body">
               <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-                <img 
-                  src={selectedProfile.profileImageUrl || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjEyMCIgdmlld0JveD0iMCAwIDEyMCAxMjAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxjaXJjbGUgY3g9IjYwIiBjeT0iNjAiIHI9IjYwIiBmaWxsPSIjZjFmNWY5Ii8+Cjx0ZXh0IHg9IjYwIiB5PSI2NSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY0NzQ4YiIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIj5ObyBJbWFnZTwvdGV4dD4KPHN2Zz4K'} 
+                <HostImage 
+                  src={selectedProfile.profileImageUrl}
                   alt={selectedProfile.name}
                   style={{ 
                     width: '120px', 
