@@ -241,11 +241,10 @@ const HostDashboard = ({ user }) => {
                     className="host-card-img"
                   />
                   <button 
-                    className="btn btn-primary chat-btn-overlay"
+                    className="btn btn-primary overlay-btn"
                     onClick={() => setActiveChat({ id: guest.userId, name: guest.name })}
                   >
-                    <MessageCircle size={16} className="chat-icon" />
-                    <span className="chat-text">Chat</span>
+                    <MessageCircle size={14} /> Chat
                   </button>
                 </div>
                 
