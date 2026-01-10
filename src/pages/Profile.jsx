@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, X, Upload } from 'lucide-react';
+import { Edit, X, Upload, Share, Copy, Users, MessageSquare, Send } from 'lucide-react';
 import api from '../utils/api';
 
 function Profile() {
@@ -7,6 +7,11 @@ function Profile() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const [referralCode, setReferralCode] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [feedback, setFeedback] = useState({ subject: '', message: '' });
+  const [sendingFeedback, setSendingFeedback] = useState(false);
+  const [feedbackSent, setFeedbackSent] = useState(false);
   
   const userId = localStorage.getItem('userId');
 
@@ -31,6 +36,9 @@ function Profile() {
 
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Use referral code from API response
+      setReferralCode(updatedUser.referralCode || 'Loading...');
       
       // Dispatch storage event to sync with App.jsx state
       window.dispatchEvent(new Event('storage'));
@@ -121,6 +129,48 @@ function Profile() {
       
       img.src = URL.createObjectURL(file);
     });
+  };
+
+  const copyReferralCode = () => {
+    navigator.clipboard.writeText(referralCode);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const shareReferral = () => {
+    const shareText = `Join FestiveGuest and celebrate festivals with locals! Use my referral code: ${referralCode}`;
+    if (navigator.share) {
+      navigator.share({ text: shareText });
+    } else {
+      copyReferralCode();
+    }
+  };
+
+  const submitFeedback = async (e) => {
+    e.preventDefault();
+    if (!feedback.subject || !feedback.message) {
+      alert('Please fill all fields');
+      return;
+    }
+    
+    setSendingFeedback(true);
+    try {
+      await api.post('feedback', {
+        name: user.name,
+        email: user.email,
+        subject: feedback.subject,
+        message: feedback.message,
+        userType: user.userType
+      });
+      setFeedbackSent(true);
+      setFeedback({ subject: '', message: '' });
+      setTimeout(() => setFeedbackSent(false), 3000);
+    } catch (error) {
+      console.error('Failed to send feedback:', error);
+      alert('Failed to send feedback. Please try again.');
+    } finally {
+      setSendingFeedback(false);
+    }
   };
 
   if (!user) return (
@@ -265,6 +315,137 @@ function Profile() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Refer a Friend Section */}
+      <div className="profile-card" style={{ marginTop: '2rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
+            <Users size={24} style={{ color: 'var(--primary)' }} />
+            Refer a Friend
+          </h3>
+          <p style={{ color: '#64748b', margin: '0' }}>Share FestiveGuest with friends and earn rewards!</p>
+        </div>
+        
+        <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '0.75rem', border: '2px dashed var(--primary)' }}>
+          <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+            <p style={{ margin: '0 0 0.5rem 0', fontWeight: '600' }}>Your Referral Code:</p>
+            <div style={{ 
+              background: 'white', 
+              padding: '0.75rem 1rem', 
+              borderRadius: '0.5rem', 
+              border: '1px solid var(--border)',
+              fontSize: '1.25rem',
+              fontWeight: 'bold',
+              color: 'var(--primary)',
+              letterSpacing: '2px'
+            }}>
+              {referralCode}
+            </div>
+          </div>
+          
+          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button 
+              onClick={copyReferralCode}
+              className="btn btn-secondary"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}
+            >
+              <Copy size={16} />
+              {copied ? 'Copied!' : 'Copy Code'}
+            </button>
+            <button 
+              onClick={shareReferral}
+              className="btn btn-primary"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}
+            >
+              <Share size={16} />
+              Share
+            </button>
+          </div>
+          
+          <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+            <p style={{ margin: '0', fontSize: '0.875rem', color: '#64748b' }}>
+              When friends join using your code, you both get special benefits!
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Feedback Section */}
+      <div className="profile-card" style={{ marginTop: '2rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+          <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
+            <MessageSquare size={24} style={{ color: 'var(--primary)' }} />
+            Send Feedback
+          </h3>
+          <p style={{ color: '#64748b', margin: '0' }}>
+            {user.userType === 'Host' ? 'Share your hosting experience or suggestions' : 'Tell us about your guest experience'}
+          </p>
+        </div>
+        
+        {feedbackSent ? (
+          <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--success)' }}>
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+            <h4>Feedback Sent Successfully!</h4>
+            <p>Thank you for your valuable feedback. We'll review it and get back to you if needed.</p>
+          </div>
+        ) : (
+          <form onSubmit={submitFeedback}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>Subject</label>
+                <select
+                  value={feedback.subject}
+                  onChange={(e) => setFeedback({...feedback, subject: e.target.value})}
+                  style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '0.5rem', boxSizing: 'border-box' }}
+                >
+                  <option value="">Select feedback type...</option>
+                  {user.userType === 'Host' ? (
+                    <>
+                      <option value="hosting-experience">Hosting Experience</option>
+                      <option value="guest-interaction">Guest Interaction</option>
+                      <option value="platform-features">Platform Features</option>
+                      <option value="payment-issues">Payment Issues</option>
+                      <option value="safety-concerns">Safety Concerns</option>
+                      <option value="suggestions">Suggestions for Improvement</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="guest-experience">Guest Experience</option>
+                      <option value="host-interaction">Host Interaction</option>
+                      <option value="booking-process">Booking Process</option>
+                      <option value="app-usability">App Usability</option>
+                      <option value="safety-concerns">Safety Concerns</option>
+                      <option value="suggestions">Suggestions for Improvement</option>
+                    </>
+                  )}
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>Message</label>
+                <textarea
+                  placeholder={user.userType === 'Host' ? 'Share your hosting experience, challenges, or suggestions...' : 'Tell us about your experience as a guest, any issues, or suggestions...'}
+                  value={feedback.message}
+                  onChange={(e) => setFeedback({...feedback, message: e.target.value})}
+                  rows={5}
+                  style={{ width: '100%', padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '0.5rem', resize: 'vertical', boxSizing: 'border-box' }}
+                />
+              </div>
+              
+              <button 
+                type="submit" 
+                disabled={sendingFeedback}
+                className="btn btn-primary"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center', alignSelf: 'flex-start' }}
+              >
+                <Send size={16} />
+                {sendingFeedback ? 'Sending...' : 'Send Feedback'}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

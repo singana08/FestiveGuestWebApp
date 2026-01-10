@@ -4,6 +4,7 @@ import { User, Search, ShieldCheck, Menu, X, LayoutDashboard, HelpCircle, LogOut
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import Logo from './components/Logo';
 import Loader from './components/Loader';
+import ApiTest from './components/ApiTest';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Registration from './pages/Registration';
@@ -13,6 +14,7 @@ import Chat from './pages/Chat';
 import Chats from './pages/Chats';
 import Admin from './pages/Admin';
 import Profile from './pages/Profile';
+import PublicProfile from './pages/PublicProfile';
 import Help from './pages/Help';
 import './App.css';
 
@@ -167,9 +169,11 @@ const AppContent = () => {
           <Route path="/chats" element={user ? <Chats /> : <Navigate to="/login" />} />
           
           <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
+          <Route path="/profile/:userName" element={<PublicProfile />} />
           <Route path="/admin" element={(user?.role === 'Admin' || user?.userType === 'Admin') ? <Admin /> : <Navigate to="/login" />} />
           <Route path="/chat/:recipientId" element={user ? <Chat user={user} /> : <Navigate to="/login" />} />
           <Route path="/help" element={<Help />} />
+          <Route path="/api-test" element={<ApiTest />} />
         </Routes>
       </main>
     </div>

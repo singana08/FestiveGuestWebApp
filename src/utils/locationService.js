@@ -1,4 +1,3 @@
-import axios from 'axios';
 import api from './api';
 
 class LocationService {
@@ -21,8 +20,8 @@ class LocationService {
 
     this.loading = true;
     try {
-      // Use standard axios with lowercase route as per Azure deployment
-      const response = await axios.get('https://api.festiveguest.com/api/getlocations');
+      // Use the same API instance as the rest of the app
+      const response = await api.get('location/states-with-cities');
       this.locations = response.data;
       return this.locations;
     } catch (error) {
@@ -35,7 +34,7 @@ class LocationService {
 
   async seedLocations() {
     try {
-      const response = await api.post('seedlocations');
+      const response = await api.post('location/seed');
       this.locations = null;
       return response.data;
     } catch (error) {

@@ -1,15 +1,18 @@
 // Test script for location APIs
 // Run this in browser console or as a standalone script
 
-const API_BASE = 'https://api.festiveguest.com/api';
+// Use the same API base as the main application
+const API_BASE = process.env.NODE_ENV === 'development' 
+  ? '/api' 
+  : 'https://festive-guest-api.azurewebsites.net/api';
 
 async function testLocationAPIs() {
   try {
-    console.log('Testing location APIs...');
+    console.log('Testing location APIs with base:', API_BASE);
     
     // Test seeding locations
     console.log('1. Seeding locations...');
-    const seedResponse = await fetch(`${API_BASE}/seedLocations`, {
+    const seedResponse = await fetch(`${API_BASE}/location/seed`, {
       method: 'POST'
     });
     const seedResult = await seedResponse.json();
@@ -17,7 +20,7 @@ async function testLocationAPIs() {
     
     // Test getting locations
     console.log('2. Getting locations...');
-    const getResponse = await fetch(`${API_BASE}/getLocations`);
+    const getResponse = await fetch(`${API_BASE}/location/states-with-cities`);
     const locations = await getResponse.json();
     console.log('Locations:', locations);
     

@@ -1,11 +1,39 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
-import { ChevronDown, ChevronRight, MapPin, Plus, Minus, MessageCircle, Home, Users, Search, Filter, Star, CheckCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, MapPin, Plus, Minus, MessageCircle, Home, Users, Search, Filter, Star, CheckCircle, Eye } from 'lucide-react';
 import ChatWidget from '../components/ChatWidget';
 import locationService from '../utils/locationService';
-import chatService from '../utils/chatService';
+
+const HostImage = ({ src, alt, className, userId }) => {
+  const [imgSrc, setImgSrc] = useState(src || 'https://via.placeholder.com/400x300/f1f5f9/64748b?text=No+Image');
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    if (src && !hasError) {
+      setImgSrc(src);
+    }
+  }, [src, hasError]);
+
+  const handleError = () => {
+    if (!hasError) {
+      setHasError(true);
+      setImgSrc('https://via.placeholder.com/400x300/f1f5f9/64748b?text=No+Image');
+    }
+  };
+
+  return (
+    <img 
+      src={imgSrc}
+      alt={alt}
+      className={className}
+      onError={handleError}
+    />
+  );
+};
 
 const GuestDashboard = ({ user }) => {
+  const navigate = useNavigate();
   const [hosts, setHosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedStates, setExpandedStates] = useState({});
@@ -15,39 +43,12 @@ const GuestDashboard = ({ user }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [locationData, setLocationData] = useState({});
   const [signalRStatus, setSignalRStatus] = useState('Not connected');
-
-  const testSignalR = async () => {
-    try {
-      setSignalRStatus('Connecting...');
-      await chatService.connect();
-      setSignalRStatus('✅ Connected');
-      console.log('SignalR test successful');
-      
-      // Setup message listener
-      chatService.onReceiveMessage((data) => {
-        console.log('✅ Test message received:', data);
-        alert(`Message received from ${data.senderId}: ${data.message}`);
-      });
-    } catch (error) {
-      setSignalRStatus('❌ Failed: ' + error.message);
-      console.error('SignalR test failed:', error);
-    }
-  };
-
-  const sendTestMessage = async () => {
-    try {
-      const testUserId = prompt('Enter recipient userId to test:');
-      if (!testUserId) return;
-      
-      await chatService.joinChat(testUserId);
-      await chatService.sendMessage(testUserId, 'Test message from ' + userId);
-      console.log('✅ Test message sent to:', testUserId);
-      alert('Test message sent! Check console.');
-    } catch (error) {
-      console.error('❌ Failed to send test message:', error);
-      alert('Failed: ' + error.message);
-    }
-  };
+  const [selectedProfile, setSelectedProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ rating: 0, comment: '' });
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState('');
 
   useEffect(() => {
     // Only fetch data if user is properly authenticated
@@ -63,6 +64,15 @@ const GuestDashboard = ({ user }) => {
       setLocationData(response.data);
     } catch (error) {
       console.error('Error fetching locations:', error);
+      // Fallback: provide basic Indian states if API fails
+      setLocationData({
+        'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Other'],
+        'Karnataka': ['Bangalore', 'Mysore', 'Mangalore', 'Other'],
+        'Kerala': ['Kochi', 'Thiruvananthapuram', 'Kozhikode', 'Other'],
+        'Andhra Pradesh': ['Hyderabad', 'Visakhapatnam', 'Vijayawada', 'Other'],
+        'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Other'],
+        'Delhi': ['New Delhi', 'Other']
+      });
     }
   };
 
@@ -111,7 +121,11 @@ const GuestDashboard = ({ user }) => {
       setHosts(activeHosts);
     } catch (error) {
       console.error('Error fetching hosts:', error);
-      if (error.response?.status !== 401 && error.response?.status !== 403) {
+      if (error.response?.status === 500) {
+        console.error('Server error - API may be down or misconfigured');
+        // Show user-friendly message for server errors
+        setHosts([]);
+      } else if (error.response?.status !== 401 && error.response?.status !== 403) {
         setHosts([]);
       }
     } finally {
@@ -119,8 +133,95 @@ const GuestDashboard = ({ user }) => {
     }
   };
 
+  const handleViewProfile = async (host) => {
+    setProfileLoading(true);
+    try {
+      const profileRes = await api.post('user/public-profile', {
+        userId: host.userId
+      });
+      
+      // Sort reviews: user's own review first, then others by recent to old
+      const currentUserId = user?.userId;
+      const reviews = profileRes.data.reviews || [];
+      const userReview = reviews.find(r => r.reviewerId === currentUserId);
+      const otherReviews = reviews.filter(r => r.reviewerId !== currentUserId)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      const sortedReviews = userReview ? [userReview, ...otherReviews] : otherReviews;
+      const hasUserReview = !!userReview;
+      
+      setSelectedProfile({
+        ...profileRes.data,
+        reviews: sortedReviews,
+        hasUserReview
+      });
+      setShowReviewForm(false);
+      setReviewForm({ rating: 0, comment: '' });
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
   const handleContactHost = (host) => {
     setActiveChat({ id: host.userId, name: host.name });
+  };
+
+  const handleSubmitReview = async () => {
+    console.log('Submit clicked, reviewError before:', reviewError);
+    console.log('Rating:', reviewForm.rating, 'Comment:', reviewForm.comment);
+    
+    setReviewError('');
+    
+    if (!reviewForm.comment.trim() || reviewForm.rating === 0) {
+      console.log('Setting error message');
+      setReviewError('Please provide both rating and comment');
+      console.log('reviewError after setting:', 'Please provide both rating and comment');
+      return;
+    }
+    
+    setSubmittingReview(true);
+    try {
+      await api.post('review', {
+        userId: selectedProfile.userId,
+        rating: reviewForm.rating,
+        comment: reviewForm.comment.trim()
+      });
+      
+      // Refresh profile data to show new review
+      const profileRes = await api.post('user/public-profile', {
+        userId: selectedProfile.userId
+      });
+      
+      // Sort reviews: user's own review first, then others by recent to old
+      const currentUserId = user?.userId;
+      const reviews = profileRes.data.reviews || [];
+      const userReview = reviews.find(r => r.reviewerId === currentUserId);
+      const otherReviews = reviews.filter(r => r.reviewerId !== currentUserId)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      const sortedReviews = userReview ? [userReview, ...otherReviews] : otherReviews;
+      const hasUserReview = !!userReview;
+      
+      setSelectedProfile({
+        ...profileRes.data,
+        reviews: sortedReviews,
+        hasUserReview
+      });
+      setShowReviewForm(false);
+      setReviewForm({ rating: 0, comment: '' });
+      setReviewError('');
+    } catch (error) {
+      console.error('Failed to submit review:', error);
+      if (error.response?.data?.message) {
+        setReviewError(error.response.data.message);
+      } else {
+        setReviewError('Failed to submit review. Please try again.');
+      }
+    } finally {
+      setSubmittingReview(false);
+    }
   };
 
   if (loading) return (
@@ -198,14 +299,6 @@ const GuestDashboard = ({ user }) => {
             Available Hosts
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <button onClick={testSignalR} className="btn btn-outline" style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
-              Test Chat: {signalRStatus}
-            </button>
-            {signalRStatus.includes('✅') && (
-              <button onClick={sendTestMessage} className="btn btn-primary" style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}>
-                Send Test Message
-              </button>
-            )}
             <div className="results-count" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {!loading && (
                 <>
@@ -242,10 +335,11 @@ const GuestDashboard = ({ user }) => {
                 {filteredHosts.map(host => (
                   <div key={host.userId} className="host-card-horizontal">
                     <div className="host-image-section">
-                      <img 
-                        src={host.profileImageUrl || 'https://via.placeholder.com/400x300?text=Host'} 
+                      <HostImage 
+                        src={host.profileImageUrl}
                         alt={host.name}
                         className="host-card-img"
+                        userId={host.userId}
                       />
                       {host.status === 'Verified' && (
                         <div className="verified-badge">
@@ -253,11 +347,10 @@ const GuestDashboard = ({ user }) => {
                         </div>
                       )}
                       <button 
-                        className="btn btn-primary chat-btn-overlay"
-                        onClick={() => handleContactHost(host)}
+                        className="btn btn-primary overlay-btn"
+                        onClick={() => handleViewProfile(host)}
                       >
-                        <MessageCircle size={16} className="chat-icon" />
-                        <span className="chat-text">Chat</span>
+                        <Eye size={14} /> View
                       </button>
                     </div>
                     
@@ -270,6 +363,17 @@ const GuestDashboard = ({ user }) => {
                           {host.bio}
                         </p>
                       )}
+                      
+                      <button 
+                        className="btn btn-primary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleContactHost(host);
+                        }}
+                        style={{ marginTop: '0.75rem', fontSize: '0.75rem', padding: '0.4rem 0.8rem', borderRadius: '0.375rem', minHeight: '32px', width: 'auto', display: 'inline-flex' }}
+                      >
+                        <MessageCircle size={14} /> Chat
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -278,6 +382,176 @@ const GuestDashboard = ({ user }) => {
           </div>
         )}
       </div>
+      
+      {/* Profile Modal */}
+      {selectedProfile && (
+        <div className="modal-overlay" onClick={() => setSelectedProfile(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{selectedProfile.name}</h3>
+              <button onClick={() => setSelectedProfile(null)} className="modal-close">×</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                <img 
+                  src={selectedProfile.profileImageUrl || 'https://via.placeholder.com/120'} 
+                  alt={selectedProfile.name}
+                  style={{ 
+                    width: '120px', 
+                    height: '120px', 
+                    borderRadius: '50%', 
+                    objectFit: 'cover',
+                    border: '3px solid var(--border)',
+                    marginBottom: '1rem'
+                  }}
+                />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <span style={{ color: '#64748b' }}>{selectedProfile.location}</span>
+                </div>
+                <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
+                  {selectedProfile.userType} • Joined {new Date(selectedProfile.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
+                </p>
+              </div>
+              
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h4 style={{ marginBottom: '0.75rem', color: 'var(--text)' }}>
+                  {selectedProfile.userType === 'Host' ? '🏠 About My Hosting' : '✨ About Me'}
+                </h4>
+                <p style={{ 
+                  color: '#475569', 
+                  lineHeight: '1.5',
+                  background: '#f8fafc',
+                  padding: '1rem',
+                  borderRadius: '0.5rem',
+                  margin: '0'
+                }}>
+                  {selectedProfile.bio || 'No description provided.'}
+                </p>
+              </div>
+              
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <h4 style={{ margin: '0', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    ⭐ Reviews ({selectedProfile.totalReviews || selectedProfile.reviews?.length || 0})
+                    {selectedProfile.averageRating > 0 && (
+                      <span style={{ fontSize: '0.9rem', color: '#64748b' }}>({selectedProfile.averageRating.toFixed(1)} avg)</span>
+                    )}
+                  </h4>
+                  {!selectedProfile.hasUserReview && (
+                    <button 
+                      className="btn btn-outline"
+                      onClick={() => setShowReviewForm(!showReviewForm)}
+                      style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
+                    >
+                      {showReviewForm ? 'Cancel' : 'Write Review'}
+                    </button>
+                  )}
+                </div>
+                
+                {showReviewForm && (
+                  <div className="review-form">
+                    {reviewError && (
+                      <div className="review-error">
+                        {reviewError}
+                      </div>
+                    )}
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Rating:</label>
+                      <div className="rating-input">
+                        {Array.from({ length: 5 }, (_, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            className="rating-star"
+                            onClick={() => {
+                              setReviewForm(prev => ({ ...prev, rating: i + 1 }));
+                              setReviewError('');
+                            }}
+                            style={{ color: i < reviewForm.rating ? '#fbbf24' : '#d1d5db' }}
+                          >
+                            ★
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Comment:</label>
+                      <textarea
+                        value={reviewForm.comment}
+                        onChange={(e) => {
+                          setReviewForm(prev => ({ ...prev, comment: e.target.value }));
+                          setReviewError('');
+                        }}
+                        placeholder="Share your experience..."
+                        rows={3}
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          border: '1px solid var(--border)',
+                          borderRadius: '0.375rem',
+                          resize: 'vertical',
+                          fontFamily: 'inherit'
+                        }}
+                      />
+                    </div>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={handleSubmitReview}
+                      disabled={submittingReview}
+                      style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
+                    >
+                      {submittingReview ? 'Submitting...' : 'Submit Review'}
+                    </button>
+                  </div>
+                )}
+                
+                {selectedProfile.reviews && selectedProfile.reviews.length > 0 && (
+                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                    {selectedProfile.reviews.map((review, index) => {
+                      const isUserReview = review.reviewerId === user?.userId;
+                      return (
+                        <div key={index} className={`review-item ${isUserReview ? 'user-review' : ''}`}>
+                          {isUserReview && (
+                            <div className="user-review-badge">
+                              Your Review
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem', paddingRight: isUserReview ? '5rem' : '0' }}>
+                            <strong style={{ fontSize: '0.9rem' }}>{review.reviewerName}</strong>
+                            <div className="review-stars">
+                              {Array.from({ length: 5 }, (_, i) => (
+                                <span key={i} style={{ color: i < review.rating ? '#fbbf24' : '#d1d5db' }}>★</span>
+                              ))}
+                            </div>
+                          </div>
+                          <p style={{ margin: '0', fontSize: '0.85rem', color: '#475569', lineHeight: '1.4' }}>
+                            {review.comment}
+                          </p>
+                          <div className="review-meta">
+                            {new Date(review.createdAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                
+                {(!selectedProfile.reviews || selectedProfile.reviews.length === 0) && !showReviewForm && (
+                  <p style={{ color: '#64748b', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
+                    No reviews yet. Be the first to share your experience!
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {profileLoading && (
+        <div className="modal-overlay">
+          <div className="loading" style={{ color: 'white' }}>Loading profile...</div>
+        </div>
+      )}
       
       {/* Inline Chat Widget */}
       {activeChat && (

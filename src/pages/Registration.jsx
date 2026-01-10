@@ -97,12 +97,10 @@ const Registration = ({ setUser }) => {
   const testAndSeedLocations = async () => {
     setTesting(true);
     try {
-      const seedResponse = await api.post('seedlocations');
-      const getResponse = await api.get('getlocations');
-      setTestResult(`✅ Success! Seeded ${seedResponse.data.count} locations. Retrieved ${Object.keys(getResponse.data).length} states.`);
-      locationService.clearCache();
-      const newLocations = await locationService.getLocations();
-      setLocationData(newLocations);
+      const seedResponse = await locationService.seedLocations();
+      const getResponse = await locationService.getLocations();
+      setTestResult(`✅ Success! Seeded ${seedResponse.count || 'some'} locations. Retrieved ${Object.keys(getResponse).length} states.`);
+      setLocationData(getResponse);
     } catch (error) {
       setTestResult(`❌ Error: ${error.message}`);
     } finally {
@@ -121,10 +119,10 @@ const Registration = ({ setUser }) => {
   useEffect(() => {
     const loadLocations = async () => {
       try {
-        console.log('Loading locations from:', api.defaults.baseURL + '/location/states-with-cities');
-        const response = await api.get('location/states-with-cities');
-        console.log('Locations loaded successfully:', response.data);
-        setLocationData(response.data);
+        console.log('Loading locations using locationService...');
+        const locations = await locationService.getLocations();
+        console.log('Locations loaded successfully:', locations);
+        setLocationData(locations);
       } catch (error) {
         console.error('DEBUG: Failed to load locations:', error);
         console.error('Error details:', {

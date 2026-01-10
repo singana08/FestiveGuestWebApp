@@ -2,11 +2,12 @@ import axios from 'axios';
 
 // Determine base URL based on environment
 const getBaseURL = () => {
-  // In development, use local API
+  // In development, use direct local API URL
   if (process.env.NODE_ENV === 'development') {
     return 'http://localhost:7219/api';
   }
   // In production, use your hosted Azure API
+  // TODO: Fix the 500 errors on festive-guest-api.azurewebsites.net
   return 'https://festive-guest-api.azurewebsites.net/api';
 };
 
@@ -55,10 +56,21 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle token expiration
+// Response interceptor to handle token expiration and better error logging
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Enhanced error logging for debugging
+    console.error('API Error Details:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      url: error.config?.url,
+      method: error.config?.method,
+      baseURL: error.config?.baseURL,
+      data: error.response?.data,
+      message: error.message
+    });
+
     if (error.response?.status === 401 || error.response?.status === 403) {
       // Token expired or invalid - clear all auth data
       localStorage.removeItem('user');
