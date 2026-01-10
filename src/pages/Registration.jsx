@@ -33,6 +33,7 @@ const Registration = ({ setUser }) => {
   const [serverError, setServerError] = useState(null);
   const [devOtpVisible, setDevOtpVisible] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+  const [verifiedEmail, setVerifiedEmail] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -139,6 +140,19 @@ const Registration = ({ setUser }) => {
 
 
 
+  const handleEmailChange = (e) => {
+    const newEmail = e.target.value;
+    handleInputChange(e);
+    validateEmail(newEmail);
+    
+    // Reset verification if email changes
+    if (newEmail !== verifiedEmail) {
+      setEmailVerified(false);
+      setOtpSent(false);
+      setVerificationOTP('');
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => {
@@ -193,7 +207,7 @@ const Registration = ({ setUser }) => {
 
       const finalLocation = formData.city === 'Other' ? formData.otherCity : formData.city;
       const payload = {
-        email: formData.email,
+        email: verifiedEmail, // Use verified email, not current form email
         password: formData.password,
         name: formData.name,
         phone: formData.phone,
@@ -205,17 +219,26 @@ const Registration = ({ setUser }) => {
       console.log('Sending registration payload:', payload);
       const registrationRes = await api.post(`auth/register`, payload);
       let userData = registrationRes.data;
+      console.log('Registration response:', userData);
 
-      if (userData.success) {
+      if (userData.success || userData.message === 'User registered successfully') {
         showToast('🎉 Registration successful! Please login to continue.', 'success');
         setTimeout(() => navigate('/login'), 2000);
+      } else {
+        throw new Error(userData.message || 'Registration failed');
       }
     } catch (error) {
-      const msg = error.response?.data?.message || error.message;
+      console.error('Registration error:', error);
+      console.error('Error response:', error.response?.data);
+      const msg = error.response?.data?.message || error.response?.data?.error || error.message;
       if (error.response?.status === 429) {
         const rateLimitMsg = 'Too many attempts. Please wait 15 minutes and try again.';
         setServerError(rateLimitMsg);
         showToast(rateLimitMsg, 'error');
+      } else if (error.response?.status === 500) {
+        const serverMsg = 'Server error occurred. Please try again later or contact support if the issue persists.';
+        setServerError(`Server Error: ${msg || 'Internal server error'}`);
+        showToast(serverMsg, 'error');
       } else {
         setServerError(msg);
         showToast('Registration failed: ' + msg, 'error');
@@ -268,6 +291,7 @@ const Registration = ({ setUser }) => {
     try {
       const res = await api.post('email/validate-otp', { email: formData.email, otpCode: verificationOTP });
       if (res.data.success) {
+        setVerifiedEmail(formData.email);
         setEmailVerified(true);
         setOtpSent(false);
         setDevOtpVisible('');
@@ -400,14 +424,18 @@ const Registration = ({ setUser }) => {
               type="email"
               name="email"
               value={formData.email}
-              onChange={(e) => {
-                handleInputChange(e);
-                validateEmail(e.target.value);
-              }}
+              onChange={handleEmailChange}
               onBlur={(e) => validateEmail(e.target.value)}
               placeholder="Enter your email address"
               required
-              style={{ fontSize: '1rem', padding: '1rem', borderColor: emailError ? '#dc2626' : '#cbd5e1' }}
+              disabled={emailVerified}
+              style={{ 
+                fontSize: '1rem', 
+                padding: '1rem', 
+                borderColor: emailError ? '#dc2626' : '#cbd5e1',
+                backgroundColor: emailVerified ? '#f3f4f6' : 'white',
+                cursor: emailVerified ? 'not-allowed' : 'text'
+              }}
             />
             {emailError && (
               <p style={{ margin: '0.5rem 0 0 0', color: '#dc2626', fontSize: '0.875rem' }}>⚠️ {emailError}</p>
@@ -436,7 +464,22 @@ const Registration = ({ setUser }) => {
               )}
 
               {emailVerified && (
-                <span style={{ color: '#16a34a', fontWeight: '600' }}>✓ Email verified</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ color: '#16a34a', fontWeight: '600' }}>✓ Email verified</span>
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setEmailVerified(false);
+                      setVerifiedEmail('');
+                      setOtpSent(false);
+                      setVerificationOTP('');
+                    }}
+                    className="btn btn-outline"
+                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.5rem' }}
+                  >
+                    Change Email
+                  </button>
+                </div>
               )}
             </div>
           </div>
