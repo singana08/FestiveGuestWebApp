@@ -12,6 +12,7 @@ const Chats = () => {
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
   const [showChatView, setShowChatView] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState(null);
   const userId = localStorage.getItem('userId');
   const messagesEndRef = useRef(null);
 
@@ -22,6 +23,17 @@ const Chats = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
   }, [messages]);
+
+  const handleProfileClick = async (userId) => {
+    try {
+      const profileRes = await api.post('user/public-profile', {
+        userId: userId
+      });
+      setSelectedProfile(profileRes.data);
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
+    }
+  };
 
   const fetchConversations = async () => {
     try {
@@ -127,7 +139,7 @@ const Chats = () => {
                     src={conv.profileImageUrl}
                     alt={conv.otherUserName}
                     style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
-                    fallbackText="👤"
+                    fallbackText="User"
                   />
                 </div>
                 <div className="conversation-content">
@@ -171,15 +183,15 @@ const Chats = () => {
                 <ArrowLeft size={20} />
               </button>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'pointer' }} onClick={() => handleProfileClick(selectedChat.otherUserId)}>
                   <ImageWithSas 
                     src={selectedChat.profileImageUrl}
                     alt={selectedChat.otherUserName}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    fallbackText="👤"
+                    fallbackText="User"
                   />
                 </div>
-                <h4 style={{ margin: 0 }}>{selectedChat.otherUserName}</h4>
+                <h4 style={{ margin: 0, cursor: 'pointer' }} onClick={() => handleProfileClick(selectedChat.otherUserId)}>{selectedChat.otherUserName}</h4>
               </div>
             </div>
             
@@ -219,6 +231,50 @@ const Chats = () => {
           </div>
         )}
       </div>
+      
+      {/* Profile Modal */}
+      {selectedProfile && (
+        <div className="modal-overlay" onClick={() => setSelectedProfile(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{selectedProfile.name}</h3>
+              <button onClick={() => setSelectedProfile(null)} className="modal-close">×</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+                <ImageWithSas 
+                  src={selectedProfile.profileImageUrl}
+                  alt={selectedProfile.name}
+                  className="modal-profile-image"
+                  fallbackText="Profile"
+                />
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <span style={{ color: '#64748b' }}>{selectedProfile.location}</span>
+                </div>
+                <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
+                  {selectedProfile.userType} • Joined {new Date(selectedProfile.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
+                </p>
+              </div>
+              
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h4 style={{ marginBottom: '0.75rem', color: 'var(--text)' }}>
+                  {selectedProfile.userType === 'Host' ? '🏠 About My Hosting' : '✨ About Me'}
+                </h4>
+                <p style={{ 
+                  color: '#475569', 
+                  lineHeight: '1.5',
+                  background: '#f8fafc',
+                  padding: '1rem',
+                  borderRadius: '0.5rem',
+                  margin: '0'
+                }}>
+                  {selectedProfile.bio || 'No description provided.'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
