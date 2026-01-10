@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
-import { ChevronDown, ChevronRight, MapPin, Plus, Minus, MessageCircle, Home, Users, Search, Filter, Star, CheckCircle, Eye } from 'lucide-react';
+import { ChevronDown, ChevronRight, MapPin, Plus, Minus, MessageCircle, Home, Users, Search, Filter, Star, CheckCircle, Eye, MessageSquare } from 'lucide-react';
 import ChatWidget from '../components/ChatWidget';
 import ImageWithSas from '../components/ImageWithSas';
 import locationService from '../utils/locationService';
@@ -24,6 +24,11 @@ const GuestDashboard = ({ user }) => {
   const [reviewForm, setReviewForm] = useState({ rating: 0, comment: '' });
   const [submittingReview, setSubmittingReview] = useState(false);
   const [reviewError, setReviewError] = useState('');
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackForm, setFeedbackForm] = useState({ name: '', email: '', userType: 'Guest', message: '' });
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [feedbackError, setFeedbackError] = useState('');
+  const [feedbackSuccess, setFeedbackSuccess] = useState(false);
 
   useEffect(() => {
     // Only fetch data if user is properly authenticated
@@ -217,6 +222,41 @@ const GuestDashboard = ({ user }) => {
     }
   };
 
+  const handleSubmitFeedback = async () => {
+    setFeedbackError('');
+    
+    if (!feedbackForm.name.trim() || !feedbackForm.email.trim() || !feedbackForm.message.trim()) {
+      setFeedbackError('Please fill in all required fields');
+      return;
+    }
+    
+    setSubmittingFeedback(true);
+    try {
+      await api.post('feedback', {
+        name: feedbackForm.name.trim(),
+        email: feedbackForm.email.trim(),
+        userType: feedbackForm.userType,
+        message: feedbackForm.message.trim()
+      });
+      
+      setFeedbackSuccess(true);
+      setFeedbackForm({ name: '', email: '', userType: 'Guest', message: '' });
+      setTimeout(() => {
+        setShowFeedbackModal(false);
+        setFeedbackSuccess(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to submit feedback:', error);
+      if (error.response?.data?.message) {
+        setFeedbackError(error.response.data.message);
+      } else {
+        setFeedbackError('Failed to submit feedback. Please try again.');
+      }
+    } finally {
+      setSubmittingFeedback(false);
+    }
+  };
+
   if (loading) return (
     <div className="container">
       <div className="loading" style={{ padding: '4rem', textAlign: 'center' }}>
@@ -292,6 +332,13 @@ const GuestDashboard = ({ user }) => {
             Available Hosts
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <button 
+              className="btn btn-outline"
+              onClick={() => setShowFeedbackModal(true)}
+              style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            >
+              <MessageSquare size={14} /> Feedback
+            </button>
             <div className="results-count" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {!loading && (
                 <>
@@ -542,6 +589,138 @@ const GuestDashboard = ({ user }) => {
       {profileLoading && (
         <div className="modal-overlay">
           <div className="loading" style={{ color: 'white' }}>Loading profile...</div>
+        </div>
+      )}
+      
+      {/* Feedback Modal */}
+      {showFeedbackModal && (
+        <div className="modal-overlay" onClick={() => setShowFeedbackModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              <h3>Share Your Feedback</h3>
+              <button onClick={() => setShowFeedbackModal(false)} className="modal-close">×</button>
+            </div>
+            <div className="modal-body">
+              {feedbackSuccess ? (
+                <div style={{ textAlign: 'center', padding: '2rem' }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
+                  <h4 style={{ color: 'var(--success)', marginBottom: '0.5rem' }}>Thank you!</h4>
+                  <p style={{ color: '#64748b' }}>Your feedback has been submitted successfully.</p>
+                </div>
+              ) : (
+                <>
+                  {feedbackError && (
+                    <div style={{ 
+                      background: '#fee2e2', 
+                      color: '#dc2626', 
+                      padding: '0.75rem', 
+                      borderRadius: '0.375rem', 
+                      marginBottom: '1rem',
+                      fontSize: '0.9rem'
+                    }}>
+                      {feedbackError}
+                    </div>
+                  )}
+                  
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Name *</label>
+                    <input
+                      type="text"
+                      value={feedbackForm.name}
+                      onChange={(e) => {
+                        setFeedbackForm(prev => ({ ...prev, name: e.target.value }));
+                        setFeedbackError('');
+                      }}
+                      placeholder="Your name"
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid var(--border)',
+                        borderRadius: '0.375rem',
+                        fontFamily: 'inherit'
+                      }}
+                    />
+                  </div>
+                  
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Email *</label>
+                    <input
+                      type="email"
+                      value={feedbackForm.email}
+                      onChange={(e) => {
+                        setFeedbackForm(prev => ({ ...prev, email: e.target.value }));
+                        setFeedbackError('');
+                      }}
+                      placeholder="your.email@example.com"
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid var(--border)',
+                        borderRadius: '0.375rem',
+                        fontFamily: 'inherit'
+                      }}
+                    />
+                  </div>
+                  
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>User Type</label>
+                    <select
+                      value={feedbackForm.userType}
+                      onChange={(e) => setFeedbackForm(prev => ({ ...prev, userType: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid var(--border)',
+                        borderRadius: '0.375rem',
+                        fontFamily: 'inherit'
+                      }}
+                    >
+                      <option value="Guest">Guest</option>
+                      <option value="Host">Host</option>
+                    </select>
+                  </div>
+                  
+                  <div style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Message *</label>
+                    <textarea
+                      value={feedbackForm.message}
+                      onChange={(e) => {
+                        setFeedbackForm(prev => ({ ...prev, message: e.target.value }));
+                        setFeedbackError('');
+                      }}
+                      placeholder="Share your thoughts, suggestions, or report any issues..."
+                      rows={4}
+                      style={{
+                        width: '100%',
+                        padding: '0.5rem',
+                        border: '1px solid var(--border)',
+                        borderRadius: '0.375rem',
+                        resize: 'vertical',
+                        fontFamily: 'inherit'
+                      }}
+                    />
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                    <button 
+                      className="btn btn-outline"
+                      onClick={() => setShowFeedbackModal(false)}
+                      disabled={submittingFeedback}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={handleSubmitFeedback}
+                      disabled={submittingFeedback}
+                    >
+                      {submittingFeedback ? 'Submitting...' : 'Submit Feedback'}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       )}
       

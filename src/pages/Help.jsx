@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, MessageCircle, HelpCircle, Phone, Clock, Users, CheckCircle, AlertCircle, Send } from 'lucide-react';
 import api from '../utils/api';
 
@@ -6,23 +6,63 @@ const Help = () => {
   const [feedback, setFeedback] = useState({ name: '', email: '', message: '' });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      const userData = JSON.parse(savedUser);
+      setUser(userData);
+      setFeedback(prev => ({
+        ...prev,
+        name: userData.name || '',
+        email: userData.email || ''
+      }));
+    }
+  }, []);
 
   const handleFeedbackSubmit = async (e) => {
     e.preventDefault();
     if (!feedback.name || !feedback.email || !feedback.message) {
-      alert('Please fill all fields');
+      setError('Please fill all fields');
       return;
     }
     
     setSending(true);
+    setError('');
     try {
-      await api.post('feedback', feedback);
+      const feedbackData = {
+        name: feedback.name,
+        email: feedback.email,
+        message: feedback.message,
+        userType: user?.userType || user?.role || 'Guest'
+      };
+      
+      console.log('Sending feedback:', feedbackData);
+      const response = await api.post('feedback', feedbackData);
+      console.log('Feedback response:', response);
       setSent(true);
-      setFeedback({ name: '', email: '', message: '' });
-      setTimeout(() => setSent(false), 3000);
+      setFeedback({ ...feedback, message: '' }); // Keep name/email for logged users
+      setTimeout(() => setSent(false), 5000);
     } catch (error) {
-      console.error('Failed to send feedback:', error);
-      alert('Failed to send feedback. Please try again.');
+      console.error('Feedback error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        statusText: error.response?.statusText
+      });
+      
+      let errorMessage = 'Failed to send feedback. Please try again.';
+      if (error.response?.status === 404) {
+        errorMessage = 'Feedback service not found. Please contact support.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error occurred. Please try again later.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setSending(false);
     }
@@ -81,73 +121,150 @@ const Help = () => {
           </div>
         </div>
 
-        <div className="feedback-section" style={{ marginTop: '3rem', display: 'flex', justifyContent: 'center' }}>
-          <div style={{ width: '100%', maxWidth: '400px', background: '#f8fafc', padding: '2rem', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)', border: '1px solid var(--border)', transition: 'all 0.3s ease', textAlign: 'center' }} onMouseEnter={(e) => { e.target.style.transform = 'translateY(-5px)'; e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = 'var(--shadow)'; }} onMouseLeave={(e) => { e.target.style.transform = 'translateY(0)'; e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'var(--shadow)'; }}>
-            <Send size={32} className="card-icon" style={{ color: 'var(--primary)', margin: '0 auto' }} />
-            <h3 style={{ textAlign: 'center' }}>Send Feedback</h3>
-            <p style={{ textAlign: 'center' }}>Share your thoughts or report issues directly with us.</p>
-            {sent ? (
-              <div style={{ color: 'var(--success)', textAlign: 'center', padding: '1rem' }}>
-                <CheckCircle size={24} style={{ marginBottom: '0.5rem' }} />
-                <p>Feedback sent successfully!</p>
-              </div>
-            ) : (
-              <form onSubmit={handleFeedbackSubmit}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <input
-                  type="text"
-                  placeholder="Your Name"
-                  value={feedback.name}
-                  onChange={(e) => setFeedback({...feedback, name: e.target.value})}
-                  style={{ padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '0.5rem', width: '100%', boxSizing: 'border-box' }}
-                />
-                <input
-                  type="email"
-                  placeholder="Your Email"
-                  value={feedback.email}
-                  onChange={(e) => setFeedback({...feedback, email: e.target.value})}
-                  style={{ padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '0.5rem', width: '100%', boxSizing: 'border-box' }}
-                />
-                <textarea
-                  placeholder="Your feedback or message..."
-                  value={feedback.message}
-                  onChange={(e) => setFeedback({...feedback, message: e.target.value})}
-                  rows={4}
-                  style={{ padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '0.5rem', resize: 'vertical', width: '100%', boxSizing: 'border-box' }}
-                />
-                <button 
-                  type="submit" 
-                  disabled={sending}
-                  className="btn btn-primary"
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center' }}
-                >
-                  <Send size={16} />
-                  {sending ? 'Sending...' : 'Send Feedback'}
-                </button>
+        {/* Send Feedback Section */}
+        <div className="feedback-section" style={{ marginTop: '3rem' }}>
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
+              <Send size={28} style={{ color: 'var(--primary)' }} />
+              Send Feedback
+            </h2>
+            <p style={{ color: '#64748b', margin: '0' }}>Share your thoughts, suggestions, or report issues directly with us</p>
+          </div>
+          
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <div style={{ width: '100%', maxWidth: '500px', background: '#f8fafc', padding: '2rem', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)', border: '1px solid var(--border)' }}>
+              {error && (
+                <div style={{ 
+                  color: '#dc2626', 
+                  background: '#fee2e2', 
+                  padding: '0.75rem', 
+                  borderRadius: '0.5rem', 
+                  marginBottom: '1rem',
+                  fontSize: '0.875rem',
+                  border: '1px solid #fecaca'
+                }}>
+                  ⚠️ {error}
                 </div>
-              </form>
-            )}
+              )}
+              {sent ? (
+                <div style={{ color: 'var(--success)', textAlign: 'center', padding: '1rem' }}>
+                  <CheckCircle size={48} style={{ marginBottom: '1rem', color: '#16a34a' }} />
+                  <h3 style={{ color: '#16a34a', margin: '0 0 0.5rem 0' }}>Feedback Sent Successfully!</h3>
+                  <p style={{ margin: '0', color: '#64748b' }}>Thank you for your feedback. We'll review it and get back to you if needed.</p>
+                </div>
+              ) : (
+                <form onSubmit={handleFeedbackSubmit}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    <input
+                      type="text"
+                      placeholder="Your Name"
+                      value={feedback.name}
+                      onChange={(e) => setFeedback({...feedback, name: e.target.value})}
+                      disabled={!!user}
+                      style={{ 
+                        padding: '0.75rem', 
+                        border: '1px solid var(--border)', 
+                        borderRadius: '0.5rem', 
+                        width: '100%', 
+                        boxSizing: 'border-box', 
+                        fontSize: '1rem',
+                        backgroundColor: user ? '#f3f4f6' : 'white',
+                        cursor: user ? 'not-allowed' : 'text'
+                      }}
+                    />
+                    <input
+                      type="email"
+                      placeholder="Your Email"
+                      value={feedback.email}
+                      onChange={(e) => setFeedback({...feedback, email: e.target.value})}
+                      disabled={!!user}
+                      style={{ 
+                        padding: '0.75rem', 
+                        border: '1px solid var(--border)', 
+                        borderRadius: '0.5rem', 
+                        width: '100%', 
+                        boxSizing: 'border-box', 
+                        fontSize: '1rem',
+                        backgroundColor: user ? '#f3f4f6' : 'white',
+                        cursor: user ? 'not-allowed' : 'text'
+                      }}
+                    />
+                    <textarea
+                      placeholder="Your feedback, suggestions, or issues..."
+                      value={feedback.message}
+                      onChange={(e) => {
+                        setFeedback({...feedback, message: e.target.value});
+                        setError(''); // Clear error when user starts typing
+                      }}
+                      rows={5}
+                      style={{ padding: '0.75rem', border: '1px solid var(--border)', borderRadius: '0.5rem', resize: 'vertical', width: '100%', boxSizing: 'border-box', fontSize: '1rem' }}
+                    />
+                    <button 
+                      type="submit" 
+                      disabled={sending}
+                      className="btn btn-primary"
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center', padding: '0.75rem 1.5rem', fontSize: '1rem' }}
+                    >
+                      <Send size={16} />
+                      {sending ? 'Sending...' : 'Send Feedback'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           </div>
         </div>
 
-        <div className="faq-section">
-          <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-            <HelpCircle size={28} style={{ color: 'var(--primary)' }} />
-            Frequently Asked Questions
-          </h2>
-          <div className="faq-item">
-            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <CheckCircle size={20} style={{ color: 'var(--success)' }} />
-              How do I become a host?
-            </h4>
-            <p>Go to the registration page, select "Become a Host", and fill out your profile details.</p>
+        {/* FAQs Section */}
+        <div className="faq-section" style={{ marginTop: '3rem' }}>
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
+              <HelpCircle size={28} style={{ color: 'var(--primary)' }} />
+              Frequently Asked Questions
+            </h2>
+            <p style={{ color: '#64748b', margin: '0' }}>Find answers to common questions about FestiveGuest</p>
           </div>
-          <div className="faq-item">
-            <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <AlertCircle size={20} style={{ color: 'var(--warning)' }} />
-              Is it free to use?
-            </h4>
-            <p>Registration is free for both guests and hosts. Specific festival experiences may have their own terms.</p>
+          
+          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
+                <CheckCircle size={20} style={{ color: 'var(--success)' }} />
+                How do I become a host?
+              </h4>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Go to the registration page, select "Become a Host", and fill out your profile details including your location, offerings, and bio. Once registered, you can start connecting with guests looking for festival experiences.</p>
+            </div>
+            
+            <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
+                <AlertCircle size={20} style={{ color: 'var(--warning)' }} />
+                Is it free to use?
+              </h4>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Registration is completely free for both guests and hosts. You can browse profiles, chat with other users, and arrange festival experiences at no cost. Individual arrangements between hosts and guests may have their own terms.</p>
+            </div>
+            
+            <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
+                <Users size={20} style={{ color: 'var(--primary)' }} />
+                How do I find hosts or guests?
+              </h4>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>After logging in, go to your dashboard where you can browse profiles, filter by location, and view detailed information about other users. Use the chat feature to connect and arrange festival experiences.</p>
+            </div>
+            
+            <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
+                <MessageCircle size={20} style={{ color: 'var(--primary)' }} />
+                How does the referral system work?
+              </h4>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Share your referral code with friends. When they register using your code, both of you get special benefits. Invite 3 friends to unlock Premium features for 1 month including priority support and advanced filters!</p>
+            </div>
+            
+            <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
+                <CheckCircle size={20} style={{ color: 'var(--success)' }} />
+                Is my information safe?
+              </h4>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Yes, we take privacy seriously. Your personal information is protected and only shared with users you choose to connect with. We recommend meeting in public places first and taking necessary safety precautions.</p>
+            </div>
           </div>
         </div>
       </div>

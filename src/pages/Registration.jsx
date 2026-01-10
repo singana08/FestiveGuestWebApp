@@ -39,6 +39,7 @@ const Registration = ({ setUser }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
+  const [otpError, setOtpError] = useState('');
   const [testResult, setTestResult] = useState('');
   const [testing, setTesting] = useState(false);
   const [agreementAccepted, setAgreementAccepted] = useState(false);
@@ -112,8 +113,14 @@ const Registration = ({ setUser }) => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const roleParam = params.get('role');
+    const referralCodeParam = params.get('referralCode');
+    
     if (roleParam === 'Guest' || roleParam === 'Host') {
       setFormData(prev => ({ ...prev, role: roleParam }));
+    }
+    
+    if (referralCodeParam) {
+      setFormData(prev => ({ ...prev, ReferredBy: referralCodeParam }));
     }
   }, [location.search]);
 
@@ -284,10 +291,11 @@ const Registration = ({ setUser }) => {
 
   const verifyRegistrationOtp = async () => {
     if (!verificationOTP || verificationOTP.length !== 6) {
-      showToast('Please enter a valid 6-digit code', 'error');
+      setOtpError('Please enter a valid 6-digit OTP code');
       return;
     }
     setLoading(true);
+    setOtpError('');
     try {
       const res = await api.post('email/validate-otp', { email: formData.email, otpCode: verificationOTP });
       if (res.data.success) {
@@ -295,11 +303,12 @@ const Registration = ({ setUser }) => {
         setEmailVerified(true);
         setOtpSent(false);
         setDevOtpVisible('');
+        setOtpError('');
         showToast(res.data?.message || 'Email verified', 'success');
       }
     } catch (err) {
       const msg = err.response?.data?.message || err.message;
-      showToast('Verification failed: ' + msg, 'error');
+      setOtpError('Verification failed: ' + msg);
     } finally {
       setLoading(false);
     }
@@ -449,15 +458,37 @@ const Registration = ({ setUser }) => {
 
               {otpSent && (
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    value={verificationOTP}
-                    onChange={(e) => setVerificationOTP(e.target.value.replace(/\D/g, '').slice(0,6))}
-                    placeholder="Enter OTP"
-                    maxLength={6}
-                    style={{ padding: '0.5rem', fontSize: '1rem', width: '160px' }}
-                  />
-                  <button type="button" className="btn btn-primary" onClick={verifyRegistrationOtp} disabled={loading || verificationOTP.length !== 6}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                    <input
+                      type="text"
+                      value={verificationOTP}
+                      onChange={(e) => {
+                        setVerificationOTP(e.target.value.replace(/\D/g, '').slice(0,6));
+                        setOtpError(''); // Clear error when user types
+                      }}
+                      placeholder="Enter OTP"
+                      maxLength={6}
+                      style={{ 
+                        padding: '0.5rem', 
+                        fontSize: '1rem', 
+                        width: '160px',
+                        borderColor: otpError ? '#dc2626' : '#cbd5e1'
+                      }}
+                    />
+                    {otpError && (
+                      <p style={{ margin: '0', color: '#dc2626', fontSize: '0.75rem' }}>⚠️ {otpError}</p>
+                    )}
+                  </div>
+                  <button 
+                    type="button" 
+                    className="btn btn-primary" 
+                    onClick={verifyRegistrationOtp} 
+                    disabled={loading || verificationOTP.length !== 6}
+                    style={{ 
+                      opacity: verificationOTP.length !== 6 ? 0.5 : 1,
+                      cursor: verificationOTP.length !== 6 ? 'not-allowed' : 'pointer'
+                    }}
+                  >
                     Verify
                   </button>
                 </div>
@@ -623,6 +654,21 @@ const Registration = ({ setUser }) => {
             <div style={{ textAlign: 'right', fontSize: '0.875rem', color: '#64748b', marginTop: '0.25rem' }}>
               {formData.bio.length}/250 characters
             </div>
+          </div>
+
+          <div className="form-group">
+            <label style={{ fontWeight: '600', color: '#374151' }}>Referral Code (Optional)</label>
+            <input
+              type="text"
+              name="ReferredBy"
+              value={formData.ReferredBy || ''}
+              onChange={handleInputChange}
+              placeholder="Enter referral code if you have one"
+              style={{ fontSize: '1rem', padding: '1rem' }}
+            />
+            {formData.ReferredBy && (
+              <p style={{ margin: '0.5rem 0 0 0', color: '#16a34a', fontSize: '0.875rem' }}>✓ Referral code applied</p>
+            )}
           </div>
 
 

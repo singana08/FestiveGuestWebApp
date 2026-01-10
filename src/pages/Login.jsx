@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Eye, EyeOff, Key } from 'lucide-react';
 import api from '../utils/api';
 
 const Login = ({ setUser }) => {
@@ -12,7 +12,23 @@ const Login = ({ setUser }) => {
   const [toast, setToast] = useState(null);
   const [emailError, setEmailError] = useState('');
   const [loginLogoUrl, setLoginLogoUrl] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [otpSending, setOtpSending] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
   const navigate = useNavigate();
+
+  const passwordRequirements = [
+    { label: 'At least 8 characters', test: (pw) => pw.length >= 8 },
+    { label: 'One uppercase letter', test: (pw) => /[A-Z]/.test(pw) },
+    { label: 'One lowercase letter', test: (pw) => /[a-z]/.test(pw) },
+    { label: 'One number', test: (pw) => /\d/.test(pw) },
+    { label: 'One special character', test: (pw) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw) }
+  ];
 
   // Email validation regex
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -80,6 +96,67 @@ const Login = ({ setUser }) => {
     }
   };
 
+  const sendForgotPasswordOtp = async () => {
+    if (!forgotEmail) {
+      showToast('Please enter your email address', 'error');
+      return;
+    }
+    setOtpSending(true);
+    try {
+      const res = await api.post('email/send-otp', { 
+        email: forgotEmail,
+        purpose: 'password-reset'
+      });
+      if (res.data.success) {
+        setOtpSent(true);
+        showToast('OTP sent to your email', 'success');
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message;
+      showToast('Failed to send OTP: ' + msg, 'error');
+    } finally {
+      setOtpSending(false);
+    }
+  };
+
+  const resetPassword = async () => {
+    if (!otp || otp.length !== 6) {
+      showToast('Please enter a valid 6-digit OTP', 'error');
+      return;
+    }
+    const allRequirementsMet = passwordRequirements.every(req => req.test(newPassword));
+    if (!allRequirementsMet) {
+      showToast('Password must meet all requirements', 'error');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showToast('Passwords do not match', 'error');
+      return;
+    }
+    setResettingPassword(true);
+    try {
+      const res = await api.post('auth/reset-password', {
+        email: forgotEmail,
+        otpCode: otp,
+        newPassword: newPassword
+      });
+      if (res.data.success) {
+        showToast('Password reset successful! Please login with your new password.', 'success');
+        setShowForgotPassword(false);
+        setOtpSent(false);
+        setOtp('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setForgotEmail('');
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message;
+      showToast('Password reset failed: ' + msg, 'error');
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
   return (
     <div className="container">
       {toast && (
@@ -112,6 +189,7 @@ const Login = ({ setUser }) => {
           <p style={{ color: '#64748b', fontSize: '1.1rem' }}>Connect Guests and Hosts for memorable experiences</p>
         </div>
         
+        {!showForgotPassword && (
         <form onSubmit={handleLogin} style={{ marginTop: '30px' }}>
           <div className="form-group">
             <input
@@ -165,6 +243,24 @@ const Login = ({ setUser }) => {
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
+        )}
+        
+        <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+          <button 
+            type="button" 
+            onClick={() => setShowForgotPassword(true)}
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              color: 'var(--primary)', 
+              textDecoration: 'underline', 
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            Forgot Password?
+          </button>
+        </div>
         
         <div style={{ marginTop: '2rem', padding: '1.5rem', background: '#f8fafc', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
           <p style={{ margin: '0', color: '#64748b', fontSize: '1.05rem' }}>
@@ -172,6 +268,114 @@ const Login = ({ setUser }) => {
           </p>
         </div>
       </div>
+      
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="modal-overlay" onClick={() => setShowForgotPassword(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3><Key size={20} /> Reset Password</h3>
+              <button onClick={() => setShowForgotPassword(false)} className="modal-close">×</button>
+            </div>
+            <div className="modal-body">
+              {!otpSent ? (
+                <div>
+                  <p style={{ marginBottom: '1rem', color: '#64748b' }}>Enter your email to receive a password reset OTP</p>
+                  <div className="form-group">
+                    <input
+                      type="email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      placeholder="Enter your email address"
+                      style={{ fontSize: '1rem', padding: '0.75rem', width: '100%' }}
+                    />
+                  </div>
+                  <button 
+                    onClick={sendForgotPasswordOtp}
+                    disabled={otpSending || !forgotEmail}
+                    className="btn btn-primary"
+                    style={{ width: '100%', padding: '0.75rem' }}
+                  >
+                    {otpSending ? 'Sending OTP...' : 'Send OTP'}
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <p style={{ marginBottom: '1rem', color: '#64748b' }}>Enter the OTP sent to {forgotEmail} and your new password</p>
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0,6))}
+                      placeholder="Enter 6-digit OTP"
+                      maxLength={6}
+                      style={{ fontSize: '1rem', padding: '0.75rem', width: '100%' }}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new password"
+                      style={{ fontSize: '1rem', padding: '0.75rem', width: '100%' }}
+                    />
+                    <div style={{ marginTop: '0.75rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                      {passwordRequirements.map((req, index) => {
+                        const isMet = req.test(newPassword);
+                        return (
+                          <div key={index} style={{ 
+                            fontSize: '0.75rem', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '0.25rem',
+                            color: isMet ? '#16a34a' : '#dc2626',
+                            transition: 'color 0.2s'
+                          }}>
+                            <span style={{ fontSize: '0.9rem' }}>{isMet ? '✓' : '○'}</span>
+                            {req.label}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                      style={{ fontSize: '1rem', padding: '0.75rem', width: '100%' }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button 
+                      onClick={() => {
+                        setOtpSent(false);
+                        setOtp('');
+                        setNewPassword('');
+                        setConfirmPassword('');
+                      }}
+                      className="btn btn-secondary"
+                      style={{ flex: 1, padding: '0.75rem' }}
+                    >
+                      Back
+                    </button>
+                    <button 
+                      onClick={resetPassword}
+                      disabled={resettingPassword || !otp || !newPassword || !confirmPassword}
+                      className="btn btn-primary"
+                      style={{ flex: 1, padding: '0.75rem' }}
+                    >
+                      {resettingPassword ? 'Resetting...' : 'Reset Password'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
