@@ -8,7 +8,18 @@ class ChatService {
   }
 
   async connect() {
-    if (this.isConnected) return;
+    if (this.isConnected && this.connection?.state === signalR.HubConnectionState.Connected) {
+      return;
+    }
+
+    // Clean up existing connection if it exists
+    if (this.connection) {
+      try {
+        await this.connection.stop();
+      } catch (e) {
+        console.log('Error stopping existing connection:', e);
+      }
+    }
 
     this.connection = new signalR.HubConnectionBuilder()
       .withUrl("http://localhost:7219/chathub", {
@@ -24,6 +35,22 @@ class ChatService {
       .withAutomaticReconnect()
       .build();
 
+    // Handle connection state changes
+    this.connection.onreconnected(() => {
+      console.log('SignalR Reconnected');
+      this.isConnected = true;
+    });
+
+    this.connection.onreconnecting(() => {
+      console.log('SignalR Reconnecting...');
+      this.isConnected = false;
+    });
+
+    this.connection.onclose(() => {
+      console.log('SignalR Connection Closed');
+      this.isConnected = false;
+    });
+
     try {
       await this.connection.start();
       this.isConnected = true;
@@ -31,6 +58,7 @@ class ChatService {
     } catch (err) {
       console.error("SignalR Connection Error:", err);
       this.isConnected = false;
+      throw err;
     }
   }
 
@@ -44,12 +72,24 @@ class ChatService {
   }
 
   async sendMessage(otherUserId, message) {
-    if (!this.isConnected) await this.connect();
+    // Ensure we have a valid connection
+    if (!this.isConnected || this.connection?.state !== signalR.HubConnectionState.Connected) {
+      console.log('Connection not ready, attempting to connect...');
+      await this.connect();
+    }
+    
     try {
       await this.connection.invoke("SendMessage", otherUserId, message);
     } catch (err) {
       console.error("Error sending message:", err);
-      throw err;
+      // Try to reconnect and send again
+      if (err.message?.includes('not in the \'Connected\' State')) {
+        console.log('Attempting to reconnect and resend...');
+        await this.connect();
+        await this.connection.invoke("SendMessage", otherUserId, message);
+      } else {
+        throw err;
+      }
     }
   }
 

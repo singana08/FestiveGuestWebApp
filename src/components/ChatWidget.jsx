@@ -139,12 +139,19 @@ const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) 
 
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !connected) return;
+    if (!newMessage.trim()) return;
     
     try {
       setSending(true);
       const messageText = newMessage;
       setNewMessage('');
+      
+      // Ensure connection before sending
+      if (!connected) {
+        console.log('🔄 Reconnecting before sending message...');
+        await chatService.connect();
+        setConnected(true);
+      }
       
       await chatService.sendMessage(recipientId, messageText);
       
