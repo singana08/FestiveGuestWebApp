@@ -16,6 +16,7 @@ import Admin from './pages/Admin';
 import Profile from './pages/Profile';
 import PublicProfile from './pages/PublicProfile';
 import Help from './pages/Help';
+import Posts from './pages/Posts';
 import './App.css';
 
 const AppContent = () => {
@@ -86,10 +87,12 @@ const AppContent = () => {
   };
 
   const handleLogout = () => {
-    localStorage.clear();
-    setUser(null);
-    setMenuOpen(false);
-    window.location.href = '/';
+    if (window.confirm('Are you sure you want to logout?')) {
+      localStorage.clear();
+      setUser(null);
+      setMenuOpen(false);
+      window.location.href = '/';
+    }
   };
 
   const handleChatsClick = () => {
@@ -146,6 +149,7 @@ const AppContent = () => {
                   </span>
                 )}
               </Link>
+              <Link to="/posts" className={`nav-item ${isActivePage('/posts') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}>📝 Posts</Link>
               <Link to="/profile" className={`nav-item ${isActivePage('/profile') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><User size={20} /> Profile</Link>
               <Link to="/help" className={`nav-item ${isActivePage('/help') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><HelpCircle size={20} /> Help</Link>
               {(user.role === 'Admin' || user.userType === 'Admin') && <Link to="/admin" className={`nav-item ${isActivePage('/admin') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><ShieldCheck size={20} /> Admin</Link>}
@@ -167,6 +171,7 @@ const AppContent = () => {
           <Route path="/guest-dashboard" element={(user?.role === 'Guest' || user?.userType === 'Guest') ? <GuestDashboard user={user} /> : <Navigate to="/login" />} />
           <Route path="/host-dashboard" element={(user?.role === 'Host' || user?.userType === 'Host') ? <HostDashboard user={user} /> : <Navigate to="/login" />} />
           <Route path="/chats" element={user ? <Chats /> : <Navigate to="/login" />} />
+          <Route path="/posts" element={user ? <Posts /> : <Navigate to="/login" />} />
           
           <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
           <Route path="/profile/:userName" element={<PublicProfile />} />

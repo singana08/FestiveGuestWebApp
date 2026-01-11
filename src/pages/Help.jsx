@@ -97,7 +97,7 @@ const Help = () => {
               Email Support
             </h3>
             <p>Send us an email and we'll get back to you as soon as possible.</p>
-            <a href="mailto:support@festiveguest.com" className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <a href="mailto:customer-support@festiveguest.com" className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Mail size={16} />
               Customer Support
             </a>

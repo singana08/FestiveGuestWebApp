@@ -314,7 +314,7 @@ const HostDashboard = ({ user }) => {
         ) : (
           <div className="compact-grid">
             {filteredGuests.map(guest => (
-              <div key={guest.userId} className={`host-card-horizontal ${selectedGuestId === guest.userId ? 'selected' : ''}`}>
+              <div key={guest.userId} className={`host-card-horizontal ${selectedGuestId === guest.userId ? 'selected' : ''}`} onClick={() => handleViewProfile(guest)}>
                 <div className="host-image-section">
                   <ImageWithSas 
                     src={guest.profileImageUrl} 
@@ -323,33 +323,22 @@ const HostDashboard = ({ user }) => {
                     fallbackText="Guest"
                   />
                   <button 
-                    className="btn btn-primary overlay-btn"
-                    onClick={() => handleViewProfile(guest)}
+                    className="chat-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveChat({ id: guest.userId, name: guest.name });
+                    }}
                   >
-                    <Eye size={14} /> View
+                    <MessageCircle size={16} />
                   </button>
                 </div>
                 
                 <div className="host-content-section">
                   <h3 className="host-name">{guest.name}</h3>
                   <div className="host-location">📍 {guest.location?.split(',')[0] || 'Location not specified'}</div>
-                  
-                  {guest.bio && (
-                    <p className="host-bio">
-                      {guest.bio}
-                    </p>
-                  )}
-                  
-                  <button 
-                    className="btn btn-primary"
-                    onClick={() => setActiveChat({ id: guest.userId, name: guest.name })}
-                    style={{ marginTop: '0.75rem', fontSize: '0.75rem', padding: '0.4rem 0.8rem', borderRadius: '0.375rem', minHeight: '32px', width: 'auto', display: 'inline-flex' }}
-                  >
-                    <MessageCircle size={14} /> Chat
-                  </button>
                 </div>
               </div>
-            ))}
+            ))}}
           </div>
         )}
       </div>

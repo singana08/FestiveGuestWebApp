@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, MapPin, Plus, Minus, MessageCircle, Home, Us
 import ChatWidget from '../components/ChatWidget';
 import ImageWithSas from '../components/ImageWithSas';
 import locationService from '../utils/locationService';
+import '../dashboard.css';
 
 const GuestDashboard = ({ user }) => {
   const navigate = useNavigate();
@@ -373,7 +374,7 @@ const GuestDashboard = ({ user }) => {
             ) : (
               <div className="compact-grid">
                 {filteredHosts.map(host => (
-                  <div key={host.userId} className={`host-card-horizontal ${selectedHostId === host.userId ? 'selected' : ''}`}>
+                  <div key={host.userId} className={`host-card-horizontal ${selectedHostId === host.userId ? 'selected' : ''}`} onClick={() => handleViewProfile(host)}>
                     <div className="host-image-section">
                       <ImageWithSas 
                         src={host.profileImageUrl}
@@ -382,39 +383,25 @@ const GuestDashboard = ({ user }) => {
                         userId={host.userId}
                         fallbackText="Host"
                       />
+                      <button 
+                        className="chat-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleContactHost(host);
+                        }}
+                      >
+                        <MessageCircle size={16} />
+                      </button>
                       {host.status === 'Verified' && (
                         <div className="verified-badge">
                           ✓ Verified
                         </div>
                       )}
-                      <button 
-                        className="btn btn-primary overlay-btn"
-                        onClick={() => handleViewProfile(host)}
-                      >
-                        <Eye size={14} /> View
-                      </button>
                     </div>
                     
                     <div className="host-content-section">
                       <h3 className="host-name">{host.name}</h3>
                       <div className="host-location">📍 {host.location.split(',')[0]}</div>
-                      
-                      {host.bio && (
-                        <p className="host-bio">
-                          {host.bio}
-                        </p>
-                      )}
-                      
-                      <button 
-                        className="btn btn-primary"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleContactHost(host);
-                        }}
-                        style={{ marginTop: '0.75rem', fontSize: '0.75rem', padding: '0.4rem 0.8rem', borderRadius: '0.375rem', minHeight: '32px', width: 'auto', display: 'inline-flex' }}
-                      >
-                        <MessageCircle size={14} /> Chat
-                      </button>
                     </div>
                   </div>
                 ))}
