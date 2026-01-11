@@ -339,7 +339,7 @@ const HostDashboard = ({ user }) => {
                   <div className="host-location">{guest.location?.split(',')[0] || 'Location not specified'}</div>
                 </div>
               </div>
-            ))}}
+            ))}
           </div>
         )}
       </div>
