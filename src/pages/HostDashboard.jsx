@@ -285,7 +285,7 @@ const HostDashboard = ({ user }) => {
         <div className="browse-header">
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Star size={24} style={{ color: 'var(--primary)' }} />
-            Guests Looking for Festivals
+            Travelers Looking for Local Hosts
           </h2>
           <div className="results-count" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {!loading && (
@@ -304,7 +304,7 @@ const HostDashboard = ({ user }) => {
               {selectedLocations.length > 0 ? 'No guests found for selected locations' : 'No guests found right now'}
             </h3>
             <p style={{ color: '#64748b' }}>
-              {selectedLocations.length > 0 ? 'Try adjusting your location filters or check back later.' : 'Check back soon as more travelers join the festival celebrations!'}
+              {selectedLocations.length > 0 ? 'Try adjusting your location filters or check back later.' : 'Check back soon as more travelers discover local experiences!'}
             </p>
             {selectedLocations.length > 0 && (
               <button onClick={clearFilters} className="btn btn-outline">

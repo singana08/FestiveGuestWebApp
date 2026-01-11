@@ -364,7 +364,7 @@ const GuestDashboard = ({ user }) => {
                 <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🗺️</div>
                 <h3 style={{ color: '#1e293b' }}>No hosts found{selectedLocations.length > 0 ? ' for selected locations' : ' in this area yet'}</h3>
                 <p style={{ color: '#64748b' }}>
-                  {selectedLocations.length > 0 ? 'Try selecting different locations or clear filters.' : "We're growing fast! Check back tomorrow for new Pongal celebrations."}
+                  {selectedLocations.length > 0 ? 'Try selecting different locations or clear filters.' : "We're growing fast! Check back tomorrow for new local hosts."}
                 </p>
                 {selectedLocations.length > 0 && (
                   <button onClick={clearFilters} className="btn btn-outline">

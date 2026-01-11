@@ -97,7 +97,7 @@ const Help = () => {
               Email Support
             </h3>
             <p>Send us an email and we'll get back to you as soon as possible.</p>
-            <a href="mailto:customer-support@festiveguest.com" className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <a href="mailto:support@localhostconnect.com" className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Mail size={16} />
               Customer Support
             </a>
@@ -222,7 +222,7 @@ const Help = () => {
               <HelpCircle size={28} style={{ color: 'var(--primary)' }} />
               Frequently Asked Questions
             </h2>
-            <p style={{ color: '#64748b', margin: '0' }}>Find answers to common questions about FestiveGuest</p>
+            <p style={{ color: '#64748b', margin: '0' }}>Find answers to common questions about Local Host Connect</p>
           </div>
           
           <div style={{ maxWidth: '800px', margin: '0 auto' }}>
@@ -231,7 +231,7 @@ const Help = () => {
                 <CheckCircle size={20} style={{ color: 'var(--success)' }} />
                 How do I become a host?
               </h4>
-              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Go to the registration page, select "Become a Host", and fill out your profile details including your location, offerings, and bio. Once registered, you can start connecting with guests looking for festival experiences.</p>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Go to the registration page, select "Local Host", and fill out your profile details including your location, offerings, and bio. Once registered, you can start connecting with travelers looking for authentic local experiences.</p>
             </div>
             
             <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
@@ -239,15 +239,15 @@ const Help = () => {
                 <AlertCircle size={20} style={{ color: 'var(--warning)' }} />
                 Is it free to use?
               </h4>
-              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Registration is completely free for both guests and hosts. You can browse profiles, chat with other users, and arrange festival experiences at no cost. Individual arrangements between hosts and guests may have their own terms.</p>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Registration is completely free for both travelers and hosts. You can browse profiles, chat with other users, and arrange local experiences at no cost. Individual arrangements between hosts and travelers may have their own terms.</p>
             </div>
             
             <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
                 <Users size={20} style={{ color: 'var(--primary)' }} />
-                How do I find hosts or guests?
+                How do I find hosts or travelers?
               </h4>
-              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>After logging in, go to your dashboard where you can browse profiles, filter by location, and view detailed information about other users. Use the chat feature to connect and arrange festival experiences.</p>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>After logging in, go to your dashboard where you can browse profiles, filter by location, and view detailed information about other users. Use the chat feature to connect and arrange local experiences.</p>
             </div>
             
             <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
@@ -260,10 +260,58 @@ const Help = () => {
             
             <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
+                <AlertCircle size={20} style={{ color: 'var(--warning)' }} />
+                What safety measures should I take?
+              </h4>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Always meet in public places first, share your plans with trusted contacts, verify the other person's identity through video calls, keep emergency contacts handy, and trust your instincts. Never share personal financial information or make large advance payments.</p>
+            </div>
+            
+            <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
+                <AlertCircle size={20} style={{ color: 'var(--warning)' }} />
+                How do I report suspicious behavior?
+              </h4>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>If you encounter any suspicious behavior, inappropriate messages, or safety concerns, immediately contact our support team via WhatsApp or email. We take all reports seriously and will investigate promptly to ensure community safety.</p>
+            </div>
+            
+            <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
+                <CheckCircle size={20} style={{ color: 'var(--success)' }} />
+                What if I have a dispute with a host/traveler?
+              </h4>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Contact our support team immediately with details of the issue. We'll mediate between both parties to find a fair resolution. Remember, all arrangements are between users - we facilitate introductions but cannot guarantee outcomes.</p>
+            </div>
+            
+            <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
+                <AlertCircle size={20} style={{ color: 'var(--warning)' }} />
+                How should I handle payments?
+              </h4>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Use secure payment methods, avoid large advance payments, and consider paying after services are rendered when possible. Never share banking passwords or OTPs. For high-value arrangements, consider meeting in person first to build trust.</p>
+            </div>
+            
+            <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
+                <CheckCircle size={20} style={{ color: 'var(--success)' }} />
+                Can I verify someone's identity?
+              </h4>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Yes! We recommend video calls before meeting, checking their profile completeness, reading reviews from other users, and asking for references if needed. Trust your instincts - if something feels off, it's better to be cautious.</p>
+            </div>
+            
+            <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
+                <Users size={20} style={{ color: 'var(--primary)' }} />
+                What types of experiences can I find?
+              </h4>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Our platform connects you for various travel needs: business travel accommodation, leisure tourism, festival celebrations, educational exchanges, family visits, cultural immersion, local food experiences, and city tours with insider knowledge.</p>
+            </div>
+            
+            <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
                 <CheckCircle size={20} style={{ color: 'var(--success)' }} />
                 Is my information safe?
               </h4>
-              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Yes, we take privacy seriously. Your personal information is protected and only shared with users you choose to connect with. We recommend meeting in public places first and taking necessary safety precautions.</p>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Yes, we take privacy seriously. Your personal information is protected and only shared with users you choose to connect with. We strongly recommend meeting in public places first, sharing your plans with trusted contacts, and taking all necessary safety precautions.</p>
             </div>
           </div>
         </div>

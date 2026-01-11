@@ -42,8 +42,6 @@ const Registration = ({ setUser }) => {
   const [otpError, setOtpError] = useState('');
   const [testResult, setTestResult] = useState('');
   const [testing, setTesting] = useState(false);
-  const [agreementAccepted, setAgreementAccepted] = useState(false);
-  const [agreementTimestamp, setAgreementTimestamp] = useState(null);
 
   const passwordRequirements = [
     { label: 'At least 8 characters', test: (pw) => pw.length >= 8 },
@@ -114,6 +112,29 @@ const Registration = ({ setUser }) => {
     const params = new URLSearchParams(location.search);
     const roleParam = params.get('role');
     const referralCodeParam = params.get('referralCode');
+    const disclaimerAcceptedParam = params.get('disclaimerAccepted');
+    
+    // Security check for disclaimer acceptance
+    const storedAcceptance = sessionStorage.getItem('disclaimerAcceptance');
+    if (!storedAcceptance || !disclaimerAcceptedParam) {
+      navigate('/');
+      return;
+    }
+    
+    try {
+      const acceptanceData = JSON.parse(storedAcceptance);
+      const timeDiff = Date.now() - acceptanceData.timestamp;
+      
+      // Check if acceptance is recent (within 10 minutes) and matches URL param
+      if (timeDiff > 600000 || acceptanceData.timestamp.toString() !== disclaimerAcceptedParam) {
+        sessionStorage.removeItem('disclaimerAcceptance');
+        navigate('/');
+        return;
+      }
+    } catch (error) {
+      navigate('/');
+      return;
+    }
     
     if (roleParam === 'Guest' || roleParam === 'Host') {
       setFormData(prev => ({ ...prev, role: roleParam }));
@@ -122,7 +143,7 @@ const Registration = ({ setUser }) => {
     if (referralCodeParam) {
       setFormData(prev => ({ ...prev, ReferredBy: referralCodeParam }));
     }
-  }, [location.search]);
+  }, [location.search, navigate]);
 
   useEffect(() => {
     const loadLocations = async () => {
@@ -174,16 +195,6 @@ const Registration = ({ setUser }) => {
     registerUser();
   };
 
-  const handleAgreementChange = (e) => {
-    const isChecked = e.target.checked;
-    setAgreementAccepted(isChecked);
-    if (isChecked) {
-      setAgreementTimestamp(Date.now());
-    } else {
-      setAgreementTimestamp(null);
-    }
-  };
-
   const registerUser = async () => {
     setLoading(true);
     setServerError(null);
@@ -195,20 +206,29 @@ const Registration = ({ setUser }) => {
         return;
       }
 
-      if (!agreementAccepted || !agreementTimestamp) {
-        setServerError('Please accept the terms and conditions to continue.');
-        showToast('You must accept the agreement to register', 'error');
-        setLoading(false);
+      // Validate disclaimer acceptance from session
+      const storedAcceptance = sessionStorage.getItem('disclaimerAcceptance');
+      if (!storedAcceptance) {
+        setServerError('Disclaimer acceptance expired. Please start registration again.');
+        showToast('Please accept the disclaimer again', 'error');
+        navigate('/');
         return;
       }
 
-      // Additional security check - ensure agreement was accepted recently
-      if (Date.now() - agreementTimestamp > 300000) { // 5 minutes
-        setServerError('Agreement acceptance expired. Please re-accept the terms.');
-        setAgreementAccepted(false);
-        setAgreementTimestamp(null);
-        showToast('Please re-accept the agreement', 'error');
-        setLoading(false);
+      try {
+        const acceptanceData = JSON.parse(storedAcceptance);
+        const timeDiff = Date.now() - acceptanceData.timestamp;
+        
+        if (timeDiff > 600000) { // 10 minutes
+          setServerError('Disclaimer acceptance expired. Please start registration again.');
+          sessionStorage.removeItem('disclaimerAcceptance');
+          showToast('Disclaimer acceptance expired', 'error');
+          navigate('/');
+          return;
+        }
+      } catch (error) {
+        setServerError('Invalid disclaimer acceptance. Please start registration again.');
+        navigate('/');
         return;
       }
 
@@ -229,6 +249,8 @@ const Registration = ({ setUser }) => {
       console.log('Registration response:', userData);
 
       if (userData.success || userData.message === 'User registered successfully') {
+        // Clear disclaimer acceptance after successful registration
+        sessionStorage.removeItem('disclaimerAcceptance');
         showToast('🎉 Registration successful! Please login to continue.', 'success');
         setTimeout(() => navigate('/login'), 2000);
       } else {
@@ -349,42 +371,82 @@ const Registration = ({ setUser }) => {
         <div className="disclaimer-section">
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <h2 style={{ color: '#1e293b', marginBottom: '0.5rem' }}>
-              Welcome to FestiveGuest
+              Welcome to Local Host Connect
             </h2>
             <p style={{ color: '#64748b' }}>
-              Connect with festival enthusiasts
+              Connect with local hosts and travelers anywhere
             </p>
           </div>
           
-          {/* Disclaimer */}
+          {/* Privacy & Terms Links */}
           <div style={{ 
             padding: '1.5rem', 
-            background: '#fef3c7', 
-            border: '1px solid #f59e0b', 
+            background: '#f0f9ff', 
+            border: '1px solid #0ea5e9', 
             borderRadius: '0.75rem',
-            borderLeft: '4px solid #f59e0b',
-            height: 'fit-content',
-            position: 'sticky',
-            top: '2rem'
+            marginBottom: '1.5rem'
           }}>
-            <h4 style={{ margin: '0 0 1rem 0', color: '#92400e', fontSize: '1rem', fontWeight: '600' }}>⚠️ Important Disclaimer</h4>
-            <div style={{ color: '#92400e', fontSize: '0.9rem', lineHeight: '1.5' }}>
+            <h4 style={{ margin: '0 0 1rem 0', color: '#0c4a6e', fontSize: '1rem', fontWeight: '600' }}>✅ Terms Accepted</h4>
+            <div style={{ color: '#0c4a6e', fontSize: '0.9rem', lineHeight: '1.5' }}>
               <p style={{ margin: '0 0 0.75rem 0' }}>
-                <strong>FestiveGuest</strong> is a platform that connects like-minded people for festival celebrations. By registering, you acknowledge and agree that:
+                By proceeding to this page, you have already read and agreed to our:
               </p>
               <ul style={{ margin: '0', paddingLeft: '1.25rem' }}>
-                <li style={{ marginBottom: '0.5rem' }}>We are <strong>not responsible</strong> for any incidents, damages, or issues that may occur during your interactions or meetings.</li>
-                <li style={{ marginBottom: '0.5rem' }}>We do <strong>not guarantee</strong> that you will find suitable hosts or guests, as this depends on availability and mutual compatibility.</li>
-                <li style={{ marginBottom: '0.5rem' }}>We act solely as a <strong>platform for introductions</strong> and do not verify the background, intentions, or authenticity of users.</li>
-                <li style={{ marginBottom: '0.5rem' }}>All interactions, arrangements, and meetings are <strong>at your own risk and discretion</strong>.</li>
-                <li style={{ marginBottom: '0.5rem' }}><strong>Payment & Financial Caution:</strong> Hosts may request payment for services (accommodation, food, etc.). It is entirely your responsibility to decide whether to pay in advance or after services are rendered. Both hosts and guests should exercise caution and verify each other's authenticity before any financial transactions.</li>
-                <li>We <strong>strongly recommend</strong> meeting in public places first and taking necessary safety precautions.</li>
+                <li style={{ marginBottom: '0.5rem' }}>
+                  <button 
+                    type="button"
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      color: '#0ea5e9', 
+                      textDecoration: 'underline', 
+                      cursor: 'pointer',
+                      padding: 0,
+                      font: 'inherit'
+                    }}
+                    onClick={() => window.open('/privacy-policy', '_blank')}
+                  >
+                    Privacy Policy
+                  </button> - How we handle your personal information
+                </li>
+                <li style={{ marginBottom: '0.5rem' }}>
+                  <button 
+                    type="button"
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      color: '#0ea5e9', 
+                      textDecoration: 'underline', 
+                      cursor: 'pointer',
+                      padding: 0,
+                      font: 'inherit'
+                    }}
+                    onClick={() => window.open('/terms-of-service', '_blank')}
+                  >
+                    Terms of Service
+                  </button> - Platform usage guidelines
+                </li>
+                <li>
+                  <button 
+                    type="button"
+                    style={{ 
+                      background: 'none', 
+                      border: 'none', 
+                      color: '#0ea5e9', 
+                      textDecoration: 'underline', 
+                      cursor: 'pointer',
+                      padding: 0,
+                      font: 'inherit'
+                    }}
+                    onClick={() => window.open('/safety-guidelines', '_blank')}
+                  >
+                    Safety Guidelines
+                  </button> - Important safety recommendations
+                </li>
               </ul>
-              <p style={{ margin: '0.75rem 0 0 0', fontWeight: '600' }}>
-                By proceeding with registration, you accept full responsibility for your safety and interactions.
-              </p>
             </div>
           </div>
+          
         </div>
         
         {/* Registration Form - Right Side */}
@@ -395,23 +457,31 @@ const Registration = ({ setUser }) => {
                 Complete Your Registration
               </h3>
               <p style={{ color: '#64748b' }}>
-                Join our community of festival enthusiasts
+                Join our community of travelers and local hosts
               </p>
             </div>
             
             <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label style={{ fontWeight: '600', color: '#374151' }}>Choose Your Role</label>
-            <select 
-              name="role" 
-              value={formData.role} 
-              onChange={handleInputChange}
-              required
-              style={{ fontSize: '1rem', padding: '1rem' }}
-            >
-              <option value="Guest">🎉 Guest</option>
-              <option value="Host">🏠 Host</option>
-            </select>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, role: 'Guest' }))}
+                className={`btn ${formData.role === 'Guest' ? 'btn-primary' : 'btn-outline'}`}
+                style={{ flex: 1, padding: '1rem', fontSize: '1rem' }}
+              >
+                🎒 Traveler (Guest)
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, role: 'Host' }))}
+                className={`btn ${formData.role === 'Host' ? 'btn-primary' : 'btn-outline'}`}
+                style={{ flex: 1, padding: '1rem', fontSize: '1rem' }}
+              >
+                🏠 Local Host
+              </button>
+            </div>
           </div>
 
           <div className="form-group">
@@ -423,7 +493,11 @@ const Registration = ({ setUser }) => {
               onChange={handleInputChange}
               placeholder="Enter your full name"
               required
-              style={{ fontSize: '1rem', padding: '1rem' }}
+              style={{ 
+                fontSize: '1rem', 
+                padding: '1rem',
+                borderColor: formData.name ? '#cbd5e1' : '#dc2626'
+              }}
             />
           </div>
 
@@ -441,7 +515,7 @@ const Registration = ({ setUser }) => {
               style={{ 
                 fontSize: '1rem', 
                 padding: '1rem', 
-                borderColor: emailError ? '#dc2626' : '#cbd5e1',
+                borderColor: emailError ? '#dc2626' : (formData.email ? '#cbd5e1' : '#dc2626'),
                 backgroundColor: emailVerified ? '#f3f4f6' : 'white',
                 cursor: emailVerified ? 'not-allowed' : 'text'
               }}
@@ -525,7 +599,14 @@ const Registration = ({ setUser }) => {
                 onChange={handleInputChange}
                 placeholder="Create a strong password"
                 required
-                style={{ fontSize: '1rem', padding: '1rem', paddingRight: '2.5rem', width: '100%', boxSizing: 'border-box' }}
+                style={{ 
+                  fontSize: '1rem', 
+                  padding: '1rem', 
+                  paddingRight: '2.5rem', 
+                  width: '100%', 
+                  boxSizing: 'border-box',
+                  borderColor: formData.password ? '#cbd5e1' : '#dc2626'
+                }}
               />
               <button
                 type="button"
@@ -582,7 +663,11 @@ const Registration = ({ setUser }) => {
               placeholder="Enter your 10-digit mobile number"
               required
               maxLength={10}
-              style={{ fontSize: '1rem', padding: '1rem', borderColor: phoneError ? '#dc2626' : '#cbd5e1' }}
+              style={{ 
+                fontSize: '1rem', 
+                padding: '1rem', 
+                borderColor: phoneError ? '#dc2626' : (formData.phone ? '#cbd5e1' : '#dc2626')
+              }}
             />
             {phoneError && (
               <p style={{ margin: '0.5rem 0 0 0', color: '#dc2626', fontSize: '0.875rem' }}>⚠️ {phoneError}</p>
@@ -591,36 +676,41 @@ const Registration = ({ setUser }) => {
 
           <div className="form-group">
             <label style={{ fontWeight: '600', color: '#374151' }}>State</label>
-            <select 
-              name="state" 
-              value={formData.state} 
-              onChange={handleInputChange}
-              required
-              style={{ fontSize: '1rem', padding: '1rem' }}
-            >
-              <option value="">Select State</option>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
               {Object.keys(locationData || {}).map(state => (
-                <option key={state} value={state}>{state}</option>
+                <button
+                  key={state}
+                  type="button"
+                  onClick={() => {
+                    setFormData(prev => ({ ...prev, state, city: '' }));
+                  }}
+                  className={`btn ${formData.state === state ? 'btn-primary' : 'btn-outline'}`}
+                  style={{ padding: '0.75rem 1rem', fontSize: '0.9rem' }}
+                >
+                  {state}
+                </button>
               ))}
-            </select>
+            </div>
           </div>
 
-          <div className="form-group">
-            <label style={{ fontWeight: '600', color: '#374151' }}>City</label>
-            <select 
-              name="city" 
-              value={formData.city} 
-              onChange={handleInputChange}
-              required
-              disabled={!formData.state}
-              style={{ fontSize: '1rem', padding: '1rem' }}
-            >
-              <option value="">Select City</option>
-              {formData.state && locationData[formData.state] && locationData[formData.state].map(city => (
-                <option key={city} value={city}>{city}</option>
-              ))}
-            </select>
-          </div>
+          {formData.state && (
+            <div className="form-group">
+              <label style={{ fontWeight: '600', color: '#374151' }}>City</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+                {locationData[formData.state] && locationData[formData.state].map(city => (
+                  <button
+                    key={city}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, city }))}
+                    className={`btn ${formData.city === city ? 'btn-primary' : 'btn-outline'}`}
+                    style={{ padding: '0.75rem 1rem', fontSize: '0.9rem' }}
+                  >
+                    {city}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {formData.city === 'Other' && (
             <div className="form-group">
@@ -639,17 +729,23 @@ const Registration = ({ setUser }) => {
 
           <div className="form-group">
             <label style={{ fontWeight: '600', color: '#374151' }}>
-              {formData.role === 'Host' ? 'Your Offerings' : 'Your Festival Wishes'}
+              {formData.role === 'Host' ? 'What You Offer as a Host' : 'What You\'re Looking For'}
             </label>
             <textarea
               name="bio"
               value={formData.bio}
               onChange={handleInputChange}
-              placeholder={formData.role === 'Host' ? 'Tell guests what you offer (e.g., accommodation, traditional food, local tours)...' : 'Tell hosts what you are looking for (e.g., specific festivals, types of food, culture)...'}
+              placeholder={formData.role === 'Host' ? 'Describe what you offer to travelers (e.g., accommodation, local experiences, cultural insights, authentic cuisine, city tours)...' : 'Tell hosts what you\'re looking for (e.g., local experiences, cultural exchange, authentic food, business travel accommodation, educational opportunities)...'}
               required
               rows="4"
               maxLength={250}
-              style={{ fontSize: '1rem', padding: '1rem', width: '100%', borderRadius: '0.5rem', border: '1px solid #cbd5e1' }}
+              style={{ 
+                fontSize: '1rem', 
+                padding: '1rem', 
+                width: '100%', 
+                borderRadius: '0.5rem', 
+                border: `1px solid ${formData.bio ? '#cbd5e1' : '#dc2626'}`
+              }}
             />
             <div style={{ textAlign: 'right', fontSize: '0.875rem', color: '#64748b', marginTop: '0.25rem' }}>
               {formData.bio.length}/250 characters
@@ -673,65 +769,35 @@ const Registration = ({ setUser }) => {
 
 
 
-          {/* Agreement Checkbox */}
+          {/* Agreement Checkbox - Removed since disclaimer was already accepted */}
           <div style={{ 
             marginTop: '2rem',
-            padding: '1.5rem', 
-            background: '#f0f9ff', 
-            border: '2px solid #0ea5e9', 
-            borderRadius: '0.75rem'
+            padding: '1rem', 
+            background: '#f0fdf4', 
+            border: '2px solid #16a34a', 
+            borderRadius: '0.75rem',
+            textAlign: 'center'
           }}>
-            <label style={{ 
-              display: 'flex', 
-              alignItems: 'flex-start', 
-              gap: '1rem',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              lineHeight: '1.5'
-            }}>
-              <input
-                type="checkbox"
-                checked={agreementAccepted}
-                onChange={handleAgreementChange}
-                required
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  marginTop: '2px',
-                  cursor: 'pointer',
-                  accentColor: '#0ea5e9'
-                }}
-              />
-              <span style={{ color: '#0c4a6e', fontWeight: '500' }}>
-                I have read, understood, and agree to the <strong>Important Disclaimer</strong> above. 
-                I acknowledge that I am using this platform at my own risk and accept full responsibility 
-                for my safety and interactions.
-              </span>
-            </label>
+            <p style={{ margin: '0', color: '#15803d', fontWeight: '500', fontSize: '0.95rem' }}>
+              ✓ Disclaimer accepted. You may now complete your registration.
+            </p>
           </div>
 
           <button 
             type="submit" 
             className="btn btn-primary" 
-            disabled={loading || !agreementAccepted} 
+            disabled={loading} 
             style={{ 
               width: '100%', 
               padding: '1rem', 
               fontSize: '1.1rem',
-              marginTop: '1.5rem',
-              opacity: !agreementAccepted ? 0.5 : 1,
-              cursor: !agreementAccepted ? 'not-allowed' : 'pointer'
+              marginTop: '1.5rem'
             }}
           >
             {loading ? 'Registering...' : 'Register Now'}
           </button>
           
-          {/* Debug info */}
-          {process.env.NODE_ENV === 'development' && (
-            <div style={{ marginTop: '1rem', padding: '0.5rem', background: '#f3f4f6', borderRadius: '0.25rem', fontSize: '0.8rem' }}>
-              <p>Debug: Agreement: {agreementAccepted ? '✓' : '✗'} | Email: {emailVerified ? '✓' : '✗'}</p>
-            </div>
-          )}
+
             </form>
 
             <div style={{ marginTop: '2rem', textAlign: 'center', padding: '1.5rem', background: '#f8fafc', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
@@ -740,17 +806,7 @@ const Registration = ({ setUser }) => {
               </p>
             </div>
             
-            {/* Debug section - remove in production */}
-            {process.env.NODE_ENV === 'development' && (
-              <div style={{ marginTop: '1rem', padding: '1rem', background: '#f3f4f6', borderRadius: '0.5rem', fontSize: '0.8rem' }}>
-                <p><strong>Debug Info:</strong></p>
-                <p>Location Data Keys: {Object.keys(locationData || {}).length > 0 ? Object.keys(locationData || {}).join(', ') : 'No locations loaded'}</p>
-                <button type="button" onClick={testAndSeedLocations} disabled={testing} style={{ padding: '0.5rem', fontSize: '0.8rem' }}>
-                  {testing ? 'Testing...' : 'Test & Seed Locations'}
-                </button>
-                {testResult && <p style={{ marginTop: '0.5rem', color: testResult.includes('✅') ? 'green' : 'red' }}>{testResult}</p>}
-              </div>
-            )}
+
           </div>
         </div>
       </div>
