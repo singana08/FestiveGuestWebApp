@@ -222,18 +222,21 @@ const HostDashboard = ({ user }) => {
   );
 
   return (
-    <div className="browse-layout">
+    <div className="browse-layout" onClick={() => showFilters && setShowFilters(false)}>
       {/* Mobile Filter Toggle Button */}
       <button 
         className="mobile-filter-toggle"
         onClick={() => setShowFilters(!showFilters)}
       >
+        <span>Filters {selectedLocations.length > 0 && `(${selectedLocations.length})`}</span>
         {showFilters ? <Minus size={16} /> : <Plus size={16} />}
-        Filters {selectedLocations.length > 0 && `(${selectedLocations.length})`}
       </button>
 
       {/* Location Filters Sidebar */}
-      <div className={`location-sidebar ${showFilters ? 'mobile-visible' : ''}`}>
+      <div 
+        className={`location-sidebar ${showFilters ? 'mobile-visible' : ''}`}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="filter-header">
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Filter size={20} style={{ color: 'var(--primary)' }} />
@@ -253,24 +256,22 @@ const HostDashboard = ({ user }) => {
                 className="state-toggle"
                 onClick={() => toggleState(state)}
               >
-                {expandedStates[state] ? 
-                  <ChevronDown size={16} /> : 
-                  <ChevronRight size={16} />
-                }
                 <span>{state}</span>
+                <span className="expand-icon">
+                  {expandedStates[state] ? '-' : '+'}
+                </span>
               </button>
               
               {expandedStates[state] && (
                 <div className="cities-list">
                   {cities.map(city => (
-                    <label key={city} className="city-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={selectedLocations.includes(city)}
-                        onChange={() => toggleLocation(city)}
-                      />
-                      <span>{city}</span>
-                    </label>
+                    <button
+                      key={city}
+                      className={`city-btn ${selectedLocations.includes(city) ? 'selected' : ''}`}
+                      onClick={() => toggleLocation(city)}
+                    >
+                      {city}
+                    </button>
                   ))}
                 </div>
               )}
@@ -335,7 +336,7 @@ const HostDashboard = ({ user }) => {
                 
                 <div className="host-content-section">
                   <h3 className="host-name">{guest.name}</h3>
-                  <div className="host-location">📍 {guest.location?.split(',')[0] || 'Location not specified'}</div>
+                  <div className="host-location">{guest.location?.split(',')[0] || 'Location not specified'}</div>
                 </div>
               </div>
             ))}}
