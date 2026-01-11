@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
-import { ChevronDown, ChevronRight, MapPin, Plus, Minus, MessageCircle, Home, Users, Search, Filter, Star, CheckCircle, Eye, MessageSquare } from 'lucide-react';
+import { ChevronDown, ChevronRight, MapPin, Plus, Minus, MessageCircle, Home, Users, Search, Filter, Star, CheckCircle, Eye, MessageSquare, Edit3, Trash2 } from 'lucide-react';
 import ChatWidget from '../components/ChatWidget';
 import ImageWithSas from '../components/ImageWithSas';
 import locationService from '../utils/locationService';
@@ -30,6 +30,19 @@ const GuestDashboard = ({ user }) => {
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [feedbackError, setFeedbackError] = useState('');
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
+  const [showPostModal, setShowPostModal] = useState(false);
+  const [postForm, setPostForm] = useState({
+    title: '',
+    content: '',
+    location: '',
+    facilities: [],
+    visitors: '',
+    days: ''
+  });
+  const [submittingPost, setSubmittingPost] = useState(false);
+  const [postError, setPostError] = useState('');
+  const [myPosts, setMyPosts] = useState([]);
+  const [showMyPosts, setShowMyPosts] = useState(false);
 
   useEffect(() => {
     // Only fetch data if user is properly authenticated
@@ -256,6 +269,67 @@ const GuestDashboard = ({ user }) => {
     } finally {
       setSubmittingFeedback(false);
     }
+  };
+
+  const fetchMyPosts = async () => {
+    try {
+      const posts = await postsService.getGuestPosts();
+      const userPosts = posts.filter(post => post.userId === user?.userId);
+      setMyPosts(userPosts);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    }
+  };
+
+  const handleCreatePost = async () => {
+    setPostError('');
+    
+    if (!postForm.title.trim() || !postForm.content.trim() || !postForm.location.trim()) {
+      setPostError('Title, content, and location are required');
+      return;
+    }
+    
+    setSubmittingPost(true);
+    try {
+      const postData = {
+        title: postForm.title.trim(),
+        content: postForm.content.trim(),
+        location: postForm.location.trim(),
+        facilities: postForm.facilities,
+        visitors: postForm.visitors ? parseInt(postForm.visitors) : null,
+        days: postForm.days ? parseInt(postForm.days) : null
+      };
+      
+      await postsService.createGuestPost(postData);
+      setShowPostModal(false);
+      setPostForm({ title: '', content: '', location: '', facilities: [], visitors: '', days: '' });
+      fetchMyPosts();
+    } catch (error) {
+      console.error('Failed to create post:', error);
+      setPostError(error.response?.data?.message || 'Failed to create post. Please try again.');
+    } finally {
+      setSubmittingPost(false);
+    }
+  };
+
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm('Are you sure you want to delete this post?')) return;
+    
+    try {
+      await postsService.deleteGuestPost(postId);
+      fetchMyPosts();
+    } catch (error) {
+      console.error('Failed to delete post:', error);
+    }
+  };
+
+  const toggleFacility = (facility) => {
+    setPostForm(prev => ({
+      ...prev,
+      facilities: prev.facilities.includes(facility)
+        ? prev.facilities.filter(f => f !== facility)
+        : [...prev.facilities, facility]
+    }));
   };
 
   if (loading) return (
