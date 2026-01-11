@@ -20,6 +20,7 @@ const Login = ({ setUser }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [otpSending, setOtpSending] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
+  const [modalError, setModalError] = useState('');
   const navigate = useNavigate();
 
   const passwordRequirements = [
@@ -97,10 +98,19 @@ const Login = ({ setUser }) => {
   };
 
   const sendForgotPasswordOtp = async () => {
-    if (!forgotEmail) {
-      showToast('Please enter your email address', 'error');
+    // Clear previous errors
+    setModalError('');
+    
+    if (!forgotEmail || forgotEmail.trim() === '') {
+      setModalError('Please enter your email address');
       return;
     }
+    
+    if (!emailRegex.test(forgotEmail)) {
+      setModalError('Please enter a valid email address');
+      return;
+    }
+    
     setOtpSending(true);
     try {
       const res = await api.post('email/send-otp', { 
@@ -109,30 +119,55 @@ const Login = ({ setUser }) => {
       });
       if (res.data.success) {
         setOtpSent(true);
-        showToast('OTP sent to your email', 'success');
+        setModalError('');
       }
     } catch (err) {
       const msg = err.response?.data?.message || err.message;
-      showToast('Failed to send OTP: ' + msg, 'error');
+      setModalError('Failed to send OTP: ' + msg);
     } finally {
       setOtpSending(false);
     }
   };
 
   const resetPassword = async () => {
-    if (!otp || otp.length !== 6) {
-      showToast('Please enter a valid 6-digit OTP', 'error');
+    // Clear previous errors
+    setModalError('');
+    
+    // Validate OTP
+    if (!otp || otp.trim() === '') {
+      setModalError('Please enter the OTP');
       return;
     }
+    if (otp.length !== 6) {
+      setModalError('OTP must be exactly 6 digits');
+      return;
+    }
+    
+    // Validate new password
+    if (!newPassword || newPassword.trim() === '') {
+      setModalError('Please enter a new password');
+      return;
+    }
+    
+    // Validate confirm password
+    if (!confirmPassword || confirmPassword.trim() === '') {
+      setModalError('Please confirm your new password');
+      return;
+    }
+    
+    // Check password requirements
     const allRequirementsMet = passwordRequirements.every(req => req.test(newPassword));
     if (!allRequirementsMet) {
-      showToast('Password must meet all requirements', 'error');
+      setModalError('Password must meet all requirements shown below');
       return;
     }
+    
+    // Check passwords match
     if (newPassword !== confirmPassword) {
-      showToast('Passwords do not match', 'error');
+      setModalError('New password and confirm password do not match');
       return;
     }
+    
     setResettingPassword(true);
     try {
       const res = await api.post('auth/reset-password', {
@@ -148,10 +183,11 @@ const Login = ({ setUser }) => {
         setNewPassword('');
         setConfirmPassword('');
         setForgotEmail('');
+        setModalError('');
       }
     } catch (err) {
       const msg = err.response?.data?.message || err.message;
-      showToast('Password reset failed: ' + msg, 'error');
+      setModalError('Password reset failed: ' + msg);
     } finally {
       setResettingPassword(false);
     }
@@ -278,6 +314,19 @@ const Login = ({ setUser }) => {
               <button onClick={() => setShowForgotPassword(false)} className="modal-close">×</button>
             </div>
             <div className="modal-body">
+              {modalError && (
+                <div style={{ 
+                  background: '#fef2f2', 
+                  border: '1px solid #fecaca', 
+                  color: '#dc2626', 
+                  padding: '0.75rem', 
+                  borderRadius: '0.5rem', 
+                  marginBottom: '1rem',
+                  fontSize: '0.875rem'
+                }}>
+                  ⚠️ {modalError}
+                </div>
+              )}
               {!otpSent ? (
                 <div>
                   <p style={{ marginBottom: '1rem', color: '#64748b' }}>Enter your email to receive a password reset OTP</p>
@@ -355,6 +404,7 @@ const Login = ({ setUser }) => {
                         setOtp('');
                         setNewPassword('');
                         setConfirmPassword('');
+                        setModalError('');
                       }}
                       className="btn btn-secondary"
                       style={{ flex: 1, padding: '0.75rem' }}
@@ -363,7 +413,7 @@ const Login = ({ setUser }) => {
                     </button>
                     <button 
                       onClick={resetPassword}
-                      disabled={resettingPassword || !otp || !newPassword || !confirmPassword}
+                      disabled={resettingPassword}
                       className="btn btn-primary"
                       style={{ flex: 1, padding: '0.75rem' }}
                     >
