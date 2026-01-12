@@ -43,6 +43,7 @@ const Registration = ({ setUser }) => {
   const [testResult, setTestResult] = useState('');
   const [testing, setTesting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
+  const [registrationSuccessCountdown, setRegistrationSuccessCountdown] = useState(0);
 
   const passwordRequirements = [
     { label: 'At least 8 characters', test: (pw) => pw.length >= 8 },
@@ -259,7 +260,8 @@ const Registration = ({ setUser }) => {
         phone: formData.phone,
         userType: formData.role,
         location: `${finalLocation}, ${formData.state}`,
-        bio: formData.bio
+        bio: formData.bio,
+        ReferredBy: formData.ReferredBy || null
       };
 
       console.log('Sending registration payload:', payload);
@@ -270,8 +272,18 @@ const Registration = ({ setUser }) => {
       if (userData.success || userData.message === 'User registered successfully') {
         // Clear disclaimer acceptance after successful registration
         sessionStorage.removeItem('disclaimerAcceptance');
-        showToast('🎉 Registration successful! Please login to continue.', 'success');
-        setTimeout(() => navigate('/login'), 2000);
+        showToast('🎉 Registration successful!', 'success');
+        setRegistrationSuccessCountdown(5);
+        const countdownInterval = setInterval(() => {
+          setRegistrationSuccessCountdown(prev => {
+            if (prev <= 1) {
+              clearInterval(countdownInterval);
+              navigate('/login');
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
       } else {
         throw new Error(userData.message || 'Registration failed');
       }
@@ -365,6 +377,11 @@ const Registration = ({ setUser }) => {
             </span>
             <div className="toast-content">
               <p className="toast-message">{toast.message}</p>
+              {toast.type === 'success' && registrationSuccessCountdown > 0 && (
+                <div style={{ fontSize: '2rem', fontWeight: 'bold', textAlign: 'center', marginTop: '0.5rem' }}>
+                  {registrationSuccessCountdown}
+                </div>
+              )}
             </div>
             {toast.type !== 'success' && (
               <button 
@@ -823,7 +840,10 @@ const Registration = ({ setUser }) => {
               type="text"
               name="ReferredBy"
               value={formData.ReferredBy || ''}
-              onChange={handleInputChange}
+              onChange={(e) => {
+                const upperValue = e.target.value.toUpperCase();
+                setFormData(prev => ({ ...prev, ReferredBy: upperValue }));
+              }}
               placeholder="Enter referral code if you have one"
               style={{ fontSize: '1rem', padding: '1rem' }}
             />
@@ -851,12 +871,13 @@ const Registration = ({ setUser }) => {
           <button 
             type="submit" 
             className="btn btn-primary" 
-            disabled={loading} 
+            disabled={loading || registrationSuccessCountdown > 0} 
             style={{ 
               width: '100%', 
               padding: '1rem', 
               fontSize: '1.1rem',
-              marginTop: '1.5rem'
+              marginTop: '1.5rem',
+              opacity: (loading || registrationSuccessCountdown > 0) ? 0.5 : 1
             }}
           >
             {loading ? 'Registering...' : 'Register Now'}

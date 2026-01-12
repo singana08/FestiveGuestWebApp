@@ -13,7 +13,8 @@ const HostDashboard = ({ user }) => {
   const [selectedLocations, setSelectedLocations] = useState([]);
   const [filteredGuests, setFilteredGuests] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
+  const [showMobileFilters, setShowMobileFilters] = useState(true);
   const [locationData, setLocationData] = useState({});
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [selectedGuestId, setSelectedGuestId] = useState(null);
@@ -239,9 +240,14 @@ const HostDashboard = ({ user }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="filter-header">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Filter size={20} style={{ color: 'var(--primary)' }} />
-            Filter by Location
+          <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', width: '100%' }} onClick={() => setShowMobileFilters(!showMobileFilters)}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Filter size={20} style={{ color: 'var(--primary)' }} />
+              Filter by Location
+            </div>
+            <span style={{ color: 'var(--primary)', fontSize: '1.2rem' }}>
+              {showMobileFilters ? '−' : '+'}
+            </span>
           </h3>
           {selectedLocations.length > 0 && (
             <button onClick={clearFilters} className="clear-filters-btn">
@@ -250,6 +256,7 @@ const HostDashboard = ({ user }) => {
           )}
         </div>
         
+        {showMobileFilters && (
         <div className="location-filters">
           {Object.entries(locationData).map(([state, cities]) => (
             <div key={state} className="state-group">
@@ -279,6 +286,7 @@ const HostDashboard = ({ user }) => {
             </div>
           ))}
         </div>
+        )}
       </div>
 
       {/* Main Content */}
@@ -286,7 +294,7 @@ const HostDashboard = ({ user }) => {
         <div className="browse-header">
           <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Star size={24} style={{ color: 'var(--primary)' }} />
-            Travelers Looking for Local Hosts
+            <span style={{ fontSize: 'clamp(1.2rem, 4vw, 1.5rem)' }}>Travellers Looking for Local Hosts</span>
           </h2>
           <div className="results-count" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {!loading && (

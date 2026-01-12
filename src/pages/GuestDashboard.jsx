@@ -15,8 +15,8 @@ const GuestDashboard = ({ user }) => {
   const [selectedLocations, setSelectedLocations] = useState([]);
   const [filteredHosts, setFilteredHosts] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
-  const [showFilters, setShowFilters] = useState(false);
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
+  const [showMobileFilters, setShowMobileFilters] = useState(true);
   const [locationData, setLocationData] = useState({});
   const [signalRStatus, setSignalRStatus] = useState('Not connected');
   const [selectedProfile, setSelectedProfile] = useState(null);
@@ -31,6 +31,7 @@ const GuestDashboard = ({ user }) => {
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [feedbackError, setFeedbackError] = useState('');
   const [feedbackSuccess, setFeedbackSuccess] = useState(false);
+  const [feedbackSuccessCountdown, setFeedbackSuccessCountdown] = useState(0);
   const [showPostModal, setShowPostModal] = useState(false);
   const [postForm, setPostForm] = useState({
     title: '',
@@ -256,10 +257,19 @@ const GuestDashboard = ({ user }) => {
       
       setFeedbackSuccess(true);
       setFeedbackForm({ name: '', email: '', userType: 'Guest', message: '' });
-      setTimeout(() => {
-        setShowFeedbackModal(false);
-        setFeedbackSuccess(false);
-      }, 2000);
+      setFeedbackSuccessCountdown(5);
+      const countdownInterval = setInterval(() => {
+        setFeedbackSuccessCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(countdownInterval);
+            setShowFeedbackModal(false);
+            setFeedbackSuccess(false);
+            setFeedbackSuccessCountdown(0);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
     } catch (error) {
       console.error('Failed to submit feedback:', error);
       if (error.response?.data?.message) {
@@ -671,6 +681,11 @@ const GuestDashboard = ({ user }) => {
                   <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
                   <h4 style={{ color: 'var(--success)', marginBottom: '0.5rem' }}>Thank you!</h4>
                   <p style={{ color: '#64748b' }}>Your feedback has been submitted successfully.</p>
+                  {feedbackSuccessCountdown > 0 && (
+                    <div style={{ fontSize: '2rem', fontWeight: 'bold', marginTop: '1rem' }}>
+                      {feedbackSuccessCountdown}
+                    </div>
+                  )}
                 </div>
               ) : (
                 <>

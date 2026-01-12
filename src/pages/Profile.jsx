@@ -19,6 +19,7 @@ function Profile() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccessCountdown, setPasswordSuccessCountdown] = useState(0);
   
   const passwordRequirements = [
     { label: 'At least 8 characters', test: (pw) => pw.length >= 8 },
@@ -185,14 +186,23 @@ function Profile() {
         newPassword
       });
       if (res.data.success) {
-        setPasswordError('✅ Password changed successfully! Closing in 5 seconds...');
-        setTimeout(() => {
-          setShowChangePassword(false);
-          setCurrentPassword('');
-          setNewPassword('');
-          setConfirmPassword('');
-          setPasswordError('');
-        }, 5000);
+        setPasswordError('✅ Password changed successfully!');
+        setPasswordSuccessCountdown(5);
+        const countdownInterval = setInterval(() => {
+          setPasswordSuccessCountdown(prev => {
+            if (prev <= 1) {
+              clearInterval(countdownInterval);
+              setShowChangePassword(false);
+              setCurrentPassword('');
+              setNewPassword('');
+              setConfirmPassword('');
+              setPasswordError('');
+              setPasswordSuccessCountdown(0);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
       }
     } catch (err) {
       const msg = err.response?.data?.message || err.message;
@@ -465,7 +475,18 @@ function Profile() {
                   marginBottom: '1rem',
                   fontSize: '0.875rem'
                 }}>
-                  {passwordError.includes('✅') ? passwordError : `⚠️ ${passwordError}`}
+                  {passwordError.includes('✅') ? (
+                    <div style={{ textAlign: 'center' }}>
+                      {passwordError}
+                      {passwordSuccessCountdown > 0 && (
+                        <div style={{ fontSize: '2rem', fontWeight: 'bold', marginTop: '0.5rem' }}>
+                          {passwordSuccessCountdown}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    `⚠️ ${passwordError}`
+                  )}
                 </div>
               )}
               <div className="form-group">
@@ -479,7 +500,8 @@ function Profile() {
                       setPasswordError('');
                     }}
                     placeholder="Enter current password"
-                    style={{ fontSize: '1rem', padding: '0.75rem', width: '100%', paddingRight: '2.5rem' }}
+                    disabled={passwordSuccessCountdown > 0}
+                    style={{ fontSize: '1rem', padding: '0.75rem', width: '100%', paddingRight: '2.5rem', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }}
                   />
                   <button
                     type="button"
@@ -510,7 +532,8 @@ function Profile() {
                       setPasswordError('');
                     }}
                     placeholder="Enter new password (min 8 characters)"
-                    style={{ fontSize: '1rem', padding: '0.75rem', width: '100%', paddingRight: '2.5rem' }}
+                    disabled={passwordSuccessCountdown > 0}
+                    style={{ fontSize: '1rem', padding: '0.75rem', width: '100%', paddingRight: '2.5rem', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }}
                   />
                   <button
                     type="button"
@@ -558,7 +581,8 @@ function Profile() {
                     setPasswordError('');
                   }}
                   placeholder="Confirm new password"
-                  style={{ fontSize: '1rem', padding: '0.75rem', width: '100%' }}
+                  disabled={passwordSuccessCountdown > 0}
+                  style={{ fontSize: '1rem', padding: '0.75rem', width: '100%', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }}
                 />
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
@@ -571,15 +595,16 @@ function Profile() {
                     setPasswordError('');
                   }}
                   className="btn btn-secondary"
-                  style={{ flex: 1, padding: '0.75rem' }}
+                  disabled={passwordSuccessCountdown > 0}
+                  style={{ flex: 1, padding: '0.75rem', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }}
                 >
                   Cancel
                 </button>
                 <button 
                   onClick={changePassword}
-                  disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
+                  disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword || passwordSuccessCountdown > 0}
                   className="btn btn-primary"
-                  style={{ flex: 1, padding: '0.75rem' }}
+                  style={{ flex: 1, padding: '0.75rem', opacity: (changingPassword || passwordSuccessCountdown > 0) ? 0.5 : 1 }}
                 >
                   {changingPassword ? 'Changing...' : 'Change Password'}
                 </button>
