@@ -41,10 +41,10 @@ const LandingPage = ({ user }) => {
             {!user ? (
               <>
                 <button className="btn btn-primary" onClick={() => handleRoleSelection('Guest')}>
-                  Find Local Hosts
+                  I Want to Be a Guest
                 </button>
                 <button className="btn btn-secondary" onClick={() => handleRoleSelection('Host')}>
-                  Register
+                  I Want to Host Guests
                 </button>
               </>
             ) : (
@@ -80,7 +80,7 @@ const LandingPage = ({ user }) => {
             <div className="feature-card">
               <div className="feature-icon">🤝</div>
               <h3>Cultural Exchange</h3>
-              <p>Connect with locals and fellow travelers, learn about local customs and traditions</p>
+              <p>Connect with locals and fellow travellers, learn about local customs and traditions</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon">🍽️</div>
@@ -164,7 +164,7 @@ const LandingPage = ({ user }) => {
               <div className="testimonial-author">- Priya, Hyderabad</div>
             </div>
             <div className="testimonial">
-              <p>"Hosting travelers has been so rewarding. I've made friends from all over India and learned so much about different cultures."</p>
+              <p>"Hosting travellers has been so rewarding. I've made friends from all over India and learned so much about different cultures."</p>
               <div className="testimonial-author">- Ravi, Kakinada</div>
             </div>
             <div className="testimonial">
@@ -260,7 +260,7 @@ const LandingPage = ({ user }) => {
             <div className="step">
               <div className="step-number">🌍</div>
               <h3>Meet New People</h3>
-              <p>Connect with travelers from different cultures and backgrounds</p>
+              <p>Connect with travellers from different cultures and backgrounds</p>
             </div>
             <div className="step">
               <div className="step-number">🏠</div>
@@ -314,12 +314,12 @@ const LandingPage = ({ user }) => {
       <section className="cta">
         <div className="container">
           <h2>Ready to Start Your Travel Journey?</h2>
-          <p>Join thousands of travelers and hosts connecting across India</p>
+          <p>Join thousands of travellers and hosts connecting across India</p>
           <div className="cta-buttons">
             {!user ? (
               <>
                 <button className="btn btn-primary" onClick={() => handleRoleSelection('Guest')}>
-                  Get Started
+                  I Want to Be a Guest
                 </button>
                 <button className="btn btn-primary" onClick={() => navigate('/login')}>
                   Already have an account?
@@ -334,10 +334,35 @@ const LandingPage = ({ user }) => {
         </div>
       </section>
 
+      {/* Mobile Apps Coming Soon */}
+      <section className="features">
+        <div className="container">
+          <h2>📱 Mobile Apps Coming Soon</h2>
+          <div className="features-grid">
+            <div className="feature-card">
+              <div className="feature-icon">📱</div>
+              <h3>iOS App</h3>
+              <p>Download from App Store - Coming Soon!</p>
+              <button className="btn btn-outline" disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>
+                🍎 App Store
+              </button>
+            </div>
+            <div className="feature-card">
+              <div className="feature-icon">🤖</div>
+              <h3>Android App</h3>
+              <p>Download from Google Play - Coming Soon!</p>
+              <button className="btn btn-outline" disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>
+                📱 Google Play
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="footer">
         <div className="container">
-          <p>&copy; 2024 Local Host Connect. Connecting travelers with local experiences.</p>
+          <p>&copy; 2024 Local Host Connect. Connecting travellers with local experiences.</p>
         </div>
       </footer>
       

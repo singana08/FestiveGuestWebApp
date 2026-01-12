@@ -18,12 +18,13 @@ import Profile from './pages/Profile';
 import PublicProfile from './pages/PublicProfile';
 import Help from './pages/Help';
 import Posts from './pages/Posts';
-import './App.css';
+import './styles/App.css';
 
 const AppContent = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   // Initialize user from localStorage immediately
   useEffect(() => {
@@ -88,12 +89,15 @@ const AppContent = () => {
   };
 
   const handleLogout = () => {
-    if (window.confirm('Are you sure you want to logout?')) {
-      localStorage.clear();
-      setUser(null);
-      setMenuOpen(false);
-      window.location.href = '/';
-    }
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    localStorage.clear();
+    setUser(null);
+    setMenuOpen(false);
+    setShowLogoutModal(false);
+    window.location.href = '/';
   };
 
   const handleChatsClick = () => {
@@ -183,6 +187,49 @@ const AppContent = () => {
           <Route path="/chat-debug" element={<ChatDebug />} />
         </Routes>
       </main>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="modal-overlay" onClick={() => setShowLogoutModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3 style={{ color: '#dc2626', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <LogOut size={20} />
+                Confirm Logout
+              </h3>
+            </div>
+            <div className="modal-body">
+              <p style={{ margin: '0 0 1rem 0', color: 'var(--text)' }}>
+                Are you sure you want to logout?
+              </p>
+              <p style={{ margin: '0', color: 'var(--text-light)', fontSize: '0.875rem' }}>
+                You will need to login again to access your account.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', padding: '1rem' }}>
+              <button 
+                onClick={() => setShowLogoutModal(false)}
+                className="btn btn-outline"
+                style={{ minWidth: '80px' }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmLogout}
+                className="btn"
+                style={{ 
+                  minWidth: '80px',
+                  backgroundColor: '#dc2626',
+                  color: 'white',
+                  border: '1px solid #dc2626'
+                }}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

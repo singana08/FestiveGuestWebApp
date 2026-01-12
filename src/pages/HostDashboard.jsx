@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight, MapPin, Plus, Minus, MessageCircle, Home, Us
 import ChatWidget from '../components/ChatWidget';
 import ImageWithSas from '../components/ImageWithSas';
 import locationService from '../utils/locationService';
+import '../styles/Dashboard.css';
 
 const HostDashboard = ({ user }) => {
   const [guests, setGuests] = useState([]);
@@ -228,7 +229,7 @@ const HostDashboard = ({ user }) => {
         className="mobile-filter-toggle"
         onClick={() => setShowFilters(!showFilters)}
       >
-        <span>Filters {selectedLocations.length > 0 && `(${selectedLocations.length})`}</span>
+        <span>Filter by Location {selectedLocations.length > 0 && `(${selectedLocations.length})`}</span>
         {showFilters ? <Minus size={16} /> : <Plus size={16} />}
       </button>
 
@@ -257,7 +258,7 @@ const HostDashboard = ({ user }) => {
                 onClick={() => toggleState(state)}
               >
                 <span>{state}</span>
-                <span className="expand-icon">
+                <span className="expand-icon" style={{ color: 'var(--primary)', background: 'none', border: 'none', borderRadius: '0', fontSize: '1.2rem' }}>
                   {expandedStates[state] ? '-' : '+'}
                 </span>
               </button>

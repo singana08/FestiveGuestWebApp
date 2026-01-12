@@ -44,12 +44,29 @@ const DisclaimerModal = ({ isOpen, onClose, selectedRole }) => {
 
   return (
     <div className="modal-overlay" style={{ zIndex: 9999 }}>
-      <div className="modal-content" style={{ maxWidth: '800px', maxHeight: '90vh', overflowY: 'auto' }}>
-        <div className="modal-header">
+      <div className="modal-content" style={{ maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+        <div className="modal-header" style={{ padding: '1.5rem', flexShrink: 0 }}>
           <h3 style={{ color: '#1e293b', margin: 0 }}>⚠️ Important Disclaimer - Please Read Carefully</h3>
         </div>
         
-        <div className="modal-body">
+        <div className="modal-body" style={{ padding: '0 1.5rem', overflowY: 'auto', flex: 1 }}>
+          <style>
+            {`
+              .modal-body::-webkit-scrollbar {
+                width: 4px;
+              }
+              .modal-body::-webkit-scrollbar-track {
+                background: transparent;
+              }
+              .modal-body::-webkit-scrollbar-thumb {
+                background: #cbd5e1;
+                border-radius: 2px;
+              }
+              .modal-body::-webkit-scrollbar-thumb:hover {
+                background: #94a3b8;
+              }
+            `}
+          </style>
           <div style={{ 
             padding: '1.5rem', 
             background: '#fef3c7', 
@@ -141,7 +158,7 @@ const DisclaimerModal = ({ isOpen, onClose, selectedRole }) => {
           </div>
         </div>
 
-        <div className="modal-footer" style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', padding: '1rem 0 0 0' }}>
+        <div className="modal-footer" style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', padding: '1.5rem', marginBottom: '1rem', flexShrink: 0 }}>
           <button 
             onClick={handleCancel}
             className="btn btn-outline"

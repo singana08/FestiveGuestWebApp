@@ -3,7 +3,7 @@ import { Plus, MapPin, Users, Calendar, Wifi, Car, Utensils, MessageCircle, More
 import postsService from '../utils/postsService';
 import locationService from '../utils/locationService';
 import ChatWidget from '../components/ChatWidget';
-import './Posts.css';
+import '../styles/Posts.css';
 
 const Posts = () => {
   const [posts, setPosts] = useState([]);
@@ -17,7 +17,6 @@ const Posts = () => {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeChat, setActiveChat] = useState(null);
 
-  // Debug logging for activeChat state changes
   useEffect(() => {
     console.log('Posts: activeChat state changed:', activeChat);
   }, [activeChat]);
@@ -161,7 +160,7 @@ const Posts = () => {
   };
 
   return (
-    <div className="container" style={{ padding: '2rem 1rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <div className="container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h1 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>
@@ -359,14 +358,12 @@ const Posts = () => {
                   onClick={(e) => {
                     e.stopPropagation();
                     console.log('Opening chat with:', { id: post.userId, name: post.userName });
-                    // Close any existing chat first
                     setActiveChat(null);
-                    // Use a small delay to ensure state is cleared before setting new chat
                     setTimeout(() => {
                       setActiveChat({ 
                         id: post.userId, 
                         name: post.userName,
-                        imageUrl: null // We don't have image URL in posts data
+                        imageUrl: null
                       });
                     }, 50);
                   }}
@@ -392,7 +389,6 @@ const Posts = () => {
         )}
       </div>
 
-      {/* Create Post Modal */}
       {showCreateModal && (
         <CreatePostModal 
           onClose={() => setShowCreateModal(false)}
@@ -400,7 +396,6 @@ const Posts = () => {
         />
       )}
 
-      {/* Edit Post Modal */}
       {showEditModal && editingPost && (
         <CreatePostModal 
           onClose={() => {
@@ -413,7 +408,6 @@ const Posts = () => {
         />
       )}
 
-      {/* Delete Confirmation Modal */}
       {showDeleteModal && deletingPost && (
         <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
@@ -456,7 +450,6 @@ const Posts = () => {
         </div>
       )}
 
-      {/* Chat Widget */}
       {activeChat && (
         <div style={{
           position: 'fixed',
@@ -503,9 +496,7 @@ const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = fa
   useEffect(() => {
     const fetchLocations = async () => {
       try {
-        console.log('Loading locations using locationService...');
         const locations = await locationService.getLocations();
-        console.log('Locations loaded successfully:', locations);
         setLocationData(locations);
       } catch (error) {
         console.error('Failed to load locations:', error);
@@ -527,19 +518,17 @@ const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = fa
     { name: 'Parking', icon: '🚗' },
     { name: 'Meals', icon: '🍽️' },
     { name: 'AC', icon: '❄️' },
-    { name: 'Kitchen', icon: '👨‍🍳' },
+    { name: 'Kitchen', icon: '👨🍳' },
     { name: 'Laundry', icon: '👕' }
   ];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Prevent double submission
     if (isSubmitting) return;
     
     const errors = {};
     
-    // Validate required fields
     if (!formData.title.trim()) {
       errors.title = 'Title is required';
     } else if (formData.title.trim().length < 5) {
@@ -554,7 +543,6 @@ const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = fa
       errors.city = 'Please select a city';
     }
     
-    // Validate planning date (optional but if provided, should be future date)
     if (formData.planningDate) {
       const selectedDate = new Date(formData.planningDate);
       const today = new Date();
@@ -565,31 +553,21 @@ const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = fa
       }
     }
     
-    // Validate visitors
     if (!formData.visitors || formData.visitors < 1 || formData.visitors > 10) {
       errors.visitors = 'Visitors must be between 1 and 10';
     }
     
-    // Validate days
     if (!formData.days || formData.days < 1 || formData.days > 30) {
       errors.days = 'Days must be between 1 and 30';
     }
     
-    // Validate content (optional but if provided, should have minimum length)
     if (formData.content && formData.content.trim().length > 0 && formData.content.trim().length < 10) {
       errors.content = 'Description should be at least 10 characters long';
     }
     
     setValidationErrors(errors);
     
-    // If there are validation errors, don't submit
     if (Object.keys(errors).length > 0) {
-      // Scroll to first error
-      const firstErrorElement = document.querySelector('.modern-input[style*="border-color: rgb(220, 38, 38)"], .modern-textarea[style*="border-color: rgb(220, 38, 38)"]');
-      if (firstErrorElement) {
-        firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        firstErrorElement.focus();
-      }
       return;
     }
     
@@ -599,17 +577,14 @@ const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = fa
       const postData = { 
         ...formData, 
         location,
-        // Ensure numeric values are properly formatted
         visitors: parseInt(formData.visitors),
         days: parseInt(formData.days),
-        // Clean up the content
         content: formData.content.trim()
       };
       
       await onSubmit(postData);
     } catch (error) {
       console.error('Error submitting post:', error);
-      // Show specific error message if available
       const errorMessage = error.response?.data?.message || error.message || 'Failed to save post. Please try again.';
       alert(errorMessage);
     } finally {
@@ -642,7 +617,6 @@ const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = fa
         
         <div className="modal-body-modern">
           <form onSubmit={handleSubmit} className="modern-form">
-            {/* Title */}
             <div className="form-group-modern">
               <label className="modern-label">
                 <span className="label-text">Title</span>
@@ -669,7 +643,6 @@ const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = fa
               )}
             </div>
 
-            {/* Planning Date */}
             <div className="form-group-modern">
               <label className="modern-label">
                 <span className="label-text">Planning Date</span>
@@ -694,13 +667,12 @@ const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = fa
               )}
             </div>
 
-            {/* Location Selection */}
             <div className="form-group-modern">
               <label className="modern-label">
                 <span className="label-text">Visiting State</span>
                 <span className="required-star">*</span>
               </label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                 {Object.keys(locationData).map(state => (
                   <button
                     key={state}
@@ -710,13 +682,16 @@ const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = fa
                       setValidationErrors(prev => ({ ...prev, state: false, city: false }));
                     }}
                     style={{
-                      padding: '0.5rem 1rem',
-                      border: `1px solid ${validationErrors.state ? '#dc2626' : 'var(--border)'}`,
-                      borderRadius: '0.375rem',
-                      background: formData.state === state ? 'var(--primary)' : 'white',
-                      color: formData.state === state ? 'white' : 'var(--text)',
+                      padding: '0.75rem 1.25rem',
+                      border: `2px solid ${validationErrors.state ? '#dc2626' : '#e5e7eb'}`,
+                      borderRadius: '8px',
+                      background: formData.state === state ? '#667eea' : 'white',
+                      color: formData.state === state ? 'white' : '#374151',
                       cursor: 'pointer',
-                      fontSize: '0.875rem'
+                      fontSize: '0.875rem',
+                      fontWeight: '500',
+                      transition: 'all 0.2s ease',
+                      boxShadow: formData.state === state ? '0 4px 12px rgba(102, 126, 234, 0.3)' : '0 1px 3px rgba(0, 0, 0, 0.1)'
                     }}
                   >
                     {state}
@@ -736,7 +711,7 @@ const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = fa
                   <span className="label-text">Visiting City</span>
                   <span className="required-star">*</span>
                 </label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                   {locationData[formData.state] && locationData[formData.state].map(city => (
                     <button
                       key={city}
@@ -747,12 +722,14 @@ const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = fa
                       }}
                       style={{
                         padding: '0.5rem 1rem',
-                        border: `1px solid ${validationErrors.city ? '#dc2626' : 'var(--border)'}`,
-                        borderRadius: '0.375rem',
-                        background: formData.city === city ? 'var(--primary)' : 'white',
-                        color: formData.city === city ? 'white' : 'var(--text)',
+                        border: `2px solid ${validationErrors.city ? '#dc2626' : '#e5e7eb'}`,
+                        borderRadius: '6px',
+                        background: formData.city === city ? '#667eea' : 'white',
+                        color: formData.city === city ? 'white' : '#374151',
                         cursor: 'pointer',
-                        fontSize: '0.875rem'
+                        fontSize: '0.8rem',
+                        fontWeight: '500',
+                        transition: 'all 0.2s ease'
                       }}
                     >
                       {city}
@@ -767,7 +744,6 @@ const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = fa
               </div>
             )}
 
-            {/* Preferred Facilities */}
             <div className="form-group-modern">
               <label className="modern-label">
                 <span className="label-text">Preferred Facilities</span>
@@ -787,7 +763,6 @@ const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = fa
               </div>
             </div>
 
-            {/* Visitors and Days */}
             <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
                 <label className="modern-label" style={{ marginBottom: '0.5rem', display: 'block' }}>
@@ -902,7 +877,6 @@ const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = fa
               </div>
             </div>
 
-            {/* Additional Details */}
             <div className="form-group-modern">
               <label className="modern-label">
                 <span className="label-text">Additional Details</span>

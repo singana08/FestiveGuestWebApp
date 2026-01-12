@@ -5,7 +5,7 @@ import { ChevronDown, ChevronRight, MapPin, Plus, Minus, MessageCircle, Home, Us
 import ChatWidget from '../components/ChatWidget';
 import ImageWithSas from '../components/ImageWithSas';
 import locationService from '../utils/locationService';
-import '../dashboard.css';
+import '../styles/Dashboard.css';
 
 const GuestDashboard = ({ user }) => {
   const navigate = useNavigate();
@@ -16,6 +16,7 @@ const GuestDashboard = ({ user }) => {
   const [filteredHosts, setFilteredHosts] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [locationData, setLocationData] = useState({});
   const [signalRStatus, setSignalRStatus] = useState('Not connected');
   const [selectedProfile, setSelectedProfile] = useState(null);
@@ -348,7 +349,7 @@ const GuestDashboard = ({ user }) => {
         className="mobile-filter-toggle"
         onClick={() => setShowFilters(!showFilters)}
       >
-        <span>Filters {selectedLocations.length > 0 && `(${selectedLocations.length})`}</span>
+        <span>Filter by Location {selectedLocations.length > 0 && `(${selectedLocations.length})`}</span>
         {showFilters ? <Minus size={16} /> : <Plus size={16} />}
       </button>
 
@@ -358,17 +359,25 @@ const GuestDashboard = ({ user }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="filter-header">
-          <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Filter size={20} style={{ color: 'var(--primary)' }} />
-            Filter by Location
+          <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', width: '100%' }} onClick={() => setShowMobileFilters(!showMobileFilters)}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Filter size={20} style={{ color: 'var(--primary)' }} />
+              Filter by Location
+            </div>
+            <span style={{ color: 'var(--primary)', fontSize: '1.2rem' }}>
+              {showMobileFilters ? '−' : '+'}
+            </span>
           </h3>
-          {selectedLocations.length > 0 && (
-            <button onClick={clearFilters} className="clear-filters-btn">
-              Clear ({selectedLocations.length})
-            </button>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {selectedLocations.length > 0 && (
+              <button onClick={clearFilters} className="clear-filters-btn">
+                Clear ({selectedLocations.length})
+              </button>
+            )}
+          </div>
         </div>
         
+        {showMobileFilters && (
         <div className="location-filters">
           {Object.entries(locationData).map(([state, cities]) => (
             <div key={state} className="state-group">
@@ -377,7 +386,7 @@ const GuestDashboard = ({ user }) => {
                 onClick={() => toggleState(state)}
               >
                 <span>{state}</span>
-                <span className="expand-icon">
+                <span className="expand-icon" style={{ color: 'var(--primary)', background: 'none', border: 'none', borderRadius: '0', fontSize: '1.2rem' }}>
                   {expandedStates[state] ? '-' : '+'}
                 </span>
               </button>
@@ -398,6 +407,7 @@ const GuestDashboard = ({ user }) => {
             </div>
           ))}
         </div>
+        )}
       </div>
 
       {/* Main Content */}
@@ -408,13 +418,6 @@ const GuestDashboard = ({ user }) => {
             Available Hosts
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <button 
-              className="btn btn-outline"
-              onClick={() => setShowFeedbackModal(true)}
-              style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-            >
-              <MessageSquare size={14} /> Feedback
-            </button>
             <div className="results-count" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {!loading && (
                 <>
@@ -465,7 +468,7 @@ const GuestDashboard = ({ user }) => {
                           handleContactHost(host);
                         }}
                       >
-                        <MessageCircle size={16} />
+                        <MessageCircle size={16} fill="currentColor" />
                       </button>
                       {host.status === 'Verified' && (
                         <div className="verified-badge">
