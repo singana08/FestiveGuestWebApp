@@ -1,14 +1,18 @@
 /* Dashboard Card Styles */
 .compact-grid {
   display: grid;
-  gap: 0.5rem;
-  grid-template-columns: 1fr 1fr;
-  padding: 0.5rem;
+  gap: 0.25rem;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 0.25rem;
+  margin: 0 -0.25rem;
 }
 
 @media (min-width: 481px) {
   .compact-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.5rem;
+    padding: 0.5rem;
+    margin: 0;
   }
 }
 
@@ -24,7 +28,14 @@
   display: flex;
   flex-direction: column;
   height: 220px;
-  width: 150px !important;
+  width: 100%;
+  max-width: 120px;
+}
+
+@media (min-width: 481px) {
+  .host-card-horizontal {
+    width: 120px !important;
+  }
 }
 
 .host-image-section {

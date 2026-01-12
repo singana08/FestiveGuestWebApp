@@ -1,62 +1,82 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, MapPin, Users, Calendar, Wifi, Car, Utensils, MessageCircle } from 'lucide-react';
+import { Plus, MapPin, Users, Calendar, Wifi, Car, Utensils, MessageCircle, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import postsService from '../utils/postsService';
+import locationService from '../utils/locationService';
 import './Posts.css';
 
 const Posts = () => {
   const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [editingPost, setEditingPost] = useState(null);
+  const [deletingPost, setDeletingPost] = useState(null);
   const [user, setUser] = useState(null);
-
-  // Mock data
-  const mockPosts = [
-    {
-      id: 1,
-      title: "Looking for accommodation during Diwali",
-      content: "Need a place to stay for 3 days during Diwali celebration. Prefer vegetarian household.",
-      location: "Mumbai, Maharashtra",
-      visitors: 2,
-      days: 3,
-      facilities: ["WiFi", "Parking", "Meals"],
-      userName: "Priya Sharma",
-      userType: "Guest",
-      createdAt: new Date('2024-01-15'),
-      status: "Active"
-    },
-    {
-      id: 2,
-      title: "Family accommodation needed for Navratri",
-      content: "Looking for a comfortable stay for my family of 4 during Navratri festival. We are vegetarian and prefer a quiet neighborhood.",
-      location: "Ahmedabad, Gujarat",
-      visitors: 4,
-      days: 5,
-      facilities: ["WiFi", "Meals", "AC"],
-      userName: "Rajesh Patel",
-      userType: "Guest",
-      createdAt: new Date('2024-01-12'),
-      status: "Active"
-    },
-    {
-      id: 3,
-      title: "Seeking homestay for Ganesh Chaturthi",
-      content: "Young couple looking for homestay during Ganesh Chaturthi. We love participating in local celebrations!",
-      location: "Pune, Maharashtra",
-      visitors: 2,
-      days: 4,
-      facilities: ["WiFi", "Parking"],
-      userName: "Amit & Sneha",
-      userType: "Guest",
-      createdAt: new Date('2024-01-10'),
-      status: "Active"
-    }
-  ];
+  const [activeDropdown, setActiveDropdown] = useState(null);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
       setUser(JSON.parse(userData));
     }
-    setPosts(mockPosts);
+    fetchPosts();
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = () => setActiveDropdown(null);
+    if (activeDropdown) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [activeDropdown]);
+
+  const fetchPosts = async () => {
+    try {
+      setLoading(true);
+      const guestPosts = await postsService.getGuestPosts();
+      const hostPosts = await postsService.getHostPosts();
+      
+      const allPosts = [
+        ...guestPosts.map(post => ({
+          id: post.rowKey,
+          title: post.title,
+          content: post.content,
+          location: post.location,
+          planningDate: post.planningDate,
+          visitors: post.visitors || 1,
+          days: post.days || 1,
+          facilities: post.facilities ? post.facilities.split(',') : [],
+          userName: post.userName || user?.name || 'Unknown',
+          userId: post.userId,
+          userType: 'Guest',
+          createdAt: new Date(post.createdAt),
+          status: post.status
+        })),
+        ...hostPosts.map(post => ({
+          id: post.rowKey,
+          title: post.title,
+          content: post.content,
+          location: post.location,
+          maxGuests: post.maxGuests || 1,
+          pricePerNight: post.pricePerNight,
+          amenities: post.amenities ? post.amenities.split(',') : [],
+          userName: post.userName || user?.name || 'Unknown',
+          userId: post.userId,
+          userType: 'Host',
+          createdAt: new Date(post.createdAt),
+          status: post.status
+        }))
+      ];
+      
+      allPosts.sort((a, b) => b.createdAt - a.createdAt);
+      setPosts(allPosts);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const facilityIcons = {
     'WiFi': <Wifi size={16} />,
@@ -64,17 +84,73 @@ const Posts = () => {
     'Meals': <Utensils size={16} />
   };
 
-  const handleCreatePost = (postData) => {
-    const newPost = {
-      id: Date.now(),
-      ...postData,
-      userName: user?.name || 'Anonymous',
-      userType: user?.userType || 'Guest',
-      createdAt: new Date(),
-      status: 'Active'
-    };
-    setPosts([newPost, ...posts]);
-    setShowCreateModal(false);
+  const handleCreatePost = async (postData) => {
+    try {
+      const postWithUser = {
+        ...postData,
+        userName: user?.name || 'Unknown User',
+        userId: user?.userId || user?.id,
+        planningDate: postData.planningDate ? new Date(postData.planningDate + 'T00:00:00.000Z').toISOString() : null
+      };
+      
+      if (user?.userType === 'Guest') {
+        await postsService.createGuestPost(postWithUser);
+      } else {
+        await postsService.createHostPost(postWithUser);
+      }
+      setShowCreateModal(false);
+      fetchPosts();
+    } catch (error) {
+      console.error('Error creating post:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to create post. Please try again.';
+      alert(errorMessage);
+    }
+  };
+
+  const handleEditPost = (post) => {
+    setEditingPost(post);
+    setShowEditModal(true);
+    setActiveDropdown(null);
+  };
+
+  const handleUpdatePost = async (postData) => {
+    try {
+      if (editingPost.userType === 'Guest') {
+        await postsService.updateGuestPost(editingPost.id, postData);
+      } else {
+        await postsService.updateHostPost(editingPost.id, postData);
+      }
+      setShowEditModal(false);
+      setEditingPost(null);
+      fetchPosts();
+    } catch (error) {
+      console.error('Error updating post:', error);
+      alert('Failed to update post. Please try again.');
+    }
+  };
+
+  const handleDeletePost = async (post) => {
+    setDeletingPost(post);
+    setShowDeleteModal(true);
+    setActiveDropdown(null);
+  };
+
+  const confirmDeletePost = async () => {
+    if (!deletingPost) return;
+    
+    try {
+      if (deletingPost.userType === 'Guest') {
+        await postsService.deleteGuestPost(deletingPost.id);
+      } else {
+        await postsService.deleteHostPost(deletingPost.id);
+      }
+      setShowDeleteModal(false);
+      setDeletingPost(null);
+      fetchPosts();
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      alert('Failed to delete post. Please try again.');
+    }
   };
 
   return (
@@ -104,7 +180,18 @@ const Posts = () => {
       </div>
 
       <div className="posts-grid" style={{ display: 'grid', gap: '1.5rem' }}>
-        {posts.map(post => (
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔄</div>
+            <p>Loading posts...</p>
+          </div>
+        ) : posts.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📝</div>
+            <p>No posts available yet.</p>
+          </div>
+        ) : (
+          posts.map(post => (
           <div key={post.id} className="post-card" style={{
             background: 'white',
             borderRadius: 'var(--radius)',
@@ -124,16 +211,81 @@ const Posts = () => {
                   <span>{post.createdAt.toLocaleDateString()}</span>
                 </div>
               </div>
-              <span style={{
-                background: post.status === 'Active' ? '#dcfce7' : '#f3f4f6',
-                color: post.status === 'Active' ? '#16a34a' : '#6b7280',
-                padding: '0.25rem 0.75rem',
-                borderRadius: '1rem',
-                fontSize: '0.75rem',
-                fontWeight: '500'
-              }}>
-                {post.status}
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {user && user.userType === 'Guest' && (
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveDropdown(activeDropdown === post.id ? null : post.id);
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '0.25rem',
+                        borderRadius: '0.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <MoreVertical size={16} color="var(--text-light)" />
+                    </button>
+                    {activeDropdown === post.id && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        right: 0,
+                        background: 'white',
+                        border: '1px solid var(--border)',
+                        borderRadius: '0.5rem',
+                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                        zIndex: 10,
+                        minWidth: '120px'
+                      }}>
+                        <button
+                          onClick={() => handleEditPost(post)}
+                          style={{
+                            width: '100%',
+                            padding: '0.5rem 0.75rem',
+                            border: 'none',
+                            background: 'none',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            fontSize: '0.875rem'
+                          }}
+                        >
+                          <Edit size={14} />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeletePost(post)}
+                          style={{
+                            width: '100%',
+                            padding: '0.5rem 0.75rem',
+                            border: 'none',
+                            background: 'none',
+                            textAlign: 'left',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            fontSize: '0.875rem',
+                            color: '#dc2626'
+                          }}
+                        >
+                          <Trash2 size={14} />
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <p style={{ margin: '0 0 1rem 0', color: 'var(--text)', lineHeight: '1.6' }}>
@@ -143,16 +295,32 @@ const Posts = () => {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem', fontSize: '0.875rem', color: 'var(--text-light)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <MapPin size={16} />
-                {post.location}
+                {post.location || 'Location not specified'}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <Users size={16} />
-                {post.visitors} visitors
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <Calendar size={16} />
-                {post.days} days
-              </div>
+              {post.userType === 'Guest' && (
+                <>
+                  {post.planningDate && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <Calendar size={16} />
+                      {new Date(post.planningDate).toLocaleDateString()}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <Users size={16} />
+                    {post.visitors} visitor{post.visitors !== 1 ? 's' : ''}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <Calendar size={16} />
+                    {post.days} day{post.days !== 1 ? 's' : ''}
+                  </div>
+                </>
+              )}
+              {post.userType === 'Host' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <Users size={16} />
+                  Up to {post.maxGuests} guest{post.maxGuests !== 1 ? 's' : ''}
+                </div>
+              )}
             </div>
 
             {post.facilities && post.facilities.length > 0 && (
@@ -187,7 +355,8 @@ const Posts = () => {
               </div>
             )}
           </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* Create Post Modal */}
@@ -197,20 +366,102 @@ const Posts = () => {
           onSubmit={handleCreatePost}
         />
       )}
+
+      {/* Edit Post Modal */}
+      {showEditModal && editingPost && (
+        <CreatePostModal 
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingPost(null);
+          }}
+          onSubmit={handleUpdatePost}
+          initialData={editingPost}
+          isEditing={true}
+        />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && deletingPost && (
+        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h3 style={{ color: '#dc2626', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Trash2 size={20} />
+                Delete Post
+              </h3>
+            </div>
+            <div className="modal-body">
+              <p style={{ margin: '0 0 1rem 0', color: 'var(--text)' }}>
+                Are you sure you want to delete <strong>"{deletingPost.title}"</strong>?
+              </p>
+              <p style={{ margin: '0', color: 'var(--text-light)', fontSize: '0.875rem' }}>
+                This action cannot be undone.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', padding: '1rem' }}>
+              <button 
+                onClick={() => setShowDeleteModal(false)}
+                className="btn btn-outline"
+                style={{ minWidth: '80px' }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmDeletePost}
+                className="btn"
+                style={{ 
+                  minWidth: '80px',
+                  backgroundColor: '#dc2626',
+                  color: 'white',
+                  border: '1px solid #dc2626'
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-const CreatePostModal = ({ onClose, onSubmit }) => {
+const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = false }) => {
   const [formData, setFormData] = useState({
-    title: '',
-    planningDate: '',
-    location: '',
-    facilities: [],
-    visitors: 1,
-    days: 1,
-    content: ''
+    title: initialData?.title || '',
+    planningDate: initialData?.planningDate || '',
+    state: initialData?.location?.split(', ')[1] || '',
+    city: initialData?.location?.split(', ')[0] || '',
+    facilities: initialData?.facilities || [],
+    visitors: initialData?.visitors || 1,
+    days: initialData?.days || 1,
+    content: initialData?.content || ''
   });
+  const [locationData, setLocationData] = useState({});
+  const [validationErrors, setValidationErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        console.log('Loading locations using locationService...');
+        const locations = await locationService.getLocations();
+        console.log('Locations loaded successfully:', locations);
+        setLocationData(locations);
+      } catch (error) {
+        console.error('Failed to load locations:', error);
+        setLocationData({
+          'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Other'],
+          'Karnataka': ['Bangalore', 'Mysore', 'Mangalore', 'Other'],
+          'Kerala': ['Kochi', 'Thiruvananthapuram', 'Kozhikode', 'Other'],
+          'Andhra Pradesh': ['Hyderabad', 'Visakhapatnam', 'Vijayawada', 'Other'],
+          'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Other'],
+          'Delhi': ['New Delhi', 'Other']
+        });
+      }
+    };
+    fetchLocations();
+  }, []);
 
   const availableFacilities = [
     { name: 'WiFi', icon: '📶' },
@@ -221,13 +472,90 @@ const CreatePostModal = ({ onClose, onSubmit }) => {
     { name: 'Laundry', icon: '👕' }
   ];
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.title.trim() || !formData.location.trim()) {
-      alert('Please fill in all required fields');
+    
+    // Prevent double submission
+    if (isSubmitting) return;
+    
+    const errors = {};
+    
+    // Validate required fields
+    if (!formData.title.trim()) {
+      errors.title = 'Title is required';
+    } else if (formData.title.trim().length < 5) {
+      errors.title = 'Title must be at least 5 characters long';
+    }
+    
+    if (!formData.state) {
+      errors.state = 'Please select a state';
+    }
+    
+    if (!formData.city) {
+      errors.city = 'Please select a city';
+    }
+    
+    // Validate planning date (optional but if provided, should be future date)
+    if (formData.planningDate) {
+      const selectedDate = new Date(formData.planningDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (selectedDate < today) {
+        errors.planningDate = 'Planning date should be today or in the future';
+      }
+    }
+    
+    // Validate visitors
+    if (!formData.visitors || formData.visitors < 1 || formData.visitors > 10) {
+      errors.visitors = 'Visitors must be between 1 and 10';
+    }
+    
+    // Validate days
+    if (!formData.days || formData.days < 1 || formData.days > 30) {
+      errors.days = 'Days must be between 1 and 30';
+    }
+    
+    // Validate content (optional but if provided, should have minimum length)
+    if (formData.content && formData.content.trim().length > 0 && formData.content.trim().length < 10) {
+      errors.content = 'Description should be at least 10 characters long';
+    }
+    
+    setValidationErrors(errors);
+    
+    // If there are validation errors, don't submit
+    if (Object.keys(errors).length > 0) {
+      // Scroll to first error
+      const firstErrorElement = document.querySelector('.modern-input[style*="border-color: rgb(220, 38, 38)"], .modern-textarea[style*="border-color: rgb(220, 38, 38)"]');
+      if (firstErrorElement) {
+        firstErrorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        firstErrorElement.focus();
+      }
       return;
     }
-    onSubmit(formData);
+    
+    try {
+      setIsSubmitting(true);
+      const location = `${formData.city}, ${formData.state}`;
+      const postData = { 
+        ...formData, 
+        location,
+        // Ensure numeric values are properly formatted
+        visitors: parseInt(formData.visitors),
+        days: parseInt(formData.days),
+        // Clean up the content
+        content: formData.content.trim()
+      };
+      
+      await onSubmit(postData);
+    } catch (error) {
+      console.error('Error submitting post:', error);
+      // Show specific error message if available
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to save post. Please try again.';
+      alert(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const toggleFacility = (facility) => {
@@ -246,8 +574,8 @@ const CreatePostModal = ({ onClose, onSubmit }) => {
           <div className="modal-title-section">
             <div className="modal-icon">✨</div>
             <div>
-              <h2>Create New Post</h2>
-              <p>Share your accommodation needs with hosts</p>
+              <h2>{isEditing ? 'Edit Post' : 'Create New Post'}</h2>
+              <p>{isEditing ? 'Update your accommodation request' : 'Share your accommodation needs with hosts'}</p>
             </div>
           </div>
           <button onClick={onClose} className="modal-close-modern">×</button>
@@ -265,10 +593,21 @@ const CreatePostModal = ({ onClose, onSubmit }) => {
                 type="text"
                 className="modern-input"
                 value={formData.title}
-                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, title: e.target.value }));
+                  setValidationErrors(prev => ({ ...prev, title: false }));
+                }}
                 placeholder="e.g., Looking for cozy stay during Diwali"
                 required
+                style={{
+                  borderColor: validationErrors.title ? '#dc2626' : 'var(--border)'
+                }}
               />
+              {validationErrors.title && (
+                <div style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                  {validationErrors.title}
+                </div>
+              )}
             </div>
 
             {/* Planning Date */}
@@ -280,25 +619,94 @@ const CreatePostModal = ({ onClose, onSubmit }) => {
                 type="date"
                 className="modern-input"
                 value={formData.planningDate}
-                onChange={(e) => setFormData(prev => ({ ...prev, planningDate: e.target.value }))}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, planningDate: e.target.value }));
+                  setValidationErrors(prev => ({ ...prev, planningDate: false }));
+                }}
+                style={{
+                  borderColor: validationErrors.planningDate ? '#dc2626' : 'var(--border)'
+                }}
+                min={new Date().toISOString().split('T')[0]}
               />
+              {validationErrors.planningDate && (
+                <div style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                  {validationErrors.planningDate}
+                </div>
+              )}
             </div>
 
-            {/* Location */}
+            {/* Location Selection */}
             <div className="form-group-modern">
               <label className="modern-label">
-                <span className="label-text">Location</span>
+                <span className="label-text">Visiting State</span>
                 <span className="required-star">*</span>
               </label>
-              <input
-                type="text"
-                className="modern-input"
-                value={formData.location}
-                onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                placeholder="e.g., Mumbai, Maharashtra"
-                required
-              />
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+                {Object.keys(locationData).map(state => (
+                  <button
+                    key={state}
+                    type="button"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, state, city: '' }));
+                      setValidationErrors(prev => ({ ...prev, state: false, city: false }));
+                    }}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      border: `1px solid ${validationErrors.state ? '#dc2626' : 'var(--border)'}`,
+                      borderRadius: '0.375rem',
+                      background: formData.state === state ? 'var(--primary)' : 'white',
+                      color: formData.state === state ? 'white' : 'var(--text)',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem'
+                    }}
+                  >
+                    {state}
+                  </button>
+                ))}
+              </div>
+              {validationErrors.state && (
+                <div style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                  {validationErrors.state}
+                </div>
+              )}
             </div>
+
+            {formData.state && (
+              <div className="form-group-modern">
+                <label className="modern-label">
+                  <span className="label-text">Visiting City</span>
+                  <span className="required-star">*</span>
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  {locationData[formData.state] && locationData[formData.state].map(city => (
+                    <button
+                      key={city}
+                      type="button"
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, city }));
+                        setValidationErrors(prev => ({ ...prev, city: false }));
+                      }}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        border: `1px solid ${validationErrors.city ? '#dc2626' : 'var(--border)'}`,
+                        borderRadius: '0.375rem',
+                        background: formData.city === city ? 'var(--primary)' : 'white',
+                        color: formData.city === city ? 'white' : 'var(--text)',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem'
+                      }}
+                    >
+                      {city}
+                    </button>
+                  ))}
+                </div>
+                {validationErrors.city && (
+                  <div style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                    {validationErrors.city}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Preferred Facilities */}
             <div className="form-group-modern">
@@ -321,61 +729,113 @@ const CreatePostModal = ({ onClose, onSubmit }) => {
             </div>
 
             {/* Visitors and Days */}
-            <div className="form-row">
-              <div className="form-group-modern">
-                <label className="modern-label">
+            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div>
+                <label className="modern-label" style={{ marginBottom: '0.5rem', display: 'block' }}>
                   <span className="label-text">Visitors</span>
                 </label>
-                <div className="number-input-wrapper">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <button 
                     type="button" 
-                    className="number-btn"
                     onClick={() => setFormData(prev => ({ ...prev, visitors: Math.max(1, prev.visitors - 1) }))}
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      border: '1px solid var(--border)',
+                      borderRadius: '0.375rem',
+                      background: 'white',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
                   >
                     −
                   </button>
                   <input
                     type="number"
-                    className="number-input"
                     min="1"
                     max="10"
                     value={formData.visitors}
                     onChange={(e) => setFormData(prev => ({ ...prev, visitors: parseInt(e.target.value) || 1 }))}
+                    style={{
+                      width: '60px',
+                      padding: '0.5rem',
+                      border: '1px solid var(--border)',
+                      borderRadius: '0.375rem',
+                      textAlign: 'center'
+                    }}
                   />
                   <button 
                     type="button" 
-                    className="number-btn"
                     onClick={() => setFormData(prev => ({ ...prev, visitors: Math.min(10, prev.visitors + 1) }))}
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      border: '1px solid var(--border)',
+                      borderRadius: '0.375rem',
+                      background: 'white',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
                   >
                     +
                   </button>
                 </div>
               </div>
 
-              <div className="form-group-modern">
-                <label className="modern-label">
+              <div>
+                <label className="modern-label" style={{ marginBottom: '0.5rem', display: 'block' }}>
                   <span className="label-text">Days</span>
                 </label>
-                <div className="number-input-wrapper">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   <button 
                     type="button" 
-                    className="number-btn"
                     onClick={() => setFormData(prev => ({ ...prev, days: Math.max(1, prev.days - 1) }))}
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      border: '1px solid var(--border)',
+                      borderRadius: '0.375rem',
+                      background: 'white',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
                   >
                     −
                   </button>
                   <input
                     type="number"
-                    className="number-input"
                     min="1"
                     max="30"
                     value={formData.days}
                     onChange={(e) => setFormData(prev => ({ ...prev, days: parseInt(e.target.value) || 1 }))}
+                    style={{
+                      width: '60px',
+                      padding: '0.5rem',
+                      border: '1px solid var(--border)',
+                      borderRadius: '0.375rem',
+                      textAlign: 'center'
+                    }}
                   />
                   <button 
                     type="button" 
-                    className="number-btn"
                     onClick={() => setFormData(prev => ({ ...prev, days: Math.min(30, prev.days + 1) }))}
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      border: '1px solid var(--border)',
+                      borderRadius: '0.375rem',
+                      background: 'white',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
                   >
                     +
                   </button>
@@ -391,19 +851,39 @@ const CreatePostModal = ({ onClose, onSubmit }) => {
               <textarea
                 className="modern-textarea"
                 value={formData.content}
-                onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, content: e.target.value }));
+                  setValidationErrors(prev => ({ ...prev, content: false }));
+                }}
                 placeholder="Describe your accommodation needs, preferences, and any special requirements..."
                 rows={4}
+                style={{
+                  borderColor: validationErrors.content ? '#dc2626' : 'var(--border)'
+                }}
               />
+              {validationErrors.content && (
+                <div style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                  {validationErrors.content}
+                </div>
+              )}
             </div>
 
             <div className="form-actions">
-              <button type="button" onClick={onClose} className="btn-secondary-modern">
+              <button type="button" onClick={onClose} className="btn-secondary-modern" disabled={isSubmitting}>
                 Cancel
               </button>
-              <button type="submit" className="btn-primary-modern">
-                <span>Create Post</span>
-                <span className="btn-icon">🚀</span>
+              <button type="submit" className="btn-primary-modern" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <span>Saving...</span>
+                    <span className="btn-icon">⏳</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{isEditing ? 'Update Post' : 'Create Post'}</span>
+                    <span className="btn-icon">{isEditing ? '✏️' : '🚀'}</span>
+                  </>
+                )}
               </button>
             </div>
           </form>
