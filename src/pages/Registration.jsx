@@ -42,6 +42,7 @@ const Registration = ({ setUser }) => {
   const [otpError, setOtpError] = useState('');
   const [testResult, setTestResult] = useState('');
   const [testing, setTesting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
 
   const passwordRequirements = [
     { label: 'At least 8 characters', test: (pw) => pw.length >= 8 },
@@ -192,6 +193,24 @@ const Registration = ({ setUser }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validate required fields
+    const errors = {};
+    if (!formData.name.trim()) errors.name = 'Name is required';
+    if (!formData.email.trim()) errors.email = 'Email is required';
+    if (!formData.password.trim()) errors.password = 'Password is required';
+    if (!formData.phone.trim()) errors.phone = 'Phone number is required';
+    if (!formData.state) errors.state = 'State is required';
+    if (!formData.city) errors.city = 'City is required';
+    if (!formData.bio.trim()) errors.bio = 'Bio is required';
+    
+    setValidationErrors(errors);
+    
+    if (Object.keys(errors).length > 0) {
+      showToast('Please fill in all required fields', 'error');
+      return;
+    }
+    
     registerUser();
   };
 
@@ -490,15 +509,23 @@ const Registration = ({ setUser }) => {
               type="text"
               name="name"
               value={formData.name}
-              onChange={handleInputChange}
+              onChange={(e) => {
+                handleInputChange(e);
+                if (validationErrors.name) {
+                  setValidationErrors(prev => ({ ...prev, name: '' }));
+                }
+              }}
               placeholder="Enter your full name"
               required
               style={{ 
                 fontSize: '1rem', 
                 padding: '1rem',
-                borderColor: formData.name ? '#cbd5e1' : '#dc2626'
+                border: validationErrors.name ? '2px solid #dc2626 !important' : '2px solid #cbd5e1'
               }}
             />
+            {validationErrors.name && (
+              <p style={{ margin: '0.5rem 0 0 0', color: '#dc2626', fontSize: '0.875rem' }}>⚠️ {validationErrors.name}</p>
+            )}
           </div>
 
           <div className="form-group">
@@ -507,7 +534,12 @@ const Registration = ({ setUser }) => {
               type="email"
               name="email"
               value={formData.email}
-              onChange={handleEmailChange}
+              onChange={(e) => {
+                handleEmailChange(e);
+                if (validationErrors.email) {
+                  setValidationErrors(prev => ({ ...prev, email: '' }));
+                }
+              }}
               onBlur={(e) => validateEmail(e.target.value)}
               placeholder="Enter your email address"
               required
@@ -515,13 +547,13 @@ const Registration = ({ setUser }) => {
               style={{ 
                 fontSize: '1rem', 
                 padding: '1rem', 
-                borderColor: emailError ? '#dc2626' : (formData.email ? '#cbd5e1' : '#dc2626'),
+                border: (emailError || validationErrors.email) ? '2px solid #dc2626 !important' : '2px solid #cbd5e1',
                 backgroundColor: emailVerified ? '#f3f4f6' : 'white',
                 cursor: emailVerified ? 'not-allowed' : 'text'
               }}
             />
-            {emailError && (
-              <p style={{ margin: '0.5rem 0 0 0', color: '#dc2626', fontSize: '0.875rem' }}>⚠️ {emailError}</p>
+            {(emailError || validationErrors.email) && (
+              <p style={{ margin: '0.5rem 0 0 0', color: '#dc2626', fontSize: '0.875rem' }}>⚠️ {emailError || validationErrors.email}</p>
             )}
             <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               {!emailVerified && !otpSent && (
@@ -596,7 +628,12 @@ const Registration = ({ setUser }) => {
                 type={showPassword ? 'text' : 'password'}
                 name="password"
                 value={formData.password}
-                onChange={handleInputChange}
+                onChange={(e) => {
+                  handleInputChange(e);
+                  if (validationErrors.password) {
+                    setValidationErrors(prev => ({ ...prev, password: '' }));
+                  }
+                }}
                 placeholder="Create a strong password"
                 required
                 style={{ 
@@ -605,7 +642,7 @@ const Registration = ({ setUser }) => {
                   paddingRight: '2.5rem', 
                   width: '100%', 
                   boxSizing: 'border-box',
-                  borderColor: formData.password ? '#cbd5e1' : '#dc2626'
+                  border: validationErrors.password ? '2px solid #dc2626 !important' : '2px solid #cbd5e1'
                 }}
               />
               <button
@@ -628,6 +665,9 @@ const Registration = ({ setUser }) => {
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
+            {validationErrors.password && (
+              <p style={{ margin: '0.5rem 0 0 0', color: '#dc2626', fontSize: '0.875rem' }}>⚠️ {validationErrors.password}</p>
+            )}
             <div style={{ marginTop: '0.75rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
               {passwordRequirements.map((req, index) => {
                 const isMet = req.test(formData.password);
@@ -658,6 +698,9 @@ const Registration = ({ setUser }) => {
                 const value = e.target.value.replace(/\D/g, '').slice(0, 10);
                 handleInputChange({ target: { name: 'phone', value } });
                 validatePhone(value);
+                if (validationErrors.phone) {
+                  setValidationErrors(prev => ({ ...prev, phone: '' }));
+                }
               }}
               onBlur={(e) => validatePhone(e.target.value)}
               placeholder="Enter your 10-digit mobile number"
@@ -666,11 +709,11 @@ const Registration = ({ setUser }) => {
               style={{ 
                 fontSize: '1rem', 
                 padding: '1rem', 
-                borderColor: phoneError ? '#dc2626' : (formData.phone ? '#cbd5e1' : '#dc2626')
+                border: (phoneError || validationErrors.phone) ? '2px solid #dc2626 !important' : '2px solid #cbd5e1'
               }}
             />
-            {phoneError && (
-              <p style={{ margin: '0.5rem 0 0 0', color: '#dc2626', fontSize: '0.875rem' }}>⚠️ {phoneError}</p>
+            {(phoneError || validationErrors.phone) && (
+              <p style={{ margin: '0.5rem 0 0 0', color: '#dc2626', fontSize: '0.875rem' }}>⚠️ {phoneError || validationErrors.phone}</p>
             )}
           </div>
 
@@ -683,6 +726,9 @@ const Registration = ({ setUser }) => {
                   type="button"
                   onClick={() => {
                     setFormData(prev => ({ ...prev, state, city: '' }));
+                    if (validationErrors.state) {
+                      setValidationErrors(prev => ({ ...prev, state: '' }));
+                    }
                   }}
                   className={`btn ${formData.state === state ? 'btn-primary' : 'btn-outline'}`}
                   style={{ padding: '0.75rem 1rem', fontSize: '0.9rem' }}
@@ -691,6 +737,9 @@ const Registration = ({ setUser }) => {
                 </button>
               ))}
             </div>
+            {validationErrors.state && (
+              <p style={{ margin: '0.5rem 0 0 0', color: '#dc2626', fontSize: '0.875rem' }}>⚠️ {validationErrors.state}</p>
+            )}
           </div>
 
           {formData.state && (
@@ -701,7 +750,12 @@ const Registration = ({ setUser }) => {
                   <button
                     key={city}
                     type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, city }))}
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, city }));
+                      if (validationErrors.city) {
+                        setValidationErrors(prev => ({ ...prev, city: '' }));
+                      }
+                    }}
                     className={`btn ${formData.city === city ? 'btn-primary' : 'btn-outline'}`}
                     style={{ padding: '0.75rem 1rem', fontSize: '0.9rem' }}
                   >
@@ -709,6 +763,9 @@ const Registration = ({ setUser }) => {
                   </button>
                 ))}
               </div>
+              {validationErrors.city && (
+                <p style={{ margin: '0.5rem 0 0 0', color: '#dc2626', fontSize: '0.875rem' }}>⚠️ {validationErrors.city}</p>
+              )}
             </div>
           )}
 
@@ -734,7 +791,12 @@ const Registration = ({ setUser }) => {
             <textarea
               name="bio"
               value={formData.bio}
-              onChange={handleInputChange}
+              onChange={(e) => {
+                handleInputChange(e);
+                if (validationErrors.bio) {
+                  setValidationErrors(prev => ({ ...prev, bio: '' }));
+                }
+              }}
               placeholder={formData.role === 'Host' ? 'Describe what you offer to travelers (e.g., accommodation, local experiences, cultural insights, authentic cuisine, city tours)...' : 'Tell hosts what you\'re looking for (e.g., local experiences, cultural exchange, authentic food, business travel accommodation, educational opportunities)...'}
               required
               rows="4"
@@ -744,9 +806,12 @@ const Registration = ({ setUser }) => {
                 padding: '1rem', 
                 width: '100%', 
                 borderRadius: '0.5rem', 
-                border: `1px solid ${formData.bio ? '#cbd5e1' : '#dc2626'}`
+                border: validationErrors.bio ? '2px solid #dc2626 !important' : '2px solid #cbd5e1'
               }}
             />
+            {validationErrors.bio && (
+              <p style={{ margin: '0.5rem 0 0 0', color: '#dc2626', fontSize: '0.875rem' }}>⚠️ {validationErrors.bio}</p>
+            )}
             <div style={{ textAlign: 'right', fontSize: '0.875rem', color: '#64748b', marginTop: '0.25rem' }}>
               {formData.bio.length}/250 characters
             </div>

@@ -1,11 +1,19 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import DisclaimerModal from '../components/DisclaimerModal';
 
 const LandingPage = ({ user }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [showDisclaimerModal, setShowDisclaimerModal] = useState(false);
   const [selectedRole, setSelectedRole] = useState('');
+
+  // Check for register parameter in URL
+  useEffect(() => {
+    if (searchParams.get('register') === 'true') {
+      handleRoleSelection('Guest'); // Default to Guest, user can change in modal
+    }
+  }, [searchParams]);
 
   const handleRoleSelection = (role) => {
     setSelectedRole(role);
@@ -36,7 +44,7 @@ const LandingPage = ({ user }) => {
                   Find Local Hosts
                 </button>
                 <button className="btn btn-secondary" onClick={() => handleRoleSelection('Host')}>
-                  Become a Host
+                  Register
                 </button>
               </>
             ) : (

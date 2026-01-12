@@ -300,7 +300,7 @@ const Login = ({ setUser }) => {
         
         <div style={{ marginTop: '2rem', padding: '1.5rem', background: '#f8fafc', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
           <p style={{ margin: '0', color: '#64748b', fontSize: '1.05rem' }}>
-            New user? <button className="btn btn-primary" onClick={() => navigate('/register')} style={{ marginLeft: '0.5rem', padding: '0.5rem 1.5rem' }}>Register</button>
+            New user? <button className="btn btn-primary" onClick={() => navigate('/?register=true')} style={{ marginLeft: '0.5rem', padding: '0.5rem 1.5rem' }}>Register</button>
           </p>
         </div>
       </div>

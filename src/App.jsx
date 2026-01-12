@@ -132,7 +132,7 @@ const AppContent = () => {
             <>
               <Link to="/help" className="nav-item" onClick={() => setMenuOpen(false)}><HelpCircle size={20} /> Help</Link>
               <Link to="/login" className="nav-item" onClick={() => setMenuOpen(false)}>Login</Link>
-              <Link to="/register" className="nav-item btn btn-primary" style={{ color: 'white', padding: '0.5rem 1rem' }} onClick={() => setMenuOpen(false)}>Register</Link>
+              <Link to="/?register=true" className="nav-item btn btn-primary" style={{ color: 'white', padding: '0.5rem 1rem' }} onClick={() => setMenuOpen(false)}>Register</Link>
             </>
           ) : (
             <>
