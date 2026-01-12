@@ -359,93 +359,14 @@ function Profile() {
         </div>
       </div>
 
-      {/* Refer a Friend Section */}
-      <div className="profile-card" style={{ marginTop: '2rem' }}>
-        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
-            <Users size={24} style={{ color: 'var(--primary)' }} />
-            Refer a Friend
-          </h3>
-          <p style={{ color: '#64748b', margin: '0' }}>Share FestiveGuest with friends and earn rewards!</p>
-        </div>
-        
-        <div style={{ background: '#f8fafc', padding: '1.5rem', borderRadius: '0.75rem', border: '2px dashed var(--primary)' }}>
-          <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-            <p style={{ margin: '0 0 0.5rem 0', fontWeight: '600' }}>Your Referral Code:</p>
-            <div style={{ 
-              background: 'white', 
-              padding: '0.75rem 1rem', 
-              borderRadius: '0.5rem', 
-              border: '1px solid var(--border)',
-              fontSize: '1.25rem',
-              fontWeight: 'bold',
-              color: 'var(--primary)',
-              letterSpacing: '2px'
-            }}>
-              {referralCode}
-            </div>
-          </div>
-          
-          <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-            <button 
-              onClick={copyReferralCode}
-              className="btn btn-secondary"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}
-            >
-              <Copy size={16} />
-              {copied ? 'Copied!' : 'Copy Code'}
-            </button>
-            <button 
-              onClick={shareReferral}
-              className="btn btn-primary"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}
-            >
-              <Share size={16} />
-              Share Message
-            </button>
-          </div>
-          
-          {/* Promotional Benefits */}
-          <div style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>
-            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', textAlign: 'center' }}>🎁 Referral Rewards</h4>
-            <div style={{ fontSize: '0.875rem', lineHeight: '1.4' }}>
-              <p style={{ margin: '0 0 0.5rem 0' }}>• <strong>Invite 3 friends</strong> → Get 1 month Premium features FREE!</p>
-              <p style={{ margin: '0 0 0.5rem 0' }}>• <strong>Each successful referral</strong> → Both you and your friend get special benefits</p>
-              <p style={{ margin: '0' }}>• <strong>Premium features:</strong> Priority support, advanced filters, verified badge</p>
-            </div>
-          </div>
-          
-          {/* How to Use Guide */}
-          <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', padding: '1rem', borderRadius: '0.5rem' }}>
-            <h4 style={{ margin: '0 0 0.75rem 0', color: '#9a3412', fontSize: '0.95rem' }}>📋 How to Share Your Referral Code:</h4>
-            <ol style={{ margin: '0', paddingLeft: '1.25rem', fontSize: '0.875rem', color: '#9a3412', lineHeight: '1.5' }}>
-              <li style={{ marginBottom: '0.5rem' }}><strong>Copy your code</strong> using the button above</li>
-              <li style={{ marginBottom: '0.5rem' }}><strong>Share with friends</strong> via WhatsApp, SMS, or social media</li>
-              <li style={{ marginBottom: '0.5rem' }}><strong>Ask them to visit</strong> festiveguest.com and register</li>
-              <li style={{ marginBottom: '0.5rem' }}><strong>They enter your code</strong> in the "Referral Code" field during registration</li>
-              <li><strong>Both get rewards</strong> once they complete their first booking!</li>
-            </ol>
-          </div>
-          
-          <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-            <p style={{ margin: '0', fontSize: '0.875rem', color: '#64748b' }}>
-              Help us grow our festival community and earn amazing rewards together! 🎉
-            </p>
-          </div>
-        </div>
-      </div>
-
       {/* Change Password Section */}
       <div className="profile-card" style={{ marginTop: '2rem' }}>
-        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+        <div className="security-section">
           <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
             <Key size={24} style={{ color: 'var(--primary)' }} />
             Security
           </h3>
-          <p style={{ color: '#64748b', margin: '0' }}>Manage your account security</p>
-        </div>
-        
-        <div style={{ textAlign: 'center' }}>
+          <p style={{ color: '#64748b', margin: '0 0 1rem 0' }}>Manage your account security</p>
           <button 
             onClick={() => setShowChangePassword(true)}
             className="btn btn-secondary"
@@ -456,6 +377,66 @@ function Profile() {
           </button>
         </div>
       </div>
+
+      {/* Refer a Friend Section */}
+      <div className="referral-card" style={{ marginTop: '2rem' }}>
+        <div className="referral-header">
+          <h3 className="referral-title">
+            <Users size={24} />
+            Invite Friends & Earn Together
+          </h3>
+          <p className="referral-subtitle">Share FestiveGuest and unlock exclusive rewards for both of you</p>
+        </div>
+        
+        <div className="referral-content">
+          <div className="referral-code-section">
+            <p className="code-label">Your Personal Referral Code</p>
+            <div className="referral-code" style={{ fontSize: '1rem', padding: '0.5rem' }}>{referralCode}</div>
+            <div className="referral-actions">
+              <button 
+                onClick={copyReferralCode}
+                className="referral-btn"
+              >
+                <Copy size={14} style={{ marginRight: '0.25rem' }} />
+                {copied ? 'Copied!' : 'Copy'}
+              </button>
+              <button 
+                onClick={shareReferral}
+                className="referral-btn"
+              >
+                <Share size={14} style={{ marginRight: '0.25rem' }} />
+                Share
+              </button>
+            </div>
+          </div>
+          
+          <div className="referral-benefits">
+            <div className="benefit-item">
+              <span className="benefit-icon">🎁</span>
+              <p className="benefit-text">
+                <strong>Premium Access</strong>
+                Invite 3 friends and unlock 1 month of premium features including priority support and advanced search filters.
+              </p>
+            </div>
+            <div className="benefit-item">
+              <span className="benefit-icon">⭐</span>
+              <p className="benefit-text">
+                <strong>Mutual Rewards</strong>
+                Both you and your friend receive special perks and discounts when they complete their first booking.
+              </p>
+            </div>
+            <div className="benefit-item">
+              <span className="benefit-icon">🚀</span>
+              <p className="benefit-text">
+                <strong>Easy Process</strong>
+                Simply share your code, they register with it, and rewards activate automatically after their first booking.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
 
       {/* Change Password Modal */}
       {showChangePassword && (

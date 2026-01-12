@@ -311,6 +311,7 @@ body {
 .hero-buttons {
   display: flex;
   gap: 20px;
+  margin-bottom: 1rem;
 }
 
 .hero-image {
@@ -337,14 +338,14 @@ body {
 }
 
 .features {
-  padding: 100px 20px;
+  padding: 40px 20px;
   background: white;
   text-align: center;
 }
 
 .features h2 {
   font-size: 2.5rem;
-  margin-bottom: 60px;
+  margin-bottom: 30px;
   color: #333;
 }
 
@@ -378,7 +379,7 @@ body {
 }
 
 .how-it-works {
-  padding: 100px 20px;
+  padding: 40px 20px;
   background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);
   color: white;
   text-align: center;
@@ -398,7 +399,7 @@ body {
 
 .how-it-works h2 {
   font-size: 2.5rem;
-  margin-bottom: 60px;
+  margin-bottom: 30px;
 }
 
 .steps {
@@ -437,7 +438,7 @@ body {
 }
 
 .testimonials {
-  padding: 100px 20px;
+  padding: 40px 20px;
   background: white;
   text-align: center;
 }
@@ -459,7 +460,7 @@ body {
 }
 
 .cta {
-  padding: 100px 20px;
+  padding: 40px 20px;
   background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 50%, #ec4899 100%);
   color: white;
   text-align: center;
@@ -3205,4 +3206,515 @@ body {
   .modal-body {
     padding: 0 1rem 1rem 1rem;
   }
+}
+
+/* Mobile Apps Section */
+.mobile-apps-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.mobile-app-card {
+  text-align: center;
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: all 0.3s ease;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.mobile-app-card .feature-icon {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+.mobile-app-card h3 {
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
+
+.mobile-app-card p {
+  font-size: 0.9rem;
+  margin-bottom: 15px;
+}
+
+@media (max-width: 768px) {
+  .mobile-apps-grid {
+    gap: 15px;
+    max-width: 100%;
+  }
+  
+  .mobile-app-card {
+    padding: 1rem;
+  }
+  
+  .mobile-app-card .feature-icon {
+    font-size: 1.8rem;
+  }
+  
+  .mobile-app-card h3 {
+    font-size: 1.1rem;
+  }
+  
+  .mobile-app-card p {
+    font-size: 0.85rem;
+  }
+}
+.mobile-app-card .btn {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+/* Refer a Friend Section */
+.referral-section {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-radius: var(--radius);
+  padding: 2rem;
+  border: 2px solid var(--primary);
+  position: relative;
+  overflow: hidden;
+}
+
+.referral-section::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.referral-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.referral-code-display {
+  background: white;
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  border: 2px dashed var(--primary);
+  margin-bottom: 2rem;
+  text-align: center;
+  box-shadow: var(--shadow);
+  position: relative;
+  z-index: 1;
+}
+
+.referral-code-text {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--primary);
+  letter-spacing: 3px;
+  margin: 0.5rem 0;
+  font-family: 'Courier New', monospace;
+}
+
+.referral-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.referral-benefits {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.benefit-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  border-left: 4px solid var(--primary);
+  transition: all 0.3s ease;
+}
+
+.benefit-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.benefit-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.benefit-title {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.benefit-description {
+  color: var(--text-light);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.referral-guide {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.guide-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.guide-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.step-number {
+  background: var(--primary);
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.step-text {
+  font-size: 0.875rem;
+  color: #9a3412;
+  line-height: 1.4;
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .referral-section {
+    padding: 1.5rem;
+  }
+  
+  .referral-actions {
+    grid-template-columns: 1fr;
+  }
+  
+  .referral-benefits {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .benefit-card {
+    padding: 1rem;
+  }
+  
+  .referral-code-text {
+    font-size: 1.25rem;
+    letter-spacing: 2px;
+  }
+  
+  .guide-steps {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .referral-section {
+    padding: 1rem;
+  }
+  
+  .referral-code-display {
+    padding: 1rem;
+  }
+  
+  .referral-code-text {
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+  }
+}
+/* Classy Referral Section */
+.referral-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: var(--radius);
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.referral-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.referral-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+.referral-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.referral-subtitle {
+  opacity: 0.9;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.referral-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.referral-code-section {
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.code-label {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin-bottom: 0.75rem;
+}
+
+.referral-code {
+  background: white;
+  color: var(--primary);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  margin-bottom: 1rem;
+  font-family: 'Courier New', monospace;
+}
+
+.referral-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.referral-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(5px);
+}
+
+.referral-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.referral-benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.benefit-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.benefit-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.benefit-text {
+  font-size: 0.9rem;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.benefit-text strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+@media (max-width: 768px) {
+  .referral-content {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .referral-card {
+    padding: 1.5rem;
+  }
+  
+  .referral-code {
+    font-size: 1.1rem;
+  }
+}
+/* Profile Page Mobile Responsiveness */
+@media (max-width: 768px) {
+  .profile-container {
+    padding: 1rem;
+    margin: 0;
+  }
+  
+  .profile-card {
+    flex-direction: column;
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
+  
+  .profile-image-section {
+    align-items: center;
+    width: 100%;
+  }
+  
+  .profile-img-preview {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .profile-details > div {
+    gap: 0.75rem;
+  }
+  
+  .profile-details > div > div {
+    padding: 0.75rem;
+    font-size: 0.9rem;
+  }
+  
+  .referral-content {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .referral-card {
+    padding: 1.5rem;
+  }
+  
+  .referral-code {
+    font-size: 1.1rem;
+    padding: 0.75rem;
+  }
+  
+  .referral-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .referral-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-container {
+    padding: 0.5rem;
+  }
+  
+  .profile-card {
+    padding: 1rem;
+  }
+  
+  .profile-img-preview {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .profile-details > div > div {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+  
+  .referral-card {
+    padding: 1rem;
+  }
+  
+  .referral-title {
+    font-size: 1.25rem;
+  }
+  
+  .referral-subtitle {
+    font-size: 0.9rem;
+  }
+  
+  .referral-code {
+    font-size: 1rem;
+    padding: 0.5rem;
+  }
+  
+  .benefit-text {
+    font-size: 0.85rem;
+  }
+}
+/* Security Section Mobile Center */
+@media (max-width: 768px) {
+  .profile-card h3 {
+    justify-content: center !important;
+  }
+  
+  .profile-card > div {
+    text-align: center !important;
+  }
+}
+/* Security Section Alignment */
+.security-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }

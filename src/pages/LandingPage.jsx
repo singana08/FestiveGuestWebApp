@@ -337,20 +337,20 @@ const LandingPage = ({ user }) => {
       {/* Mobile Apps Coming Soon */}
       <section className="features">
         <div className="container">
-          <h2>📱 Mobile Apps Coming Soon</h2>
-          <div className="features-grid">
-            <div className="feature-card">
+          <h2>📱 Mobile Apps</h2>
+          <div className="mobile-apps-grid">
+            <div className="mobile-app-card">
               <div className="feature-icon">📱</div>
               <h3>iOS App</h3>
-              <p>Download from App Store - Coming Soon!</p>
+              <p>App Store - Coming Soon!</p>
               <button className="btn btn-outline" disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>
                 🍎 App Store
               </button>
             </div>
-            <div className="feature-card">
+            <div className="mobile-app-card">
               <div className="feature-icon">🤖</div>
               <h3>Android App</h3>
-              <p>Download from Google Play - Coming Soon!</p>
+              <p>Google Play - Coming Soon!</p>
               <button className="btn btn-outline" disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>
                 📱 Google Play
               </button>
