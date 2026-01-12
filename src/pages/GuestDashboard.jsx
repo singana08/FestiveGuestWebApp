@@ -353,11 +353,14 @@ const GuestDashboard = ({ user }) => {
   );
 
   return (
-    <div className="browse-layout" onClick={() => showFilters && setShowFilters(false)}>
+    <div className="browse-layout">
       {/* Mobile Filter Toggle Button */}
       <button 
         className="mobile-filter-toggle"
-        onClick={() => setShowFilters(!showFilters)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowFilters(!showFilters);
+        }}
       >
         <span>Filter by Location {selectedLocations.length > 0 && `(${selectedLocations.length})`}</span>
         {showFilters ? <Minus size={16} /> : <Plus size={16} />}
