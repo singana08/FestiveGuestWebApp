@@ -4,7 +4,6 @@ class ChatService {
   constructor() {
     this.connection = null;
     this.isConnected = false;
-    this.messageHandlers = new Set();
   }
 
   async connect() {
@@ -12,7 +11,6 @@ class ChatService {
       return;
     }
 
-    // Clean up existing connection if it exists
     if (this.connection) {
       try {
         await this.connection.stop();
@@ -21,8 +19,12 @@ class ChatService {
       }
     }
 
+    const hubUrl = "https://festive-guest-api.azurewebsites.net/chathub";
+    
     this.connection = new signalR.HubConnectionBuilder()
-      .withUrl("http://localhost:7219/chathub", {
+      .withUrl(hubUrl, {
+        skipNegotiation: true,
+        transport: signalR.HttpTransportType.WebSockets,
         accessTokenFactory: () => {
           const user = localStorage.getItem('user');
           if (user) {
@@ -35,19 +37,15 @@ class ChatService {
       .withAutomaticReconnect()
       .build();
 
-    // Handle connection state changes
     this.connection.onreconnected(() => {
-      console.log('SignalR Reconnected');
       this.isConnected = true;
     });
 
     this.connection.onreconnecting(() => {
-      console.log('SignalR Reconnecting...');
       this.isConnected = false;
     });
 
     this.connection.onclose(() => {
-      console.log('SignalR Connection Closed');
       this.isConnected = false;
     });
 
@@ -72,85 +70,24 @@ class ChatService {
   }
 
   async sendMessage(otherUserId, message) {
-    // Ensure we have a valid connection
-    if (!this.isConnected || this.connection?.state !== signalR.HubConnectionState.Connected) {
-      console.log('Connection not ready, attempting to connect...');
-      await this.connect();
-    }
-    
+    if (!this.isConnected) await this.connect();
     try {
       await this.connection.invoke("SendMessage", otherUserId, message);
     } catch (err) {
       console.error("Error sending message:", err);
-      // Try to reconnect and send again
-      if (err.message?.includes('not in the \'Connected\' State')) {
-        console.log('Attempting to reconnect and resend...');
-        await this.connect();
-        await this.connection.invoke("SendMessage", otherUserId, message);
-      } else {
-        throw err;
-      }
+      throw err;
     }
   }
 
   onReceiveMessage(callback) {
-    if (this.connection && !this.messageHandlers.has(callback)) {
-      this.messageHandlers.add(callback);
+    if (this.connection) {
       this.connection.on("ReceiveMessage", callback);
     }
   }
 
   offReceiveMessage(callback) {
-    if (this.connection && this.messageHandlers.has(callback)) {
-      this.messageHandlers.delete(callback);
+    if (this.connection) {
       this.connection.off("ReceiveMessage", callback);
-    }
-  }
-
-  onError(callback) {
-    if (this.connection) {
-      this.connection.on("Error", callback);
-    }
-  }
-
-  onMessageStatusUpdated(callback) {
-    if (this.connection) {
-      this.connection.on("MessageStatusUpdated", callback);
-    }
-  }
-
-  async markDelivered(messageId, chatRoom) {
-    if (!this.isConnected) await this.connect();
-    try {
-      await this.connection.invoke("MarkDelivered", messageId, chatRoom);
-    } catch (err) {
-      console.error("Error marking delivered:", err);
-    }
-  }
-
-  async markRead(messageId, chatRoom) {
-    if (!this.isConnected) await this.connect();
-    try {
-      await this.connection.invoke("MarkRead", messageId, chatRoom);
-    } catch (err) {
-      console.error("Error marking read:", err);
-    }
-  }
-
-  async getMessageHistory(otherUserId) {
-    if (!this.isConnected) await this.connect();
-    try {
-      return await this.connection.invoke("GetMessageHistory", otherUserId);
-    } catch (err) {
-      console.error("Error getting message history:", err);
-      return [];
-    }
-  }
-
-  async disconnect() {
-    if (this.connection && this.isConnected) {
-      await this.connection.stop();
-      this.isConnected = false;
     }
   }
 }

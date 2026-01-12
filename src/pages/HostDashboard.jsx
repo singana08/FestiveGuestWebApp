@@ -327,8 +327,19 @@ const HostDashboard = ({ user }) => {
                     className="chat-btn"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setActiveChat({ id: guest.userId, name: guest.name });
+                      console.log('Opening chat with guest:', { id: guest.userId, name: guest.name });
+                      // Close any existing chat first
+                      setActiveChat(null);
+                      // Use a small delay to ensure state is cleared
+                      setTimeout(() => {
+                        setActiveChat({ 
+                          id: guest.userId, 
+                          name: guest.name,
+                          imageUrl: guest.profileImageUrl
+                        });
+                      }, 50);
                     }}
+                    title={`Chat with ${guest.name}`}
                   >
                     <MessageCircle size={16} />
                   </button>

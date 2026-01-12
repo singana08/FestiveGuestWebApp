@@ -13,11 +13,43 @@ const Chats = () => {
   const [sending, setSending] = useState(false);
   const [showChatView, setShowChatView] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
-  const userId = localStorage.getItem('userId');
+  
+  // Get userId consistently
+  const getUserId = () => {
+    const storedUserId = localStorage.getItem('userId');
+    if (storedUserId) return storedUserId;
+    
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      return user.userId || user.id;
+    } catch {
+      return null;
+    }
+  };
+  
+  const userId = getUserId();
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
     fetchConversations();
+    
+    // Temporarily disable SignalR due to CORS issues
+    // TODO: Re-enable when backend CORS is fixed
+    /*
+    const setupSignalR = async () => {
+      try {
+        await chatService.connect();
+        chatService.onReceiveMessage((data) => {
+          console.log('Received message in Chats page:', data);
+          fetchConversations();
+        });
+      } catch (error) {
+        console.error('Failed to setup SignalR in Chats:', error);
+      }
+    };
+    
+    setupSignalR();
+    */
   }, []);
 
   useEffect(() => {
@@ -39,7 +71,16 @@ const Chats = () => {
     try {
       setLoading(true);
       const response = await api.get('chat/conversations');
-      setConversations(response.data || []);
+      
+      const validConversations = (response.data || []).map(conv => ({
+        ...conv,
+        otherUserName: conv.otherUserName || 'Unknown User',
+        lastMessage: conv.lastMessage || '',
+        timestamp: conv.timestamp || new Date().toISOString(),
+        unreadCount: conv.unreadCount || 0
+      }));
+      
+      setConversations(validConversations);
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
     } finally {
@@ -49,7 +90,13 @@ const Chats = () => {
 
   const handleConversationClick = async (conversation) => {
     setSelectedChat(conversation);
-    setMessages([]); // Clear previous messages immediately
+    setMessages([]);
+    
+    if (!conversation.otherUserId) {
+      console.error('No otherUserId in conversation:', conversation);
+      return;
+    }
+    
     await loadMessages(conversation.otherUserId);
     setShowChatView(true);
   };
@@ -57,16 +104,24 @@ const Chats = () => {
   const loadMessages = async (recipientId) => {
     try {
       const response = await api.get(`chat/messages/${recipientId}`);
+      
+      if (!response.data || !Array.isArray(response.data)) {
+        setMessages([]);
+        return;
+      }
+      
       const formattedMessages = response.data.map(msg => ({
         id: msg.id,
         sender: msg.senderId === userId ? 'Me' : 'Recipient',
-        text: msg.message,
+        text: msg.message || '',
         timestamp: new Date(msg.timestamp),
-        status: msg.status
+        status: msg.status || 'sent'
       }));
+      
       setMessages(formattedMessages);
     } catch (error) {
       console.error('Failed to load messages:', error);
+      setMessages([]);
     }
   };
 
@@ -92,7 +147,14 @@ const Chats = () => {
         status: 'Sent'
       }]);
       
-      await chatService.sendMessage(selectedChat.otherUserId, content);
+      // Use API instead of SignalR
+      const response = await api.post('chat/send', {
+        recipientId: selectedChat.otherUserId,
+        message: content
+      });
+      
+      // Refresh conversations to update last message
+      fetchConversations();
     } catch (error) {
       console.error('Failed to send message:', error);
     } finally {
@@ -144,7 +206,7 @@ const Chats = () => {
                 </div>
                 <div className="conversation-content">
                   <div className="conversation-header">
-                    <div className="conversation-name">{conv.otherUserName}</div>
+                    <div className="conversation-name">{conv.otherUserName || 'Unknown User'}</div>
                     <div className="conversation-time">{formatTime(conv.timestamp)}</div>
                   </div>
                   <div className="conversation-preview">

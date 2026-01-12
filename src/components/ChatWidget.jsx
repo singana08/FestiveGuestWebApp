@@ -10,14 +10,17 @@ const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) 
   const [sending, setSending] = useState(false);
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
-  const userId = localStorage.getItem('userId');
+  const userId = localStorage.getItem('userId') || JSON.parse(localStorage.getItem('user') || '{}').userId;
   const messagesEndRef = useRef(null);
   const messageHandlerRef = useRef(null);
 
   useEffect(() => {
+    console.log('ChatWidget mounted with:', { recipientId, recipientName });
     initChat();
     return () => {
+      console.log('ChatWidget unmounting');
       if (messageHandlerRef.current) {
         chatService.offReceiveMessage(messageHandlerRef.current);
       }
@@ -26,77 +29,47 @@ const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) 
 
   const initChat = async () => {
     try {
+      console.log('Initializing chat...');
       setLoading(true);
-      await chatService.connect();
+      setError(null);
       
-      console.log('🔗 Joining chat with:', recipientId);
-      await chatService.joinChat(recipientId);
-      console.log('✅ Joined chat successfully');
+      // Set a timeout to show as connected even if SignalR fails
+      const fallbackTimer = setTimeout(() => {
+        if (!connected) {
+          console.log('Using fallback connection state');
+          setConnected(true);
+        }
+      }, 2000);
       
-      // Setup event listeners FIRST before loading history
+      try {
+        await chatService.connect();
+        await chatService.joinChat(recipientId);
+        clearTimeout(fallbackTimer);
+        console.log('Chat service connected successfully');
+      } catch (connectionError) {
+        console.warn('Chat service connection failed, using fallback:', connectionError);
+        clearTimeout(fallbackTimer);
+      }
+      
       messageHandlerRef.current = (data) => {
-        console.log('📨 Message received:', data);
+        console.log('Received message:', data);
         if (data.senderId === recipientId) {
           setMessages(prev => {
             if (prev.find(m => m.id === data.id)) return prev;
-            
-            const newMsg = {
+            return [...prev, {
               id: data.id,
               sender: 'Recipient',
               text: data.message,
               timestamp: new Date(data.timestamp),
-              status: data.status?.toLowerCase() || 'sent'
-            };
-            
-            const chatRoom = `chat_${[userId, recipientId].sort().join('_')}`;
-            console.log('📤 Calling MarkDelivered:', data.id, chatRoom);
-            chatService.markDelivered(data.id, chatRoom);
-            
-            // When we receive a message, refresh status of our sent messages
-            setTimeout(async () => {
-              try {
-                const historyRes = await api.get(`chat/messages/${recipientId}`);
-                if (historyRes.data) {
-                  setMessages(prevMsgs => prevMsgs.map(m => {
-                    const updated = historyRes.data.find(h => h.id === m.id);
-                    if (updated && m.sender === 'Me') {
-                      console.log(`Refreshed status for ${m.id}: ${updated.status}`);
-                      return { ...m, status: updated.status?.toLowerCase() };
-                    }
-                    return m;
-                  }));
-                }
-              } catch (e) { console.error('Failed to refresh status:', e); }
-            }, 500);
-            
-            return [...prev, newMsg];
+              status: 'delivered'
+            }];
           });
-        } else {
-          console.log('⚠️ Ignoring message from self or other user');
         }
       };
       
       chatService.onReceiveMessage(messageHandlerRef.current);
-
-      chatService.onMessageStatusUpdated((data) => {
-        console.log('✅ Status updated event received:', data);
-        setMessages(prev => {
-          const updated = prev.map(m => {
-            if (m.id === data.messageId) {
-              console.log(`Updating message ${m.id} from ${m.status} to ${data.status}`);
-              return { ...m, status: data.status?.toLowerCase() || m.status };
-            }
-            return m;
-          });
-          return updated;
-        });
-      });
-
-      chatService.onError((error) => {
-        console.error('Chat error:', error);
-      });
       
-      // Load message history AFTER setting up listeners
+      // Load message history
       try {
         const historyRes = await api.get(`chat/messages/${recipientId}`);
         if (historyRes.data && historyRes.data.length > 0) {
@@ -108,34 +81,27 @@ const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) 
             status: msg.status?.toLowerCase() || 'sent'
           }));
           setMessages(formattedHistory);
+          console.log('Loaded message history:', formattedHistory.length, 'messages');
         }
       } catch (historyError) {
         console.error('Failed to load message history:', historyError);
+        setError('Failed to load message history');
       }
       
       setConnected(true);
     } catch (error) {
       console.error('Failed to initialize chat:', error);
+      setError('Failed to connect to chat service');
+      // Still show as connected for basic functionality
+      setConnected(true);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    scrollToBottom();
-    
-    const chatRoom = `chat_${[userId, recipientId].sort().join('_')}`;
-    messages.forEach(m => {
-      if (m.sender === 'Recipient' && m.id && m.status !== 'read') {
-        console.log('📖 Marking as read:', m.id, chatRoom);
-        chatService.markRead(m.id, chatRoom);
-      }
-    });
-  }, [messages, userId, recipientId]);
-
-  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, [messages]);
 
   const sendMessage = async (e) => {
     e.preventDefault();
@@ -143,29 +109,66 @@ const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) 
     
     try {
       setSending(true);
-      const messageText = newMessage;
+      const messageText = newMessage.trim();
       setNewMessage('');
       
-      // Ensure connection before sending
-      if (!connected) {
-        console.log('🔄 Reconnecting before sending message...');
-        await chatService.connect();
-        setConnected(true);
-      }
+      console.log('Sending message:', messageText, 'to:', recipientId);
       
-      await chatService.sendMessage(recipientId, messageText);
-      
-      setMessages(prev => [...prev, {
+      // Add message to UI immediately for better UX
+      const tempMessage = {
         id: Date.now(),
         sender: 'Me',
         text: messageText,
         timestamp: new Date(),
-        status: 'sent'
-      }]);
+        status: 'sending'
+      };
+      
+      setMessages(prev => [...prev, tempMessage]);
+      
+      try {
+        await chatService.sendMessage(recipientId, messageText);
+        console.log('Message sent successfully via SignalR');
+        
+        // Update message status to sent
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempMessage.id 
+            ? { ...msg, status: 'sent' }
+            : msg
+        ));
+      } catch (sendError) {
+        console.error('Failed to send message via chat service:', sendError);
+        
+        // Try sending via API as fallback
+        try {
+          console.log('Attempting API fallback for message send');
+          await api.post('chat/send', {
+            recipientId,
+            message: messageText
+          });
+          console.log('Message sent via API fallback');
+          
+          setMessages(prev => prev.map(msg => 
+            msg.id === tempMessage.id 
+              ? { ...msg, status: 'sent' }
+              : msg
+          ));
+        } catch (apiError) {
+          console.error('Failed to send message via API:', apiError);
+          
+          // Mark message as failed
+          setMessages(prev => prev.map(msg => 
+            msg.id === tempMessage.id 
+              ? { ...msg, status: 'failed' }
+              : msg
+          ));
+          
+          // Restore message text for retry
+          setNewMessage(messageText);
+        }
+      }
       
     } catch (error) {
       console.error('Failed to send message:', error);
-      alert('Failed to send message. Please try again.');
       setNewMessage(messageText);
     } finally {
       setSending(false);
@@ -184,10 +187,12 @@ const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) 
           />
           <div>
             <div className="user-name">{recipientName || 'Chat'}</div>
-            <div className="user-status">● {connected ? 'Online' : 'Connecting...'}</div>
+            <div className="user-status">
+              ● {connected ? 'Online' : (loading ? 'Connecting...' : 'Offline')}
+            </div>
           </div>
         </div>
-        <button onClick={onClose} className="close-btn">
+        <button onClick={onClose} className="close-btn" title="Close chat">
           <X size={16} />
         </button>
       </div>
@@ -195,32 +200,60 @@ const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) 
       <div className="chat-messages">
         {loading ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+            <div style={{ marginBottom: '0.5rem' }}>💬</div>
             Loading messages...
+          </div>
+        ) : error ? (
+          <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
+            <div style={{ marginBottom: '0.5rem' }}>⚠️</div>
+            {error}
+            <button 
+              onClick={initChat}
+              style={{
+                display: 'block',
+                margin: '1rem auto 0',
+                padding: '0.5rem 1rem',
+                background: 'var(--primary)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.375rem',
+                cursor: 'pointer'
+              }}
+            >
+              Retry
+            </button>
           </div>
         ) : messages.length === 0 ? (
           <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+            <div style={{ marginBottom: '0.5rem' }}>👋</div>
             Start a conversation with {recipientName}
           </div>
         ) : (
-          messages.map((m, i) => {
-            console.log('Rendering message:', { id: m.id, status: m.status, sender: m.sender });
-            return (
+          messages.map((m, i) => (
             <div key={m.id || i} className={`message ${m.sender === 'Me' ? 'sent' : 'received'}`}>
               <div className="message-content">{m.text}</div>
-              <div style={{ fontSize: '11px', color: '#65676b', marginTop: '2px', textAlign: 'center' }}>
+              <div style={{ 
+                fontSize: '11px', 
+                color: '#65676b', 
+                marginTop: '2px', 
+                textAlign: 'center',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.25rem'
+              }}>
                 {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 {m.sender === 'Me' && (
-                  <span style={{ 
-                    marginLeft: '4px',
-                    color: m.status === 'read' ? '#4ade80' : '#65676b',
-                    fontWeight: '500'
-                  }}>
-                    {m.status === 'read' ? 'Read' : m.status === 'delivered' ? 'Delivered' : 'Sent'}
+                  <span className={`message-status ${m.status}`}>
+                    {m.status === 'sending' && '⏳'}
+                    {m.status === 'sent' && '✓'}
+                    {m.status === 'delivered' && '✓✓'}
+                    {m.status === 'failed' && '❌'}
                   </span>
                 )}
               </div>
             </div>
-          )})
+          ))
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -232,9 +265,19 @@ const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) 
           onChange={(e) => setNewMessage(e.target.value)} 
           placeholder="Type a message..."
           className="message-input"
+          disabled={sending || loading}
         />
-        <button type="submit" className="send-btn" disabled={sending}>
-          <Send size={16} />
+        <button 
+          type="submit" 
+          className="send-btn" 
+          disabled={sending || !newMessage.trim() || loading}
+          title="Send message"
+        >
+          {sending ? (
+            <div style={{ width: '16px', height: '16px', border: '2px solid white', borderTop: '2px solid transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          ) : (
+            <Send size={16} />
+          )}
         </button>
       </form>
     </div>

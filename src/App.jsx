@@ -5,6 +5,7 @@ import { NotificationProvider, useNotifications } from './contexts/NotificationC
 import Logo from './components/Logo';
 import Loader from './components/Loader';
 import ApiTest from './components/ApiTest';
+import ChatDebug from './components/ChatDebug';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Registration from './pages/Registration';
@@ -179,6 +180,7 @@ const AppContent = () => {
           <Route path="/chat/:recipientId" element={user ? <Chat user={user} /> : <Navigate to="/login" />} />
           <Route path="/help" element={<Help />} />
           <Route path="/api-test" element={<ApiTest />} />
+          <Route path="/chat-debug" element={<ChatDebug />} />
         </Routes>
       </main>
     </div>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, MapPin, Users, Calendar, Wifi, Car, Utensils, MessageCircle, MoreVertical, Edit, Trash2 } from 'lucide-react';
 import postsService from '../utils/postsService';
 import locationService from '../utils/locationService';
+import ChatWidget from '../components/ChatWidget';
 import './Posts.css';
 
 const Posts = () => {
@@ -14,6 +15,12 @@ const Posts = () => {
   const [deletingPost, setDeletingPost] = useState(null);
   const [user, setUser] = useState(null);
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const [activeChat, setActiveChat] = useState(null);
+
+  // Debug logging for activeChat state changes
+  useEffect(() => {
+    console.log('Posts: activeChat state changed:', activeChat);
+  }, [activeChat]);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -348,7 +355,33 @@ const Posts = () => {
 
             {user?.userType === 'Host' && (
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                <button className="btn btn-primary" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('Opening chat with:', { id: post.userId, name: post.userName });
+                    // Close any existing chat first
+                    setActiveChat(null);
+                    // Use a small delay to ensure state is cleared before setting new chat
+                    setTimeout(() => {
+                      setActiveChat({ 
+                        id: post.userId, 
+                        name: post.userName,
+                        imageUrl: null // We don't have image URL in posts data
+                      });
+                    }, 50);
+                  }}
+                  className="btn btn-primary" 
+                  style={{ 
+                    flex: 1, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    gap: '0.5rem',
+                    padding: '0.75rem 1rem',
+                    fontSize: '0.9rem',
+                    fontWeight: '600'
+                  }}
+                >
                   <MessageCircle size={16} />
                   Contact Guest
                 </button>
@@ -420,6 +453,32 @@ const Posts = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Chat Widget */}
+      {activeChat && (
+        <div style={{
+          position: 'fixed',
+          bottom: '20px',
+          right: '20px',
+          zIndex: 1000,
+          width: '350px',
+          height: '500px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+          borderRadius: '12px',
+          overflow: 'hidden',
+          animation: 'slideInUp 0.3s ease-out'
+        }}>
+          <ChatWidget
+            recipientId={activeChat.id}
+            recipientName={activeChat.name}
+            recipientImageUrl={activeChat.imageUrl}
+            onClose={() => {
+              console.log('Closing chat widget');
+              setActiveChat(null);
+            }}
+          />
         </div>
       )}
     </div>
