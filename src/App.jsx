@@ -48,10 +48,10 @@ const AppContent = () => {
 
   // Sync with localStorage on mount and listen for changes
   useEffect(() => {
-    // Show loader for 3 seconds
+    // Only show loader if no user is found, otherwise load immediately
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 3000);
+    }, user ? 0 : 3000);
 
     const handleStorageChange = () => {
       try {
@@ -80,11 +80,11 @@ const AppContent = () => {
       clearTimeout(timer);
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [user]);
 
   const getDashboardRoute = (u) => {
     const role = u?.role || u?.userType || u?.partitionKey;
-    if (role === 'Host') return '/host-dashboard';
+    if (role === 'Host') return '/posts';
     if (role === 'Guest') return '/guest-dashboard';
     if (role === 'Admin') return '/admin';
     return '/login';

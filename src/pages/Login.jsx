@@ -82,13 +82,13 @@ const Login = ({ setUser }) => {
         localStorage.setItem('token', token);
         setUser(userWithToken);
         showToast('Login successful! Redirecting...', 'success');
-        setTimeout(() => {
-          const role = user.role || user.userType || user.partitionKey;
-          if (role === 'Host') navigate('/host-dashboard');
-          else if (role === 'Guest') navigate('/guest-dashboard');
-          else if (role === 'Admin') navigate('/admin');
-          else navigate('/');
-        }, 1000);
+        
+        // Direct navigation based on user role
+        const role = user.role || user.userType || user.partitionKey;
+        if (role === 'Host') navigate('/posts');
+        else if (role === 'Guest') navigate('/guest-dashboard');
+        else if (role === 'Admin') navigate('/admin');
+        else navigate('/');
         return;
       }
       showToast('Login failed', 'error');

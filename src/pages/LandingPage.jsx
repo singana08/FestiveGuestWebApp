@@ -41,10 +41,10 @@ const LandingPage = ({ user }) => {
             {!user ? (
               <>
                 <button className="btn btn-primary" onClick={() => handleRoleSelection('Guest')}>
-                  I Want to Be a Guest
+                  Join as a Guest
                 </button>
                 <button className="btn btn-secondary" onClick={() => handleRoleSelection('Host')}>
-                  I Want to Host Guests
+                  Join as a Host
                 </button>
               </>
             ) : (
@@ -286,7 +286,7 @@ const LandingPage = ({ user }) => {
             {!user ? (
               <>
                 <button className="btn btn-primary" onClick={() => handleRoleSelection('Guest')}>
-                  I Want to Be a Guest
+                  Join as a Guest
                 </button>
                 <button className="btn btn-primary" onClick={() => navigate('/login')}>
                   Already have an account?
@@ -307,19 +307,17 @@ const LandingPage = ({ user }) => {
           <h2>📱 Mobile Apps</h2>
           <div className="mobile-apps-grid">
             <div className="mobile-app-card">
-              <div className="feature-icon">📱</div>
               <h3>iOS App</h3>
               <p>App Store - Coming Soon!</p>
               <button className="btn btn-outline" disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>
-                🍎 App Store
+                App Store
               </button>
             </div>
             <div className="mobile-app-card">
-              <div className="feature-icon">🤖</div>
               <h3>Android App</h3>
               <p>Google Play - Coming Soon!</p>
               <button className="btn btn-outline" disabled style={{ opacity: 0.6, cursor: 'not-allowed' }}>
-                📱 Google Play
+                Google Play
               </button>
             </div>
           </div>

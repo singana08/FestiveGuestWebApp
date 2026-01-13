@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, MapPin, Users, Calendar, Wifi, Car, Utensils, MessageCircle, MoreVertical, Edit, Trash2 } from 'lucide-react';
+import { Plus, MapPin, Users, Calendar, Wifi, Car, Utensils, MessageCircle, MoreVertical, Edit, Trash2, Filter, Minus } from 'lucide-react';
 import postsService from '../utils/postsService';
 import locationService from '../utils/locationService';
 import ChatWidget from '../components/ChatWidget';
 import '../styles/Posts.css';
+import '../styles/Dashboard.css';
 
 const Posts = () => {
   const [posts, setPosts] = useState([]);
+  const [filteredPosts, setFilteredPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -16,6 +18,12 @@ const Posts = () => {
   const [user, setUser] = useState(null);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeChat, setActiveChat] = useState(null);
+  const [selectedLocations, setSelectedLocations] = useState([]);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [locationData, setLocationData] = useState({});
+  const [expandedStates, setExpandedStates] = useState({});
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
 
   useEffect(() => {
     console.log('Posts: activeChat state changed:', activeChat);
@@ -27,7 +35,27 @@ const Posts = () => {
       setUser(JSON.parse(userData));
     }
     fetchPosts();
+    fetchLocations();
   }, []);
+
+  // Handle window resize and set filter defaults
+  useEffect(() => {
+    const handleResize = () => {
+      const desktop = window.innerWidth > 768;
+      setIsDesktop(desktop);
+      if (desktop) {
+        setShowMobileFilters(true);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Filter posts when posts or selectedLocations change
+  useEffect(() => {
+    filterPosts();
+  }, [posts, selectedLocations]);
 
   useEffect(() => {
     const handleClickOutside = () => setActiveDropdown(null);
@@ -82,6 +110,55 @@ const Posts = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchLocations = async () => {
+    try {
+      const response = await locationService.getLocations();
+      setLocationData(response);
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+      setLocationData({
+        'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Other'],
+        'Karnataka': ['Bangalore', 'Mysore', 'Mangalore', 'Other'],
+        'Kerala': ['Kochi', 'Thiruvananthapuram', 'Kozhikode', 'Other'],
+        'Andhra Pradesh': ['Hyderabad', 'Visakhapatnam', 'Vijayawada', 'Other'],
+        'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Other'],
+        'Delhi': ['New Delhi', 'Other']
+      });
+    }
+  };
+
+  const filterPosts = () => {
+    if (selectedLocations.length === 0) {
+      setFilteredPosts(posts);
+    } else {
+      const filtered = posts.filter(post => 
+        selectedLocations.some(location => 
+          post.location?.toLowerCase().includes(location.toLowerCase())
+        )
+      );
+      setFilteredPosts(filtered);
+    }
+  };
+
+  const toggleState = (state) => {
+    setExpandedStates(prev => ({
+      ...prev,
+      [state]: !prev[state]
+    }));
+  };
+
+  const toggleLocation = (location) => {
+    setSelectedLocations(prev => 
+      prev.includes(location)
+        ? prev.filter(loc => loc !== location)
+        : [...prev, location]
+    );
+  };
+
+  const clearFilters = () => {
+    setSelectedLocations([]);
   };
 
   const facilityIcons = {
@@ -160,6 +237,80 @@ const Posts = () => {
   };
 
   return (
+    <div className="browse-layout">
+      {/* Mobile Filter Toggle Button */}
+      <button 
+        className="mobile-filter-toggle"
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowFilters(!showFilters);
+        }}
+      >
+        <span>Filter by Location {selectedLocations.length > 0 && `(${selectedLocations.length})`}</span>
+        {showFilters ? <Minus size={16} /> : <Plus size={16} />}
+      </button>
+
+      {/* Location Filters Sidebar */}
+      <div 
+        className={`location-sidebar ${showFilters ? 'mobile-visible' : ''}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="filter-header">
+          <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: isDesktop ? 'default' : 'pointer', width: '100%' }} onClick={() => !isDesktop && setShowMobileFilters(!showMobileFilters)}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Filter size={20} style={{ color: 'var(--primary)' }} />
+              Filter by Location
+            </div>
+            {!isDesktop && (
+              <span style={{ color: 'var(--primary)', fontSize: '1.2rem' }}>
+                {showMobileFilters ? '−' : '+'}
+              </span>
+            )}
+          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {selectedLocations.length > 0 && (
+              <button onClick={clearFilters} className="clear-filters-btn">
+                Clear ({selectedLocations.length})
+              </button>
+            )}
+          </div>
+        </div>
+        
+        {(isDesktop || showMobileFilters) && (
+        <div className="location-filters">
+          {Object.entries(locationData).map(([state, cities]) => (
+            <div key={state} className="state-group">
+              <button 
+                className="state-toggle"
+                onClick={() => toggleState(state)}
+              >
+                <span>{state}</span>
+                <span className="expand-icon" style={{ color: 'var(--primary)', background: 'none', border: 'none', borderRadius: '0', fontSize: '1.2rem' }}>
+                  {expandedStates[state] ? '-' : '+'}
+                </span>
+              </button>
+              
+              {expandedStates[state] && (
+                <div className="cities-list">
+                  {cities.map(city => (
+                    <button
+                      key={city}
+                      className={`city-btn ${selectedLocations.includes(city) ? 'selected' : ''}`}
+                      onClick={() => toggleLocation(city)}
+                    >
+                      {city}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+        )}
+      </div>
+
+      {/* Main Content */}
+      <div className="browse-main">
     <div className="container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
@@ -168,7 +319,7 @@ const Posts = () => {
           </h1>
           <p style={{ margin: 0, color: 'var(--text-light)' }}>
             {user?.userType === 'Host' 
-              ? 'Browse accommodation requests from guests' 
+              ? `Browse accommodation requests from guests (${filteredPosts.length} found)` 
               : 'Create and manage your accommodation requests'
             }
           </p>
@@ -191,13 +342,18 @@ const Posts = () => {
             <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔄</div>
             <p>Loading posts...</p>
           </div>
-        ) : posts.length === 0 ? (
+        ) : filteredPosts.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem' }}>
             <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📝</div>
-            <p>No posts available yet.</p>
+            <p>No posts found{selectedLocations.length > 0 ? ' for selected locations' : ''}.</p>
+            {selectedLocations.length > 0 && (
+              <button onClick={clearFilters} className="btn btn-outline">
+                Clear filters
+              </button>
+            )}
           </div>
         ) : (
-          posts.map(post => (
+          filteredPosts.map(post => (
           <div key={post.id} className="post-card" style={{
             background: 'white',
             borderRadius: 'var(--radius)',
@@ -388,6 +544,8 @@ const Posts = () => {
           ))
         )}
       </div>
+      </div>
+    </div>
 
       {showCreateModal && (
         <CreatePostModal 

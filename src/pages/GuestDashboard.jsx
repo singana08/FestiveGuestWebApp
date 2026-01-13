@@ -15,8 +15,9 @@ const GuestDashboard = ({ user }) => {
   const [selectedLocations, setSelectedLocations] = useState([]);
   const [filteredHosts, setFilteredHosts] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
-  const [showFilters, setShowFilters] = useState(true);
-  const [showMobileFilters, setShowMobileFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false); // Collapsed by default on mobile
+  const [showMobileFilters, setShowMobileFilters] = useState(false); // Collapsed by default
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
   const [locationData, setLocationData] = useState({});
   const [signalRStatus, setSignalRStatus] = useState('Not connected');
   const [selectedProfile, setSelectedProfile] = useState(null);
@@ -53,6 +54,25 @@ const GuestDashboard = ({ user }) => {
       fetchLocations();
     }
   }, [user]);
+
+  // Handle window resize and set filter defaults
+  useEffect(() => {
+    const handleResize = () => {
+      const desktop = window.innerWidth > 768;
+      setIsDesktop(desktop);
+      // On desktop, always show mobile filters (the content inside sidebar)
+      // On mobile, keep current state
+      if (desktop) {
+        setShowMobileFilters(true);
+      }
+    };
+
+    // Set initial state
+    handleResize();
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const fetchLocations = async () => {
     try {
@@ -372,14 +392,16 @@ const GuestDashboard = ({ user }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="filter-header">
-          <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', width: '100%' }} onClick={() => setShowMobileFilters(!showMobileFilters)}>
+          <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: isDesktop ? 'default' : 'pointer', width: '100%' }} onClick={() => !isDesktop && setShowMobileFilters(!showMobileFilters)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Filter size={20} style={{ color: 'var(--primary)' }} />
               Filter by Location
             </div>
-            <span style={{ color: 'var(--primary)', fontSize: '1.2rem' }}>
-              {showMobileFilters ? '−' : '+'}
-            </span>
+            {!isDesktop && (
+              <span style={{ color: 'var(--primary)', fontSize: '1.2rem' }}>
+                {showMobileFilters ? '−' : '+'}
+              </span>
+            )}
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {selectedLocations.length > 0 && (
@@ -390,7 +412,7 @@ const GuestDashboard = ({ user }) => {
           </div>
         </div>
         
-        {showMobileFilters && (
+        {(isDesktop || showMobileFilters) && (
         <div className="location-filters">
           {Object.entries(locationData).map(([state, cities]) => (
             <div key={state} className="state-group">

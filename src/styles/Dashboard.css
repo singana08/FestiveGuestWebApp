@@ -289,6 +289,21 @@
   display: block;
 }
 
+/* Desktop: Always show filters expanded */
+@media (min-width: 769px) {
+  .location-sidebar {
+    display: block !important;
+  }
+  
+  .location-filters {
+    display: block !important;
+  }
+  
+  .mobile-filter-toggle {
+    display: none !important;
+  }
+}
+
 @media (max-width: 768px) {
   .location-sidebar {
     display: block !important;
@@ -367,7 +382,7 @@
   }
   
   .location-sidebar {
-    display: none !important;
+    display: block !important;
     position: static;
     background: white;
     border: 1px solid var(--border);
