@@ -22,10 +22,18 @@ const LandingPage = ({ user }) => {
 
   const getDashboardRoute = () => {
     const role = user?.role || user?.userType || user?.partitionKey;
-    if (role === 'Host') return '/host-dashboard';
+    if (role === 'Host') return '/posts';
     if (role === 'Guest') return '/guest-dashboard';
     if (role === 'Admin') return '/admin';
     return '/';
+  };
+
+  const getDashboardText = () => {
+    const role = user?.role || user?.userType || user?.partitionKey;
+    if (role === 'Host') return 'Go to Posts';
+    if (role === 'Guest') return 'Go to My Dashboard';
+    if (role === 'Admin') return 'Go to Admin';
+    return 'Go to Dashboard';
   };
 
   return (
@@ -49,7 +57,7 @@ const LandingPage = ({ user }) => {
               </>
             ) : (
               <button className="btn btn-primary" onClick={() => navigate(getDashboardRoute())}>
-                Go to My Dashboard
+                {getDashboardText()}
               </button>
             )}
           </div>
@@ -294,7 +302,7 @@ const LandingPage = ({ user }) => {
               </>
             ) : (
               <button className="btn btn-primary" onClick={() => navigate(getDashboardRoute())}>
-                Go to My Dashboard
+                {getDashboardText()}
               </button>
             )}
           </div>

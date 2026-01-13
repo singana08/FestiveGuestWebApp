@@ -40,7 +40,10 @@ function Profile() {
   const fetchUser = async () => {
     try {
       const res = await api.get('user/profile');
+      console.log('DEBUG: Full API response:', res);
       let fetchedUser = res.data;
+      console.log('DEBUG: Fetched user data:', fetchedUser);
+      console.log('DEBUG: HostingAreas:', fetchedUser.hostingAreas);
 
       // Preserve token from localStorage
       const savedUser = JSON.parse(localStorage.getItem('user'));
@@ -325,6 +328,67 @@ function Profile() {
                 <span style={{ color: '#475569', fontSize: '0.95rem', lineHeight: '1.5' }}>{user.bio || 'Not specified'}</span>
               </p>
             </div>
+
+            {console.log('DEBUG: Checking hosting areas display:', { userType: user.userType, hostingAreas: user.hostingAreas, hasAreas: user.hostingAreas && user.hostingAreas.length > 0 })}
+            {user.userType === 'Host' && (
+              <div style={{ 
+                padding: '1rem', 
+                background: '#f0fdf4', 
+                borderRadius: '0.75rem', 
+                borderLeft: '4px solid #16a34a'
+              }}>
+                <p style={{ 
+                  margin: '0 0 0.75rem 0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  fontWeight: 'bold'
+                }}>
+                  🗺️ My Hosting Areas:
+                </p>
+                {user.hostingAreas && user.hostingAreas.length > 0 ? (
+                  user.hostingAreas
+                    .filter(area => area.state && area.state.trim() !== '' && area.cities && area.cities.length > 0)
+                    .length > 0 ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {user.hostingAreas
+                          .filter(area => area.state && area.state.trim() !== '' && area.cities && area.cities.length > 0)
+                          .map((area, index) => (
+                            <div key={`${area.state}-${index}`} style={{ 
+                              color: '#15803d', 
+                              fontSize: '0.9rem',
+                              lineHeight: '1.4'
+                            }}>
+                              <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>{area.state}</div>
+                              <div style={{ paddingLeft: '1rem', fontSize: '0.85rem' }}>
+                                {area.cities.join(', ')}
+                              </div>
+                            </div>
+                          ))
+                        }
+                      </div>
+                    ) : (
+                      <div style={{ 
+                        color: '#64748b', 
+                        fontSize: '0.9rem', 
+                        fontStyle: 'italic',
+                        lineHeight: '1.4'
+                      }}>
+                        No hosting areas selected yet. Update your hosting preferences in settings.
+                      </div>
+                    )
+                ) : (
+                  <div style={{ 
+                    color: '#64748b', 
+                    fontSize: '0.9rem', 
+                    fontStyle: 'italic',
+                    lineHeight: '1.4'
+                  }}>
+                    No hosting areas selected yet. Update your hosting preferences in settings.
+                  </div>
+                )}
+              </div>
+            )}
 
             <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #f59e0b' }}>
               <p style={{ margin: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

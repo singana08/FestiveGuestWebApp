@@ -24,7 +24,8 @@ const Registration = ({ setUser }) => {
     otherCity: '',
     bio: '',
     role: 'Guest',
-    status: 'Active'
+    status: 'Active',
+    hostingAreas: [] // New field for hosting areas
   });
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
@@ -45,6 +46,9 @@ const Registration = ({ setUser }) => {
   const [validationErrors, setValidationErrors] = useState({});
   const [registrationSuccessCountdown, setRegistrationSuccessCountdown] = useState(0);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [showHostingModal, setShowHostingModal] = useState(false);
+  const [tempHostingAreas, setTempHostingAreas] = useState([]);
+  const [tempCityCount, setTempCityCount] = useState(0);
 
   const passwordRequirements = [
     { label: 'At least 8 characters', test: (pw) => pw.length >= 8 },
@@ -207,6 +211,15 @@ const Registration = ({ setUser }) => {
     if (!formData.bio.trim()) errors.bio = 'Bio is required';
     if (!ageConfirmed) errors.ageConfirmed = 'You must confirm that you are at least 18 years old';
     
+    // Validate hosting areas for hosts
+    if (formData.role === 'Host') {
+      const hasValidAreas = formData.hostingAreas.some(area => area.cities && area.cities.length > 0);
+      if (!hasValidAreas) {
+        errors.hostingAreas = 'Please select at least one hosting area';
+        showToast('Hosts must select at least one hosting area', 'error');
+      }
+    }
+    
     setValidationErrors(errors);
     
     if (Object.keys(errors).length > 0) {
@@ -263,7 +276,8 @@ const Registration = ({ setUser }) => {
         userType: formData.role,
         location: `${finalLocation}, ${formData.state}`,
         bio: formData.bio,
-        ReferredBy: formData.ReferredBy || null
+        ReferredBy: formData.ReferredBy || null,
+        hostingAreas: formData.role === 'Host' ? (formData.hostingAreas.length > 0 && formData.hostingAreas.some(area => area.cities.length > 0) ? JSON.stringify(formData.hostingAreas.filter(area => area.cities.length > 0)) : '') : null
       };
 
       console.log('Sending registration payload:', payload);
@@ -836,6 +850,51 @@ const Registration = ({ setUser }) => {
             </div>
           </div>
 
+          {/* Hosting Areas Section - Only for Hosts */}
+          {formData.role === 'Host' && (
+            <div className="form-group">
+              <label style={{ fontWeight: '600', color: '#374151' }}>Areas Where You Can Host</label>
+              <p style={{ margin: '0.5rem 0', color: '#64748b', fontSize: '0.9rem' }}>
+                Select all states and cities where you can provide hosting services to travelers.
+              </p>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  const currentAreas = [...formData.hostingAreas];
+                  setTempHostingAreas(currentAreas);
+                  setTempCityCount(currentAreas.reduce((total, area) => total + area.cities.length, 0));
+                  setShowHostingModal(true);
+                }}
+                className="btn btn-outline"
+                style={{ 
+                  padding: '1rem', 
+                  fontSize: '1rem', 
+                  width: '100%', 
+                  marginBottom: '1rem',
+                  borderColor: validationErrors.hostingAreas ? '#dc2626' : '#cbd5e1'
+                }}
+              >
+                🗺️ Select Hosting Areas ({formData.hostingAreas.reduce((total, area) => total + area.cities.length, 0)} cities selected)
+              </button>
+              
+              {validationErrors.hostingAreas && (
+                <p style={{ margin: '0 0 1rem 0', color: '#dc2626', fontSize: '0.875rem' }}>⚠️ {validationErrors.hostingAreas}</p>
+              )}
+              
+              {formData.hostingAreas.length > 0 && formData.hostingAreas.some(area => area.cities.length > 0) && (
+                <div style={{ padding: '1rem', background: '#f0fdf4', borderRadius: '0.5rem', border: '1px solid #16a34a' }}>
+                  <p style={{ margin: '0 0 0.5rem 0', fontWeight: '600', color: '#15803d' }}>Selected Hosting Areas:</p>
+                  {formData.hostingAreas.filter(area => area.cities.length > 0).map(area => (
+                    <div key={area.state} style={{ marginBottom: '0.25rem', color: '#15803d', fontSize: '0.9rem' }}>
+                      <strong>{area.state}:</strong> {area.cities.join(', ')}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="form-group">
             <label style={{ fontWeight: '600', color: '#374151' }}>Referral Code (Optional)</label>
             <input
@@ -945,6 +1004,80 @@ const Registration = ({ setUser }) => {
           </div>
         </div>
       </div>
+      
+      {/* Hosting Areas Modal */}
+      {showHostingModal && (
+        <div className="modal-overlay" onClick={() => setShowHostingModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ width: '800px' }}>
+            <div className="modal-header">
+              <h3>🗺️ Select Hosting Areas</h3>
+              <button className="modal-close" onClick={() => setShowHostingModal(false)}>×</button>
+            </div>
+            
+            <div className="modal-body">
+              {Object.entries(locationData || {}).map(([state, cities]) => {
+                const selectedCities = tempHostingAreas.find(area => area.state === state)?.cities || [];
+                
+                return (
+                  <div key={state} className="state-section">
+                    <div className="state-header">
+                      {state}
+                    </div>
+                    
+                    <div className="cities-grid">
+                      {cities.map(city => {
+                        const citySelected = selectedCities.includes(city);
+                        return (
+                          <button
+                            key={city}
+                            type="button"
+                            onClick={() => {
+                              const newAreas = [...tempHostingAreas];
+                              const existingAreaIndex = newAreas.findIndex(area => area.state === state);
+                              
+                              if (existingAreaIndex >= 0) {
+                                if (citySelected) {
+                                  newAreas[existingAreaIndex].cities = newAreas[existingAreaIndex].cities.filter(c => c !== city);
+                                  if (newAreas[existingAreaIndex].cities.length === 0) {
+                                    newAreas.splice(existingAreaIndex, 1);
+                                  }
+                                } else {
+                                  newAreas[existingAreaIndex].cities.push(city);
+                                }
+                              } else {
+                                newAreas.push({ state, cities: [city] });
+                              }
+                              
+                              setTempHostingAreas(newAreas);
+                              setTempCityCount(newAreas.reduce((total, area) => total + area.cities.length, 0));
+                            }}
+                            className={`city-btn ${citySelected ? 'selected' : ''}`}
+                          >
+                            {city}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div className="modal-footer">
+              <button 
+                className="btn btn-primary" 
+                onClick={() => {
+                  setFormData(prev => ({ ...prev, hostingAreas: tempHostingAreas }));
+                  setShowHostingModal(false);
+                }}
+                style={{ padding: '0.75rem 2rem', fontSize: '1.1rem' }}
+              >
+                ✓ Done ({tempCityCount} cities selected)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

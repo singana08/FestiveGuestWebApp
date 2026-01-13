@@ -18,11 +18,10 @@ const Posts = () => {
   const [user, setUser] = useState(null);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeChat, setActiveChat] = useState(null);
-  const [selectedLocations, setSelectedLocations] = useState([]);
+  const [selectedAreas, setSelectedAreas] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [locationData, setLocationData] = useState({});
-  const [expandedStates, setExpandedStates] = useState({});
+  const [hostingAreas, setHostingAreas] = useState([]);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
 
   useEffect(() => {
@@ -32,11 +31,20 @@ const Posts = () => {
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
-      setUser(JSON.parse(userData));
+      const parsedUser = JSON.parse(userData);
+      console.log('DEBUG Posts: User data:', parsedUser);
+      console.log('DEBUG Posts: HostingAreas:', parsedUser.hostingAreas);
+      setUser(parsedUser);
     }
     fetchPosts();
-    fetchLocations();
   }, []);
+
+  // Separate useEffect for hosting areas that depends on user
+  useEffect(() => {
+    if (user) {
+      fetchHostingAreas();
+    }
+  }, [user]);
 
   // Handle window resize and set filter defaults
   useEffect(() => {
@@ -52,10 +60,10 @@ const Posts = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Filter posts when posts or selectedLocations change
+  // Filter posts when posts or selectedAreas change
   useEffect(() => {
     filterPosts();
-  }, [posts, selectedLocations]);
+  }, [posts, selectedAreas]);
 
   useEffect(() => {
     const handleClickOutside = () => setActiveDropdown(null);
@@ -112,53 +120,52 @@ const Posts = () => {
     }
   };
 
-  const fetchLocations = async () => {
+  const fetchHostingAreas = async () => {
     try {
-      const response = await locationService.getLocations();
-      setLocationData(response);
+      // If user is a host and has hosting areas, use them directly
+      if (user?.userType === 'Host' && user?.hostingAreas && user.hostingAreas.length > 0) {
+        console.log('DEBUG Posts: Using hosting areas from user data');
+        
+        // Filter out empty hosting areas and flatten to area strings
+        const validAreas = user.hostingAreas
+          .filter(area => area.state && area.state.trim() !== '' && area.cities && area.cities.length > 0)
+          .flatMap(area => area.cities.map(city => `${city}, ${area.state}`));
+        
+        console.log('DEBUG Posts: Valid hosting areas:', validAreas);
+        setHostingAreas(validAreas);
+      } else {
+        console.log('DEBUG Posts: No hosting areas available');
+        setHostingAreas([]);
+      }
     } catch (error) {
-      console.error('Error fetching locations:', error);
-      setLocationData({
-        'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Other'],
-        'Karnataka': ['Bangalore', 'Mysore', 'Mangalore', 'Other'],
-        'Kerala': ['Kochi', 'Thiruvananthapuram', 'Kozhikode', 'Other'],
-        'Andhra Pradesh': ['Hyderabad', 'Visakhapatnam', 'Vijayawada', 'Other'],
-        'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Other'],
-        'Delhi': ['New Delhi', 'Other']
-      });
+      console.error('Error processing hosting areas:', error);
+      setHostingAreas([]);
     }
   };
 
   const filterPosts = () => {
-    if (selectedLocations.length === 0) {
+    if (selectedAreas.length === 0) {
       setFilteredPosts(posts);
     } else {
       const filtered = posts.filter(post => 
-        selectedLocations.some(location => 
-          post.location?.toLowerCase().includes(location.toLowerCase())
+        selectedAreas.some(area => 
+          post.location?.toLowerCase().includes(area.toLowerCase())
         )
       );
       setFilteredPosts(filtered);
     }
   };
 
-  const toggleState = (state) => {
-    setExpandedStates(prev => ({
-      ...prev,
-      [state]: !prev[state]
-    }));
-  };
-
-  const toggleLocation = (location) => {
-    setSelectedLocations(prev => 
-      prev.includes(location)
-        ? prev.filter(loc => loc !== location)
-        : [...prev, location]
+  const toggleArea = (area) => {
+    setSelectedAreas(prev => 
+      prev.includes(area)
+        ? prev.filter(a => a !== area)
+        : [...prev, area]
     );
   };
 
   const clearFilters = () => {
-    setSelectedLocations([]);
+    setSelectedAreas([]);
   };
 
   const facilityIcons = {
@@ -246,11 +253,11 @@ const Posts = () => {
           setShowFilters(!showFilters);
         }}
       >
-        <span>Filter by Location {selectedLocations.length > 0 && `(${selectedLocations.length})`}</span>
+        <span>Filter by Hosting Areas {selectedAreas.length > 0 && `(${selectedAreas.length})`}</span>
         {showFilters ? <Minus size={16} /> : <Plus size={16} />}
       </button>
 
-      {/* Location Filters Sidebar */}
+      {/* Hosting Areas Filters Sidebar */}
       <div 
         className={`location-sidebar ${showFilters ? 'mobile-visible' : ''}`}
         onClick={(e) => e.stopPropagation()}
@@ -259,7 +266,7 @@ const Posts = () => {
           <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: isDesktop ? 'default' : 'pointer', width: '100%' }} onClick={() => !isDesktop && setShowMobileFilters(!showMobileFilters)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Filter size={20} style={{ color: 'var(--primary)' }} />
-              Filter by Location
+              Filter by Hosting Areas
             </div>
             {!isDesktop && (
               <span style={{ color: 'var(--primary)', fontSize: '1.2rem' }}>
@@ -268,9 +275,9 @@ const Posts = () => {
             )}
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {selectedLocations.length > 0 && (
+            {selectedAreas.length > 0 && (
               <button onClick={clearFilters} className="clear-filters-btn">
-                Clear ({selectedLocations.length})
+                Clear ({selectedAreas.length})
               </button>
             )}
           </div>
@@ -278,33 +285,23 @@ const Posts = () => {
         
         {(isDesktop || showMobileFilters) && (
         <div className="location-filters">
-          {Object.entries(locationData).map(([state, cities]) => (
-            <div key={state} className="state-group">
-              <button 
-                className="state-toggle"
-                onClick={() => toggleState(state)}
-              >
-                <span>{state}</span>
-                <span className="expand-icon" style={{ color: 'var(--primary)', background: 'none', border: 'none', borderRadius: '0', fontSize: '1.2rem' }}>
-                  {expandedStates[state] ? '-' : '+'}
-                </span>
-              </button>
-              
-              {expandedStates[state] && (
-                <div className="cities-list">
-                  {cities.map(city => (
-                    <button
-                      key={city}
-                      className={`city-btn ${selectedLocations.includes(city) ? 'selected' : ''}`}
-                      onClick={() => toggleLocation(city)}
-                    >
-                      {city}
-                    </button>
-                  ))}
-                </div>
-              )}
+          {hostingAreas.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {hostingAreas.map(area => (
+                <button
+                  key={area}
+                  className={`city-btn ${selectedAreas.includes(area) ? 'selected' : ''}`}
+                  onClick={() => toggleArea(area)}
+                >
+                  {area}
+                </button>
+              ))}
             </div>
-          ))}
+          ) : (
+            <div style={{ padding: '1rem', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>
+              {user?.userType === 'Host' ? 'No hosting areas configured' : 'Hosting areas not available'}
+            </div>
+          )}
         </div>
         )}
       </div>
@@ -345,8 +342,8 @@ const Posts = () => {
         ) : filteredPosts.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem' }}>
             <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📝</div>
-            <p>No posts found{selectedLocations.length > 0 ? ' for selected locations' : ''}.</p>
-            {selectedLocations.length > 0 && (
+            <p>No posts found{selectedAreas.length > 0 ? ' for selected hosting areas' : ''}.</p>
+            {selectedAreas.length > 0 && (
               <button onClick={clearFilters} className="btn btn-outline">
                 Clear filters
               </button>
