@@ -44,6 +44,7 @@ const Registration = ({ setUser }) => {
   const [testing, setTesting] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const [registrationSuccessCountdown, setRegistrationSuccessCountdown] = useState(0);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
 
   const passwordRequirements = [
     { label: 'At least 8 characters', test: (pw) => pw.length >= 8 },
@@ -204,6 +205,7 @@ const Registration = ({ setUser }) => {
     if (!formData.state) errors.state = 'State is required';
     if (!formData.city) errors.city = 'City is required';
     if (!formData.bio.trim()) errors.bio = 'Bio is required';
+    if (!ageConfirmed) errors.ageConfirmed = 'You must confirm that you are at least 18 years old';
     
     setValidationErrors(errors);
     
@@ -854,6 +856,53 @@ const Registration = ({ setUser }) => {
 
 
 
+          {/* Age Confirmation */}
+          <div className="form-group">
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'flex-start', 
+              gap: '0.75rem',
+              padding: '1rem',
+              background: '#fef3c7',
+              border: '2px solid #f59e0b',
+              borderRadius: '0.75rem',
+              marginBottom: '1rem'
+            }}>
+              <input
+                type="checkbox"
+                id="ageConfirmation"
+                checked={ageConfirmed}
+                onChange={(e) => {
+                  setAgeConfirmed(e.target.checked);
+                  if (validationErrors.ageConfirmed) {
+                    setValidationErrors(prev => ({ ...prev, ageConfirmed: '' }));
+                  }
+                }}
+                style={{ 
+                  marginTop: '0.25rem',
+                  width: '18px',
+                  height: '18px',
+                  cursor: 'pointer'
+                }}
+              />
+              <label 
+                htmlFor="ageConfirmation" 
+                style={{ 
+                  fontWeight: '600', 
+                  color: '#92400e',
+                  cursor: 'pointer',
+                  lineHeight: '1.5',
+                  fontSize: '0.95rem'
+                }}
+              >
+                <strong>Age Verification Required:</strong> I confirm that I am at least 18 years of age and have the legal capacity to enter into binding agreements. Users under 18 are not permitted to use this platform.
+              </label>
+            </div>
+            {validationErrors.ageConfirmed && (
+              <p style={{ margin: '0.5rem 0 0 0', color: '#dc2626', fontSize: '0.875rem', fontWeight: '600' }}>⚠️ {validationErrors.ageConfirmed}</p>
+            )}
+          </div>
+
           {/* Agreement Checkbox - Removed since disclaimer was already accepted */}
           <div style={{ 
             marginTop: '2rem',
@@ -871,13 +920,13 @@ const Registration = ({ setUser }) => {
           <button 
             type="submit" 
             className="btn btn-primary" 
-            disabled={loading || registrationSuccessCountdown > 0} 
+            disabled={loading || registrationSuccessCountdown > 0 || !ageConfirmed} 
             style={{ 
               width: '100%', 
               padding: '1rem', 
               fontSize: '1.1rem',
               marginTop: '1.5rem',
-              opacity: (loading || registrationSuccessCountdown > 0) ? 0.5 : 1
+              opacity: (loading || registrationSuccessCountdown > 0 || !ageConfirmed) ? 0.5 : 1
             }}
           >
             {loading ? 'Registering...' : 'Register Now'}

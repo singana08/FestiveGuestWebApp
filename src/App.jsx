@@ -18,6 +18,8 @@ import Profile from './pages/Profile';
 import PublicProfile from './pages/PublicProfile';
 import Help from './pages/Help';
 import Posts from './pages/Posts';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsOfService from './pages/TermsOfService';
 import './styles/App.css';
 
 const AppContent = () => {
@@ -183,6 +185,8 @@ const AppContent = () => {
           <Route path="/admin" element={(user?.role === 'Admin' || user?.userType === 'Admin') ? <Admin /> : <Navigate to="/login" />} />
           <Route path="/chat/:recipientId" element={user ? <Chat user={user} /> : <Navigate to="/login" />} />
           <Route path="/help" element={<Help />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-of-service" element={<TermsOfService />} />
           <Route path="/api-test" element={<ApiTest />} />
           <Route path="/chat-debug" element={<ChatDebug />} />
         </Routes>
