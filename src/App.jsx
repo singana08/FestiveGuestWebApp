@@ -147,7 +147,7 @@ const AppContent = () => {
                   <strong>{user.name}</strong> <span className="user-badge-role">({user.role || user.userType || user.partitionKey})</span>
                 </span>
               </div>
-              <Link to={getDashboardRoute(user)} className={`nav-item ${isActivePage('/dashboard') ? 'active' : ''}`} onClick={() => setMenuOpen(false)} style={{ display: (user.role === 'Host' || user.userType === 'Host') ? 'none' : 'flex' }}><LayoutDashboard size={20} /> Dashboard</Link>
+              <Link to={getDashboardRoute(user)} className={`nav-item ${isActivePage('/dashboard') ? 'active' : ''}`} onClick={() => setMenuOpen(false)} style={{ display: 'none' }}><LayoutDashboard size={20} /> Dashboard</Link>
               <Link to="/posts" className={`nav-item ${isActivePage('/posts') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}>📝 Posts</Link>
               <Link to="/chats" className={`nav-item chat-nav-item ${isActivePage('/chats') ? 'active' : ''}`} onClick={handleChatsClick}>
                 💬 Chats

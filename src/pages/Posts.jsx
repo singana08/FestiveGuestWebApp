@@ -18,11 +18,15 @@ const Posts = () => {
   const [user, setUser] = useState(null);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeChat, setActiveChat] = useState(null);
-  const [selectedAreas, setSelectedAreas] = useState([]);
+  const [selectedLocations, setSelectedLocations] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [hostingAreas, setHostingAreas] = useState([]);
+  const [expandedStates, setExpandedStates] = useState({});
+  const [locationData, setLocationData] = useState({});
+  const [hostingAreasByState, setHostingAreasByState] = useState({});
   const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
+  const [showMyPosts, setShowMyPosts] = useState(false);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   useEffect(() => {
     console.log('Posts: activeChat state changed:', activeChat);
@@ -39,10 +43,19 @@ const Posts = () => {
     fetchPosts();
   }, []);
 
-  // Separate useEffect for hosting areas that depends on user
   useEffect(() => {
     if (user) {
-      fetchHostingAreas();
+      if (user.userType === 'Host' && user.hostingAreas) {
+        const areasByState = {};
+        user.hostingAreas
+          .filter(area => area.state && area.cities && area.cities.length > 0)
+          .forEach(area => {
+            areasByState[area.state] = area.cities;
+          });
+        setHostingAreasByState(areasByState);
+      } else {
+        fetchLocations();
+      }
     }
   }, [user]);
 
@@ -51,19 +64,21 @@ const Posts = () => {
     const handleResize = () => {
       const desktop = window.innerWidth > 768;
       setIsDesktop(desktop);
-      if (desktop) {
-        setShowMobileFilters(true);
-      }
+      setShowMobileFilters(desktop);
     };
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Filter posts when posts or selectedAreas change
   useEffect(() => {
     filterPosts();
-  }, [posts, selectedAreas]);
+  }, [posts, selectedLocations]);
+
+  // Refetch posts when showMyPosts changes
+  useEffect(() => {
+    fetchPosts();
+  }, [showMyPosts]);
 
   useEffect(() => {
     const handleClickOutside = () => setActiveDropdown(null);
@@ -73,14 +88,27 @@ const Posts = () => {
     }
   }, [activeDropdown]);
 
+  const fetchLocations = async () => {
+    try {
+      const locations = await locationService.getLocations();
+      setLocationData(locations);
+    } catch (error) {
+      console.error('Error fetching locations:', error);
+    }
+  };
+
   const fetchPosts = async () => {
     try {
       setLoading(true);
-      const guestPosts = await postsService.getGuestPosts();
-      const hostPosts = await postsService.getHostPosts();
+      let allPosts = [];
       
-      const allPosts = [
-        ...guestPosts.map(post => ({
+      if (showMyPosts) {
+        // Show user's own posts
+        const myPosts = user?.userType === 'Host' 
+          ? await postsService.getMyHostPosts()
+          : await postsService.getMyGuestPosts();
+        
+        allPosts = myPosts.map(post => ({
           id: post.rowKey,
           title: post.title,
           content: post.content,
@@ -88,28 +116,57 @@ const Posts = () => {
           planningDate: post.planningDate,
           visitors: post.visitors || 1,
           days: post.days || 1,
-          facilities: post.facilities ? post.facilities.split(',') : [],
-          userName: post.userName || user?.name || 'Unknown',
-          userId: post.userId,
-          userType: 'Guest',
-          createdAt: new Date(post.createdAt),
-          status: post.status
-        })),
-        ...hostPosts.map(post => ({
-          id: post.rowKey,
-          title: post.title,
-          content: post.content,
-          location: post.location,
           maxGuests: post.maxGuests || 1,
           pricePerNight: post.pricePerNight,
+          facilities: post.facilities ? post.facilities.split(',') : [],
           amenities: post.amenities ? post.amenities.split(',') : [],
           userName: post.userName || user?.name || 'Unknown',
           userId: post.userId,
-          userType: 'Host',
+          userType: user?.userType,
           createdAt: new Date(post.createdAt),
-          status: post.status
-        }))
-      ];
+          status: post.status,
+          commenceDate: post.commenceDate
+        }));
+      } else {
+        // Show posts based on user type
+        if (user?.userType === 'Host') {
+          // Hosts see guest posts
+          const guestPosts = await postsService.getGuestPosts();
+          allPosts = guestPosts.map(post => ({
+            id: post.rowKey,
+            title: post.title,
+            content: post.content,
+            location: post.location,
+            planningDate: post.planningDate,
+            visitors: post.visitors || 1,
+            days: post.days || 1,
+            facilities: post.facilities ? post.facilities.split(',') : [],
+            userName: post.userName || 'Unknown',
+            userId: post.userId,
+            userType: 'Guest',
+            createdAt: new Date(post.createdAt),
+            status: post.status
+          }));
+        } else {
+          // Guests see host posts
+          const hostPosts = await postsService.getHostPosts();
+          allPosts = hostPosts.map(post => ({
+            id: post.rowKey,
+            title: post.title,
+            content: post.content,
+            location: post.location,
+            maxGuests: post.maxGuests || 1,
+            pricePerNight: post.pricePerNight,
+            amenities: post.amenities ? post.amenities.split(',') : [],
+            userName: post.userName || 'Unknown',
+            userId: post.userId,
+            userType: 'Host',
+            createdAt: new Date(post.createdAt),
+            status: post.status,
+            commenceDate: post.commenceDate
+          }));
+        }
+      }
       
       allPosts.sort((a, b) => b.createdAt - a.createdAt);
       setPosts(allPosts);
@@ -120,52 +177,36 @@ const Posts = () => {
     }
   };
 
-  const fetchHostingAreas = async () => {
-    try {
-      // If user is a host and has hosting areas, use them directly
-      if (user?.userType === 'Host' && user?.hostingAreas && user.hostingAreas.length > 0) {
-        console.log('DEBUG Posts: Using hosting areas from user data');
-        
-        // Filter out empty hosting areas and flatten to area strings
-        const validAreas = user.hostingAreas
-          .filter(area => area.state && area.state.trim() !== '' && area.cities && area.cities.length > 0)
-          .flatMap(area => area.cities.map(city => `${city}, ${area.state}`));
-        
-        console.log('DEBUG Posts: Valid hosting areas:', validAreas);
-        setHostingAreas(validAreas);
-      } else {
-        console.log('DEBUG Posts: No hosting areas available');
-        setHostingAreas([]);
-      }
-    } catch (error) {
-      console.error('Error processing hosting areas:', error);
-      setHostingAreas([]);
-    }
-  };
-
   const filterPosts = () => {
-    if (selectedAreas.length === 0) {
+    if (selectedLocations.length === 0) {
       setFilteredPosts(posts);
     } else {
       const filtered = posts.filter(post => 
-        selectedAreas.some(area => 
-          post.location?.toLowerCase().includes(area.toLowerCase())
+        selectedLocations.some(location => 
+          post.location?.toLowerCase().includes(location.toLowerCase())
         )
       );
       setFilteredPosts(filtered);
     }
   };
 
-  const toggleArea = (area) => {
-    setSelectedAreas(prev => 
-      prev.includes(area)
-        ? prev.filter(a => a !== area)
-        : [...prev, area]
+  const toggleState = (state) => {
+    setExpandedStates(prev => ({
+      ...prev,
+      [state]: !prev[state]
+    }));
+  };
+
+  const toggleLocation = (location) => {
+    setSelectedLocations(prev => 
+      prev.includes(location)
+        ? prev.filter(loc => loc !== location)
+        : [...prev, location]
     );
   };
 
   const clearFilters = () => {
-    setSelectedAreas([]);
+    setSelectedLocations([]);
   };
 
   const facilityIcons = {
@@ -253,7 +294,7 @@ const Posts = () => {
           setShowFilters(!showFilters);
         }}
       >
-        <span>Filter by Hosting Areas {selectedAreas.length > 0 && `(${selectedAreas.length})`}</span>
+        <span>Filter by Location {selectedLocations.length > 0 && `(${selectedLocations.length})`}</span>
         {showFilters ? <Minus size={16} /> : <Plus size={16} />}
       </button>
 
@@ -266,7 +307,7 @@ const Posts = () => {
           <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: isDesktop ? 'default' : 'pointer', width: '100%' }} onClick={() => !isDesktop && setShowMobileFilters(!showMobileFilters)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Filter size={20} style={{ color: 'var(--primary)' }} />
-              Filter by Hosting Areas
+              {user?.userType === 'Host' ? 'Filter by Hosting Areas' : 'Filter by Location'}
             </div>
             {!isDesktop && (
               <span style={{ color: 'var(--primary)', fontSize: '1.2rem' }}>
@@ -275,9 +316,9 @@ const Posts = () => {
             )}
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {selectedAreas.length > 0 && (
+            {selectedLocations.length > 0 && (
               <button onClick={clearFilters} className="clear-filters-btn">
-                Clear ({selectedAreas.length})
+                Clear ({selectedLocations.length})
               </button>
             )}
           </div>
@@ -285,22 +326,68 @@ const Posts = () => {
         
         {(isDesktop || showMobileFilters) && (
         <div className="location-filters">
-          {hostingAreas.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {hostingAreas.map(area => (
-                <button
-                  key={area}
-                  className={`city-btn ${selectedAreas.includes(area) ? 'selected' : ''}`}
-                  onClick={() => toggleArea(area)}
-                >
-                  {area}
-                </button>
-              ))}
-            </div>
+          {user?.userType === 'Host' ? (
+            Object.keys(hostingAreasByState).length > 0 ? (
+              Object.entries(hostingAreasByState).map(([state, cities]) => (
+                <div key={state} className="state-group">
+                  <button 
+                    className="state-toggle"
+                    onClick={() => toggleState(state)}
+                  >
+                    <span>{state}</span>
+                    <span className="expand-icon" style={{ color: 'var(--primary)', background: 'none', border: 'none', borderRadius: '0', fontSize: '1.2rem' }}>
+                      {expandedStates[state] ? '-' : '+'}
+                    </span>
+                  </button>
+                  
+                  {expandedStates[state] && (
+                    <div className="cities-list">
+                      {cities.map(city => (
+                        <button
+                          key={city}
+                          className={`city-btn ${selectedLocations.includes(city) ? 'selected' : ''}`}
+                          onClick={() => toggleLocation(city)}
+                        >
+                          {city}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div style={{ padding: '1rem', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>
+                No hosting areas configured
+              </div>
+            )
           ) : (
-            <div style={{ padding: '1rem', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>
-              {user?.userType === 'Host' ? 'No hosting areas configured' : 'Hosting areas not available'}
+          Object.entries(locationData).map(([state, cities]) => (
+            <div key={state} className="state-group">
+              <button 
+                className="state-toggle"
+                onClick={() => toggleState(state)}
+              >
+                <span>{state}</span>
+                <span className="expand-icon" style={{ color: 'var(--primary)', background: 'none', border: 'none', borderRadius: '0', fontSize: '1.2rem' }}>
+                  {expandedStates[state] ? '-' : '+'}
+                </span>
+              </button>
+              
+              {expandedStates[state] && (
+                <div className="cities-list">
+                  {cities.map(city => (
+                    <button
+                      key={city}
+                      className={`city-btn ${selectedLocations.includes(city) ? 'selected' : ''}`}
+                      onClick={() => toggleLocation(city)}
+                    >
+                      {city}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
+          ))
           )}
         </div>
         )}
@@ -309,28 +396,47 @@ const Posts = () => {
       {/* Main Content */}
       <div className="browse-main">
     <div className="container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ flex: '1 1 auto', minWidth: '200px' }}>
           <h1 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>
-            {user?.userType === 'Host' ? 'Guest Posts' : 'My Posts & Requests'}
+            {showMyPosts ? 'My Posts' : (user?.userType === 'Host' ? 'Guest Posts' : 'All Posts')}
           </h1>
           <p style={{ margin: 0, color: 'var(--text-light)' }}>
-            {user?.userType === 'Host' 
-              ? `Browse accommodation requests from guests (${filteredPosts.length} found)` 
-              : 'Create and manage your accommodation requests'
+            {showMyPosts 
+              ? `Manage your ${user?.userType === 'Host' ? 'host' : 'guest'} posts (${filteredPosts.length} found)`
+              : (user?.userType === 'Host' 
+                ? `Browse accommodation requests from guests (${filteredPosts.length} found)` 
+                : `Browse all accommodation posts (${filteredPosts.length} found)`)
             }
+            {' • '}
+            <a 
+              href="#" 
+              onClick={(e) => { e.preventDefault(); setShowHowItWorks(true); }}
+              style={{ color: 'var(--primary)', textDecoration: 'underline', cursor: 'pointer' }}
+            >
+              How it works?
+            </a>
           </p>
         </div>
-        {user?.userType === 'Guest' && (
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <button 
-            onClick={() => setShowCreateModal(true)}
-            className="btn btn-primary"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+            onClick={() => setShowMyPosts(!showMyPosts)}
+            className={showMyPosts ? 'btn btn-outline' : 'btn btn-secondary'}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}
           >
-            <Plus size={20} />
-            Create Post
+            {showMyPosts ? 'All Posts' : 'My Posts'}
           </button>
-        )}
+          {showMyPosts && (
+            <button 
+              onClick={() => setShowCreateModal(true)}
+              className="btn btn-primary"
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}
+            >
+              <Plus size={20} />
+              Create Post
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="posts-grid" style={{ display: 'grid', gap: '1.5rem' }}>
@@ -341,9 +447,12 @@ const Posts = () => {
           </div>
         ) : filteredPosts.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📝</div>
-            <p>No posts found{selectedAreas.length > 0 ? ' for selected hosting areas' : ''}.</p>
-            {selectedAreas.length > 0 && (
+            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📍</div>
+            <p>{selectedLocations.length > 0 
+              ? 'No posts found for selected locations. Try selecting different locations or clear filters.' 
+              : 'No posts available at the moment. Check back later for new postings.'}
+            </p>
+            {selectedLocations.length > 0 && (
               <button onClick={clearFilters} className="btn btn-outline">
                 Clear filters
               </button>
@@ -371,7 +480,7 @@ const Posts = () => {
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {user && user.userType === 'Guest' && (
+                {user && (user.userType === 'Guest' || showMyPosts) && post.userId === user.userId && (
                   <div style={{ position: 'relative' }}>
                     <button
                       onClick={(e) => {
@@ -451,6 +560,9 @@ const Posts = () => {
               {post.content}
             </p>
 
+            <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b', margin: '0 0 0.5rem 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              {post.userType === 'Host' ? 'Available Locations' : 'Visiting Location'}
+            </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem', fontSize: '0.875rem', color: 'var(--text-light)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <MapPin size={16} />
@@ -475,15 +587,29 @@ const Posts = () => {
                 </>
               )}
               {post.userType === 'Host' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <Users size={16} />
-                  Up to {post.maxGuests} guest{post.maxGuests !== 1 ? 's' : ''}
-                </div>
+                <>
+                  {post.commenceDate && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <Calendar size={16} />
+                      Since {new Date(post.commenceDate).toLocaleDateString()}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <Users size={16} />
+                    Up to {post.maxGuests} guest{post.maxGuests !== 1 ? 's' : ''}
+                  </div>
+                  {post.pricePerNight > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      ₹{post.pricePerNight}/night
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
             {post.facilities && post.facilities.length > 0 && (
               <div style={{ marginBottom: '1rem' }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b', margin: '0 0 0.5rem 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Preferred Facilities</p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                   {post.facilities.map(facility => (
                     <span key={facility} style={{
@@ -505,7 +631,30 @@ const Posts = () => {
               </div>
             )}
 
-            {user?.userType === 'Host' && (
+            {post.amenities && post.amenities.length > 0 && (
+              <div style={{ marginBottom: '1rem' }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b', margin: '0 0 0.5rem 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Amenities & Services</p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  {post.amenities.map(amenity => (
+                    <span key={amenity} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      background: '#f1f5f9',
+                      color: 'var(--primary)',
+                      padding: '0.25rem 0.75rem',
+                      borderRadius: '1rem',
+                      fontSize: '0.75rem',
+                      fontWeight: '500'
+                    }}>
+                      {amenity}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {user?.userType === 'Host' && post.userId !== user.userId && (
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
                 <button 
                   onClick={(e) => {
@@ -537,6 +686,39 @@ const Posts = () => {
                 </button>
               </div>
             )}
+
+            {user && post.userId !== user.userId && (
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('Opening chat with:', { id: post.userId, name: post.userName });
+                    setActiveChat(null);
+                    setTimeout(() => {
+                      setActiveChat({ 
+                        id: post.userId, 
+                        name: post.userName,
+                        imageUrl: null
+                      });
+                    }, 50);
+                  }}
+                  className="btn btn-primary" 
+                  style={{ 
+                    flex: 1, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    gap: '0.5rem',
+                    padding: '0.75rem 1rem',
+                    fontSize: '0.9rem',
+                    fontWeight: '600'
+                  }}
+                >
+                  <MessageCircle size={16} />
+                  {post.userType === 'Host' ? 'Contact Host' : 'Contact Guest'}
+                </button>
+              </div>
+            )}
           </div>
           ))
         )}
@@ -545,10 +727,18 @@ const Posts = () => {
     </div>
 
       {showCreateModal && (
-        <CreatePostModal 
-          onClose={() => setShowCreateModal(false)}
-          onSubmit={handleCreatePost}
-        />
+        user?.userType === 'Host' ? (
+          <CreateHostPostModal 
+            onClose={() => setShowCreateModal(false)}
+            onSubmit={handleCreatePost}
+            user={user}
+          />
+        ) : (
+          <CreatePostModal 
+            onClose={() => setShowCreateModal(false)}
+            onSubmit={handleCreatePost}
+          />
+        )
       )}
 
       {showEditModal && editingPost && (
@@ -629,6 +819,406 @@ const Posts = () => {
           />
         </div>
       )}
+
+      {showHowItWorks && (
+        <div className="modal-overlay" onClick={() => setShowHowItWorks(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h3>How It Works</h3>
+              <button onClick={() => setShowHowItWorks(false)} className="modal-close">×</button>
+            </div>
+            <div className="modal-body">
+              {user?.userType === 'Host' ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                    <div style={{ fontSize: '2rem', flexShrink: 0 }}>1️⃣</div>
+                    <div>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Browse Guest Requests</h4>
+                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>View accommodation requests from guests looking for places to stay in your hosting areas.</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                    <div style={{ fontSize: '2rem', flexShrink: 0 }}>2️⃣</div>
+                    <div>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Filter by Location</h4>
+                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>Use the location filter to find guests visiting your area.</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                    <div style={{ fontSize: '2rem', flexShrink: 0 }}>3️⃣</div>
+                    <div>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Contact Guests</h4>
+                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>Click "Contact Guest" to start a conversation and offer your hosting services. Use the built-in chat to discuss details, availability, and arrangements.</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                    <div style={{ fontSize: '2rem', flexShrink: 0 }}>4️⃣</div>
+                    <div>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Create Your Post</h4>
+                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>Switch to "My Posts" to create your own hosting post showcasing your services and amenities.</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                    <div style={{ fontSize: '2rem', flexShrink: 0 }}>1️⃣</div>
+                    <div>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Browse All Posts</h4>
+                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>View accommodation posts from both guests and hosts.</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                    <div style={{ fontSize: '2rem', flexShrink: 0 }}>2️⃣</div>
+                    <div>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Filter by Location</h4>
+                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>Use the location filter to find posts in your desired destination.</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                    <div style={{ fontSize: '2rem', flexShrink: 0 }}>3️⃣</div>
+                    <div>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Create Your Post</h4>
+                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>Click "My Posts" then "Create Post" to share your accommodation needs with hosts.</p>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                    <div style={{ fontSize: '2rem', flexShrink: 0 }}>4️⃣</div>
+                    <div>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Manage Your Posts</h4>
+                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>Edit or delete your posts anytime from the "My Posts" section.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const CreateHostPostModal = ({ onClose, onSubmit, user, initialData = null, isEditing = false }) => {
+  const [formData, setFormData] = useState({
+    title: initialData?.title || '',
+    commenceDate: initialData?.commenceDate || '',
+    maxGuests: initialData?.maxGuests || 2,
+    pricePerNight: initialData?.pricePerNight || 0,
+    amenities: initialData?.amenities || [],
+    content: initialData?.content || ''
+  });
+  const [validationErrors, setValidationErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const hostingAreas = user?.hostingAreas || [];
+  const hostingAreasText = hostingAreas
+    .filter(area => area.state && area.cities && area.cities.length > 0)
+    .map(area => `${area.cities.join(', ')} (${area.state})`)
+    .join(' | ');
+
+  const availableAmenities = [
+    { name: 'WiFi', icon: '📶' },
+    { name: 'Parking', icon: '🚗' },
+    { name: 'Meals', icon: '🍽️' },
+    { name: 'AC', icon: '❄️' },
+    { name: 'Kitchen', icon: '👨🍳' },
+    { name: 'Laundry', icon: '👕' },
+    { name: 'TV', icon: '📺' },
+    { name: 'Hot Water', icon: '🚿' }
+  ];
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+    
+    const errors = {};
+    
+    if (!formData.title.trim()) {
+      errors.title = 'Title is required';
+    } else if (formData.title.trim().length < 10) {
+      errors.title = 'Title must be at least 10 characters long';
+    }
+    
+    if (!formData.commenceDate) {
+      errors.commenceDate = 'Commence date is required';
+    }
+    
+    if (!formData.maxGuests || formData.maxGuests < 1 || formData.maxGuests > 20) {
+      errors.maxGuests = 'Max guests must be between 1 and 20';
+    }
+    
+    if (formData.pricePerNight < 0) {
+      errors.pricePerNight = 'Price cannot be negative';
+    }
+    
+    if (formData.content && formData.content.trim().length > 0 && formData.content.trim().length < 20) {
+      errors.content = 'Additional details should be at least 20 characters long';
+    }
+    
+    setValidationErrors(errors);
+    
+    if (Object.keys(errors).length > 0) {
+      return;
+    }
+    
+    try {
+      setIsSubmitting(true);
+      const postData = { 
+        ...formData,
+        location: hostingAreasText,
+        maxGuests: parseInt(formData.maxGuests),
+        pricePerNight: parseFloat(formData.pricePerNight),
+        content: formData.content.trim(),
+        commenceDate: new Date(formData.commenceDate + 'T00:00:00.000Z').toISOString()
+      };
+      
+      await onSubmit(postData);
+    } catch (error) {
+      console.error('Error submitting post:', error);
+      alert(error.response?.data?.message || error.message || 'Failed to save post. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const toggleAmenity = (amenity) => {
+    setFormData(prev => ({
+      ...prev,
+      amenities: prev.amenities.includes(amenity)
+        ? prev.amenities.filter(a => a !== amenity)
+        : [...prev.amenities, amenity]
+    }));
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="create-post-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header-modern">
+          <div className="modal-title-section">
+            <div className="modal-icon">🏠</div>
+            <div>
+              <h2>{isEditing ? 'Edit Host Post' : 'Create Host Post'}</h2>
+              <p>Share your hosting services with guests</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="modal-close-modern">×</button>
+        </div>
+        
+        <div className="modal-body-modern">
+          <form onSubmit={handleSubmit} className="modern-form">
+            <div className="form-group-modern">
+              <label className="modern-label">
+                <span className="label-text">Service Title</span>
+                <span className="required-star">*</span>
+              </label>
+              <input
+                type="text"
+                className="modern-input"
+                value={formData.title}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, title: e.target.value }));
+                  setValidationErrors(prev => ({ ...prev, title: false }));
+                }}
+                placeholder="e.g., Comfortable stay with traditional hospitality"
+                required
+                style={{
+                  borderColor: validationErrors.title ? '#dc2626' : 'var(--border)'
+                }}
+              />
+              {validationErrors.title && (
+                <div style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                  {validationErrors.title}
+                </div>
+              )}
+            </div>
+
+            <div className="form-group-modern">
+              <label className="modern-label">
+                <span className="label-text">Commence Date</span>
+                <span className="required-star">*</span>
+              </label>
+              <input
+                type="date"
+                className="modern-input"
+                value={formData.commenceDate}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, commenceDate: e.target.value }));
+                  setValidationErrors(prev => ({ ...prev, commenceDate: false }));
+                }}
+                style={{
+                  borderColor: validationErrors.commenceDate ? '#dc2626' : 'var(--border)'
+                }}
+                required
+              />
+              {validationErrors.commenceDate && (
+                <div style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                  {validationErrors.commenceDate}
+                </div>
+              )}
+            </div>
+
+            <div className="form-group-modern">
+              <label className="modern-label">
+                <span className="label-text">Hosting Areas</span>
+              </label>
+              <div style={{
+                padding: '1rem',
+                background: '#f0fdf4',
+                border: '1px solid #86efac',
+                borderRadius: '0.5rem',
+                color: '#166534',
+                fontSize: '0.9rem'
+              }}>
+                {hostingAreasText || 'No hosting areas configured in profile'}
+              </div>
+              <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.5rem 0 0 0' }}>
+                Update hosting areas in your profile settings
+              </p>
+            </div>
+
+            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div>
+                <label className="modern-label" style={{ marginBottom: '0.5rem', display: 'block' }}>
+                  <span className="label-text">Max Guests</span>
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <button 
+                    type="button" 
+                    onClick={() => setFormData(prev => ({ ...prev, maxGuests: Math.max(1, prev.maxGuests - 1) }))}
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      border: '1px solid var(--border)',
+                      borderRadius: '0.375rem',
+                      background: 'white',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    min="1"
+                    max="20"
+                    value={formData.maxGuests}
+                    onChange={(e) => setFormData(prev => ({ ...prev, maxGuests: parseInt(e.target.value) || 1 }))}
+                    style={{
+                      width: '60px',
+                      padding: '0.5rem',
+                      border: '1px solid var(--border)',
+                      borderRadius: '0.375rem',
+                      textAlign: 'center'
+                    }}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setFormData(prev => ({ ...prev, maxGuests: Math.min(20, prev.maxGuests + 1) }))}
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      border: '1px solid var(--border)',
+                      borderRadius: '0.375rem',
+                      background: 'white',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="modern-label" style={{ marginBottom: '0.5rem', display: 'block' }}>
+                  <span className="label-text">Price/Night (₹)</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="100"
+                  value={formData.pricePerNight}
+                  onChange={(e) => setFormData(prev => ({ ...prev, pricePerNight: parseFloat(e.target.value) || 0 }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    border: '1px solid var(--border)',
+                    borderRadius: '0.375rem'
+                  }}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            <div className="form-group-modern">
+              <label className="modern-label">
+                <span className="label-text">Amenities & Services</span>
+              </label>
+              <div className="facilities-compact">
+                {availableAmenities.map(amenity => (
+                  <button
+                    key={amenity.name}
+                    type="button"
+                    onClick={() => toggleAmenity(amenity.name)}
+                    className={`facility-btn-compact ${formData.amenities.includes(amenity.name) ? 'selected' : ''}`}
+                  >
+                    <span className="facility-icon-small">{amenity.icon}</span>
+                    <span>{amenity.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="form-group-modern">
+              <label className="modern-label">
+                <span className="label-text">Additional Details</span>
+              </label>
+              <textarea
+                className="modern-textarea"
+                value={formData.content}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, content: e.target.value }));
+                  setValidationErrors(prev => ({ ...prev, content: false }));
+                }}
+                placeholder="Describe your hosting services, house rules, nearby attractions, and any other important information for guests..."
+                rows={4}
+                style={{
+                  borderColor: validationErrors.content ? '#dc2626' : 'var(--border)'
+                }}
+              />
+              {validationErrors.content && (
+                <div style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                  {validationErrors.content}
+                </div>
+              )}
+            </div>
+
+            <div className="form-actions">
+              <button type="button" onClick={onClose} className="btn-secondary-modern" disabled={isSubmitting}>
+                Cancel
+              </button>
+              <button type="submit" className="btn-primary-modern" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <span>Saving...</span>
+                    <span className="btn-icon">⏳</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{isEditing ? 'Update Post' : 'Create Post'}</span>
+                    <span className="btn-icon">{isEditing ? '✏️' : '🚀'}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   );
 };
@@ -674,7 +1264,9 @@ const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = fa
     { name: 'Meals', icon: '🍽️' },
     { name: 'AC', icon: '❄️' },
     { name: 'Kitchen', icon: '👨🍳' },
-    { name: 'Laundry', icon: '👕' }
+    { name: 'Laundry', icon: '👕' },
+    { name: 'TV', icon: '📺' },
+    { name: 'Hot Water', icon: '🚿' }
   ];
 
   const handleSubmit = async (e) => {

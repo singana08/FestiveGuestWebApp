@@ -13,8 +13,9 @@ const HostDashboard = ({ user }) => {
   const [selectedLocations, setSelectedLocations] = useState([]);
   const [filteredGuests, setFilteredGuests] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
-  const [showFilters, setShowFilters] = useState(true);
-  const [showMobileFilters, setShowMobileFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
   const [locationData, setLocationData] = useState({});
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [selectedGuestId, setSelectedGuestId] = useState(null);
@@ -32,6 +33,19 @@ const HostDashboard = ({ user }) => {
       setLoading(false);
     }
   }, [user.status]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const desktop = window.innerWidth > 768;
+      setIsDesktop(desktop);
+      if (desktop) {
+        setShowMobileFilters(true);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const fetchLocations = async () => {
     try {
@@ -243,23 +257,27 @@ const HostDashboard = ({ user }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="filter-header">
-          <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', width: '100%' }} onClick={() => setShowMobileFilters(!showMobileFilters)}>
+          <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: isDesktop ? 'default' : 'pointer', width: '100%' }} onClick={() => !isDesktop && setShowMobileFilters(!showMobileFilters)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Filter size={20} style={{ color: 'var(--primary)' }} />
               Filter by Location
             </div>
-            <span style={{ color: 'var(--primary)', fontSize: '1.2rem' }}>
-              {showMobileFilters ? '−' : '+'}
-            </span>
+            {!isDesktop && (
+              <span style={{ color: 'var(--primary)', fontSize: '1.2rem' }}>
+                {showMobileFilters ? '−' : '+'}
+              </span>
+            )}
           </h3>
-          {selectedLocations.length > 0 && (
-            <button onClick={clearFilters} className="clear-filters-btn">
-              Clear ({selectedLocations.length})
-            </button>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {selectedLocations.length > 0 && (
+              <button onClick={clearFilters} className="clear-filters-btn">
+                Clear ({selectedLocations.length})
+              </button>
+            )}
+          </div>
         </div>
         
-        {showMobileFilters && (
+        {(isDesktop || showMobileFilters) && (
         <div className="location-filters">
           {Object.entries(locationData).map(([state, cities]) => (
             <div key={state} className="state-group">

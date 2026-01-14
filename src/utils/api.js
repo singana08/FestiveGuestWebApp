@@ -2,20 +2,13 @@ import axios from 'axios';
 
 // Determine base URL based on environment
 const getBaseURL = () => {
-  // Temporarily force production API for testing
-  return 'https://festive-guest-api.azurewebsites.net/api';
-  
-  // Original logic:
-  // if (process.env.NODE_ENV === 'development') {
-  //   return 'http://localhost:7219/api';
-  // }
-  // return 'https://festive-guest-api.azurewebsites.net/api';
+  return 'https://festiveguestfunctionapp.azurewebsites.net/api';
 };
 
 // Create axios instance with security defaults
 const api = axios.create({
   baseURL: getBaseURL(),
-  timeout: 10000 // 10 second timeout
+  timeout: 60000 // 60 second timeout
 });
 
 // Add request interceptor for debugging

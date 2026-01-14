@@ -12,6 +12,11 @@ class PostsService {
     return response.data;
   }
 
+  async getMyGuestPosts() {
+    const response = await api.get('guestposts/my-posts');
+    return response.data;
+  }
+
   async deleteGuestPost(postId) {
     const response = await api.delete(`guestposts/${postId}`);
     return response.data;
@@ -30,6 +35,11 @@ class PostsService {
 
   async getHostPosts() {
     const response = await api.get('hostposts');
+    return response.data;
+  }
+
+  async getMyHostPosts() {
+    const response = await api.get('hostposts/my-posts');
     return response.data;
   }
 

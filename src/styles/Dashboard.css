@@ -181,19 +181,26 @@
   gap: 0.5rem;
   padding: 0.5rem;
   margin-top: 0.25rem;
+  font-size: 0.7rem;
+}
+
+.cities-list .city-btn {
+  font-size: 0.7rem;
+  font-weight: 400;
+  padding: 0.35rem 0.75rem;
 }
 
 .city-btn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  padding: 0.35rem 0.75rem;
   border: 2px solid #e5e7eb;
   border-radius: 8px;
   background: white;
   color: #6b7280;
-  font-size: 0.875rem;
-  font-weight: 500;
+  font-size: 0.7rem;
+  font-weight: 400;
   cursor: pointer;
   transition: all 0.3s ease;
 }
