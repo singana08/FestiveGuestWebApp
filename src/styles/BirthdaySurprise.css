@@ -1,0 +1,381 @@
+/* Birthday Surprise Page Styles */
+.birthday-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+/* Animated Background */
+.birthday-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 1;
+}
+
+/* Confetti Animation */
+.confetti {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #ffd700;
+  top: -10%;
+  animation: confetti-fall 3s linear infinite;
+}
+
+.confetti:nth-child(1) { left: 10%; animation-delay: 0s; background: #ff6b9d; }
+.confetti:nth-child(2) { left: 20%; animation-delay: 0.5s; background: #ffd700; }
+.confetti:nth-child(3) { left: 30%; animation-delay: 1s; background: #c084fc; }
+.confetti:nth-child(4) { left: 40%; animation-delay: 1.5s; background: #60a5fa; }
+.confetti:nth-child(5) { left: 50%; animation-delay: 2s; background: #34d399; }
+.confetti:nth-child(6) { left: 60%; animation-delay: 0.3s; background: #fbbf24; }
+.confetti:nth-child(7) { left: 70%; animation-delay: 0.8s; background: #f87171; }
+.confetti:nth-child(8) { left: 80%; animation-delay: 1.3s; background: #a78bfa; }
+.confetti:nth-child(9) { left: 90%; animation-delay: 1.8s; background: #fb923c; }
+.confetti:nth-child(10) { left: 95%; animation-delay: 2.3s; background: #ec4899; }
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(110vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Main Content */
+.birthday-content {
+  position: relative;
+  z-index: 2;
+  max-width: 800px;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 30px;
+  padding: 3rem 2rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  opacity: 0;
+  transform: scale(0.9);
+  transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.birthday-content.show {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Birthday Image */
+.birthday-image-container {
+  margin-bottom: 2rem;
+  animation: fadeInScale 1s ease-out;
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.birthday-image {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 5px solid #ffd700;
+  box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4);
+  animation: glow-border 2s ease-in-out infinite;
+}
+
+@keyframes glow-border {
+  0%, 100% {
+    box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4), 0 0 20px rgba(255, 215, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 10px 40px rgba(255, 215, 0, 0.6), 0 0 30px rgba(255, 215, 0, 0.5);
+  }
+}
+
+/* Cake Animation */
+.cake-container {
+  margin-bottom: 2rem;
+  animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+.cake {
+  width: 100px;
+  height: 80px;
+  background: linear-gradient(to bottom, #ff6b9d 0%, #ff8fab 100%);
+  border-radius: 10px;
+  margin: 0 auto;
+  position: relative;
+  box-shadow: 0 5px 20px rgba(255, 107, 157, 0.4);
+}
+
+.cake::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 10%;
+  width: 80%;
+  height: 15px;
+  background: #ffd700;
+  border-radius: 10px;
+}
+
+.candle {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 30px;
+  background: #fff;
+  border-radius: 4px;
+}
+
+.flame {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 15px;
+  height: 20px;
+  background: #ffd700;
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  animation: flicker 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes flicker {
+  0% { transform: translateX(-50%) scale(1); }
+  100% { transform: translateX(-50%) scale(1.1); }
+}
+
+/* Birthday Message */
+.birthday-title {
+  font-size: 3rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 1rem 0;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.birthday-name {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #764ba2;
+  margin: 0 0 2rem 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.birthday-quote {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-radius: 15px;
+  border-left: 5px solid #fbbf24;
+}
+
+.birthday-quote p {
+  font-size: 1.2rem;
+  font-style: italic;
+  color: #92400e;
+  margin: 0;
+}
+
+.birthday-dedication {
+  margin: 2rem 0;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+  border-radius: 15px;
+  border: 2px solid #60a5fa;
+}
+
+.dedication-text {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #1e40af;
+  margin: 0 0 1rem 0;
+}
+
+.dedication-highlight {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #7c3aed;
+  margin: 1.5rem 0 0 0;
+  animation: glow 2s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%, 100% { text-shadow: 0 0 10px rgba(124, 58, 237, 0.5); }
+  50% { text-shadow: 0 0 20px rgba(124, 58, 237, 0.8); }
+}
+
+/* Action Buttons */
+.birthday-actions {
+  margin: 3rem 0 2rem 0;
+}
+
+.btn-enter-app {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  padding: 1.2rem 3rem;
+  font-size: 1.3rem;
+  font-weight: 700;
+  border-radius: 50px;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-enter-app::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s;
+}
+
+.btn-enter-app:hover::before {
+  left: 100%;
+}
+
+.btn-enter-app:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 40px rgba(102, 126, 234, 0.6);
+}
+
+.btn-enter-app:active {
+  transform: translateY(-2px);
+}
+
+/* Launch Badge */
+.launch-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+  margin-top: 2rem;
+}
+
+.badge-icon {
+  font-size: 1.2rem;
+  animation: rocket 1s ease-in-out infinite;
+}
+
+@keyframes rocket {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* Floating Hearts */
+.hearts {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.heart {
+  position: absolute;
+  font-size: 2rem;
+  opacity: 0;
+  animation: float-heart 4s ease-in infinite;
+}
+
+.heart:nth-child(1) { left: 10%; animation-delay: 0s; }
+.heart:nth-child(2) { left: 30%; animation-delay: 1s; }
+.heart:nth-child(3) { left: 50%; animation-delay: 2s; }
+.heart:nth-child(4) { left: 70%; animation-delay: 3s; }
+.heart:nth-child(5) { left: 90%; animation-delay: 4s; }
+
+@keyframes float-heart {
+  0% {
+    bottom: -10%;
+    opacity: 0;
+    transform: translateX(0) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    bottom: 110%;
+    opacity: 0;
+    transform: translateX(100px) rotate(360deg);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .birthday-content {
+    padding: 2rem 1.5rem;
+  }
+
+  .birthday-title {
+    font-size: 2rem;
+  }
+
+  .birthday-name {
+    font-size: 1.8rem;
+  }
+
+  .birthday-quote p {
+    font-size: 1rem;
+  }
+
+  .dedication-text {
+    font-size: 1rem;
+  }
+
+  .dedication-highlight {
+    font-size: 1.1rem;
+  }
+
+  .btn-enter-app {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+  }
+}

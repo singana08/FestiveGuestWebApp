@@ -6,6 +6,7 @@ import Logo from './components/Logo';
 import Loader from './components/Loader';
 import ApiTest from './components/ApiTest';
 import ChatDebug from './components/ChatDebug';
+import BirthdaySurprise from './pages/BirthdaySurprise';
 import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Registration from './pages/Registration';
@@ -121,7 +122,7 @@ const AppContent = () => {
   return (
     <div className="app-container" style={{ animation: 'fadeIn 0.8s ease-out' }}>
       <nav className="navbar">
-        <Link to="/" className="nav-logo" onClick={() => setMenuOpen(false)}>
+        <Link to="/home" className="nav-logo" onClick={() => setMenuOpen(false)}>
           <Logo className="nav-logo-img" style={{ height: '50px' }} />
         </Link>
         
@@ -170,9 +171,10 @@ const AppContent = () => {
 
       <main className="content full-width">
         <Routes>
-          <Route path="/" element={<LandingPage user={user} />} />
-          <Route path="/login" element={!user ? <Login setUser={setUser} /> : <Navigate to="/" />} />
-          <Route path="/register" element={!user ? <Registration setUser={setUser} /> : <Navigate to="/" />} />
+          <Route path="/" element={<BirthdaySurprise />} />
+          <Route path="/home" element={<LandingPage user={user} />} />
+          <Route path="/login" element={!user ? <Login setUser={setUser} /> : <Navigate to="/home" />} />
+          <Route path="/register" element={!user ? <Registration setUser={setUser} /> : <Navigate to="/home" />} />
           <Route path="/browse" element={(user?.role === 'Guest' || user?.userType === 'Guest') ? <GuestDashboard user={user} /> : <Navigate to="/login" />} />
           
           <Route path="/guest-dashboard" element={(user?.role === 'Guest' || user?.userType === 'Guest') ? <GuestDashboard user={user} /> : <Navigate to="/login" />} />
