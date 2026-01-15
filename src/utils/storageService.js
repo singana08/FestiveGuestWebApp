@@ -27,9 +27,9 @@ const storageService = {
       
       return sasUrl;
     } catch (error) {
-      console.error('Error fetching SAS URL:', error);
-      // Return null to let the component handle fallback
-      return null;
+      console.warn('SAS URL fetch failed, using direct blob URL:', error.message);
+      // Return direct blob URL as fallback (public access)
+      return `https://festivegueststorage.blob.core.windows.net/${container}/${fileName}`;
     }
   },
 
