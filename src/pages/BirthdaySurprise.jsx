@@ -80,7 +80,7 @@ const BirthdaySurprise = () => {
           {/* Date Badge */}
           <div className="launch-badge">
             <span className="badge-icon">🚀</span>
-            <span className="badge-text">Launched: {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+            <span className="badge-text">Launched: January 15, 2025</span>
           </div>
         </div>
       </div>
