@@ -98,7 +98,7 @@ const Help = () => {
               Email Support
             </h3>
             <p>Send us an email and we'll get back to you as soon as possible.</p>
-            <a href="mailto:support@localhostconnect.com" className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <a href="mailto:customer-support@festiveguest.com" className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Mail size={16} />
               Customer Support
             </a>
@@ -119,43 +119,6 @@ const Help = () => {
               <MessageCircle size={16} />
               Chat on WhatsApp
             </button>
-          </div>
-        </div>
-
-        {/* Trust & Security Section */}
-        <div style={{ marginTop: '3rem', background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', padding: '2rem', borderRadius: 'var(--radius)', border: '2px solid #3b82f6' }}>
-          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-            <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0', color: '#1e40af' }}>
-              <Shield size={28} style={{ color: '#3b82f6' }} />
-              Trust & Security
-            </h2>
-            <p style={{ color: '#475569', margin: '0' }}>Your safety and privacy are our top priorities</p>
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', maxWidth: '900px', margin: '0 auto' }}>
-            <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <Lock size={20} style={{ color: '#16a34a' }} />
-                <h4 style={{ margin: 0, color: '#1e293b' }}>SSL Encryption</h4>
-              </div>
-              <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>All data transmitted is encrypted with 256-bit SSL/TLS security</p>
-            </div>
-            
-            <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <Shield size={20} style={{ color: '#3b82f6' }} />
-                <h4 style={{ margin: 0, color: '#1e293b' }}>Azure Hosting</h4>
-              </div>
-              <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>Hosted on Microsoft Azure with enterprise-grade security</p>
-            </div>
-            
-            <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                <CheckCircle size={20} style={{ color: '#16a34a' }} />
-                <h4 style={{ margin: 0, color: '#1e293b' }}>Secure Payments</h4>
-              </div>
-              <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>PCI-compliant payment processing through trusted providers</p>
-            </div>
           </div>
         </div>
 
@@ -260,7 +223,7 @@ const Help = () => {
               <p style={{ margin: '0 0 0.5rem 0', color: '#475569', lineHeight: '1.6' }}>Check these:</p>
               <ol style={{ margin: '0', paddingLeft: '1.5rem', color: '#475569', lineHeight: '1.8' }}>
                 <li>Check your spam/junk folder</li>
-                <li>Add support@localhostconnect.com to contacts</li>
+                <li>Add customer-support@festiveguest.com to contacts</li>
                 <li>Verify email address in your profile settings</li>
                 <li>Check notification settings in your account</li>
                 <li>Wait up to 10 minutes for email delivery</li>
@@ -299,7 +262,7 @@ const Help = () => {
               <h3 style={{ margin: '0 0 0.5rem 0', color: '#991b1b' }}>⚠️ Beware of Impersonators</h3>
               <p style={{ margin: '0', color: '#7f1d1d', lineHeight: '1.6' }}>
                 <strong>Official Contact Only:</strong> We will NEVER ask for your password, OTP, or banking details via email, WhatsApp, or phone. 
-                Our only official support channels are <strong>support@localhostconnect.com</strong> and the WhatsApp number listed above. 
+                Our only official support channels are <strong>customer-support@festiveguest.com</strong> and the WhatsApp number listed above. 
                 Report any suspicious contact claiming to be FestiveGuest support immediately.
               </p>
             </div>
@@ -498,6 +461,38 @@ const Help = () => {
               </h4>
               <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Yes, we take privacy seriously. Your personal information is protected and only shared with users you choose to connect with. We strongly recommend meeting in public places first, sharing your plans with trusted contacts, and taking all necessary safety precautions.</p>
             </div>
+          </div>
+        </div>
+
+        {/* Social Media Section */}
+        <div style={{ marginTop: '3rem', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '2rem', borderRadius: 'var(--radius)', textAlign: 'center' }}>
+          <h2 style={{ color: 'white', margin: '0 0 0.5rem 0' }}>Connect With Us</h2>
+          <p style={{ color: 'white', margin: '0 0 1.5rem 0', opacity: 0.9 }}>Follow us on social media for updates, tips, and community stories</p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', flexWrap: 'wrap' }}>
+            <a href="https://twitter.com/festiveguest" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', color: 'white', textDecoration: 'none', transition: 'transform 0.3s' }}>
+              <div style={{ background: 'white', borderRadius: '50%', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="#667eea"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+              </div>
+              <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>X (Twitter)</span>
+            </a>
+            <a href="https://instagram.com/festiveguest" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', color: 'white', textDecoration: 'none', transition: 'transform 0.3s' }}>
+              <div style={{ background: 'white', borderRadius: '50%', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="#667eea"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+              </div>
+              <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>Instagram</span>
+            </a>
+            <a href="https://youtube.com/@festiveguest" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', color: 'white', textDecoration: 'none', transition: 'transform 0.3s' }}>
+              <div style={{ background: 'white', borderRadius: '50%', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="#667eea"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+              </div>
+              <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>YouTube</span>
+            </a>
+            <a href="https://facebook.com/festiveguest" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', color: 'white', textDecoration: 'none', transition: 'transform 0.3s' }}>
+              <div style={{ background: 'white', borderRadius: '50%', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="#667eea"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+              </div>
+              <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>Facebook</span>
+            </a>
           </div>
         </div>
       </div>

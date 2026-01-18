@@ -1109,6 +1109,11 @@ body {
   to { transform: rotate(360deg); }
 }
 
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+}
+
 /* Utility Classes */
 .text-center { text-align: center; }
 .text-primary { color: var(--primary); }
@@ -4081,7 +4086,7 @@ body {
 
 .modal-body {
   padding: 2.5rem;
-  max-height: 55vh;
+  max-height: 45vh;
   overflow-y: auto;
   background: #fafbfc;
 }

@@ -11,6 +11,7 @@ const Registration = ({ setUser }) => {
   const navigate = useNavigate();
   const location = useLocation();
   
+  const [currentStep, setCurrentStep] = useState(1);
   const [locationData, setLocationData] = useState({});
 
   const [formData, setFormData] = useState({
@@ -504,16 +505,73 @@ const Registration = ({ setUser }) => {
         {/* Registration Form - Right Side */}
         <div className="registration-form-section">
           <div className="card" style={{ margin: '0', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}>
-            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
               <h3 style={{ color: '#1e293b', marginBottom: '0.5rem' }}>
                 Complete Your Registration
               </h3>
-              <p style={{ color: '#64748b' }}>
+              <p style={{ color: '#64748b', marginBottom: '1.5rem' }}>
                 Join our community of travelers and local hosts
               </p>
+              
+              {/* Step Indicator */}
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.75rem', marginBottom: '2rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    background: currentStep >= 1 ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#e2e8f0',
+                    color: currentStep >= 1 ? 'white' : '#64748b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: '600',
+                    fontSize: '1rem',
+                    flexShrink: 0
+                  }}>1</div>
+                  <span style={{ fontSize: '0.75rem', color: currentStep === 1 ? '#667eea' : '#64748b', fontWeight: currentStep === 1 ? '600' : '400', whiteSpace: 'nowrap' }}>Basic Info</span>
+                </div>
+                <div style={{ width: '40px', height: '2px', background: currentStep >= 2 ? '#667eea' : '#e2e8f0', marginBottom: '1rem' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    background: currentStep >= 2 ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#e2e8f0',
+                    color: currentStep >= 2 ? 'white' : '#64748b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: '600',
+                    fontSize: '1rem',
+                    flexShrink: 0
+                  }}>2</div>
+                  <span style={{ fontSize: '0.75rem', color: currentStep === 2 ? '#667eea' : '#64748b', fontWeight: currentStep === 2 ? '600' : '400', whiteSpace: 'nowrap' }}>Preferences</span>
+                </div>
+                <div style={{ width: '40px', height: '2px', background: currentStep >= 3 ? '#667eea' : '#e2e8f0', marginBottom: '1rem' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    background: currentStep >= 3 ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : '#e2e8f0',
+                    color: currentStep >= 3 ? 'white' : '#64748b',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: '600',
+                    fontSize: '1rem',
+                    flexShrink: 0
+                  }}>3</div>
+                  <span style={{ fontSize: '0.75rem', color: currentStep === 3 ? '#667eea' : '#64748b', fontWeight: currentStep === 3 ? '600' : '400', whiteSpace: 'nowrap' }}>Confirm</span>
+                </div>
+              </div>
             </div>
             
             <form onSubmit={handleSubmit}>
+          {/* Step 1: Role + Basic Info + Email Verification + Age */}
+          {currentStep === 1 && (
+          <>
           <div className="form-group">
             <label style={{ fontWeight: '600', color: '#374151' }}>Choose Your Role</label>
             <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
@@ -750,6 +808,75 @@ const Registration = ({ setUser }) => {
             )}
           </div>
 
+          {/* Age Confirmation */}
+          <div className="form-group">
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'flex-start', 
+              gap: '0.75rem',
+              padding: '1rem',
+              background: '#fef3c7',
+              border: '2px solid #f59e0b',
+              borderRadius: '0.75rem',
+              marginBottom: '1rem'
+            }}>
+              <input
+                type="checkbox"
+                id="ageConfirmation"
+                checked={ageConfirmed}
+                onChange={(e) => {
+                  setAgeConfirmed(e.target.checked);
+                  if (validationErrors.ageConfirmed) {
+                    setValidationErrors(prev => ({ ...prev, ageConfirmed: '' }));
+                  }
+                }}
+                style={{ 
+                  marginTop: '0.25rem',
+                  width: '18px',
+                  height: '18px',
+                  cursor: 'pointer'
+                }}
+              />
+              <label 
+                htmlFor="ageConfirmation" 
+                style={{ 
+                  fontWeight: '600', 
+                  color: '#92400e',
+                  cursor: 'pointer',
+                  lineHeight: '1.5',
+                  fontSize: '0.95rem'
+                }}
+              >
+                <strong>Age Verification Required:</strong> I confirm that I am at least 18 years of age and have the legal capacity to enter into binding agreements. Users under 18 are not permitted to use this platform.
+              </label>
+            </div>
+            {validationErrors.ageConfirmed && (
+              <p style={{ margin: '0.5rem 0 0 0', color: '#dc2626', fontSize: '0.875rem', fontWeight: '600' }}>⚠️ {validationErrors.ageConfirmed}</p>
+            )}
+          </div>
+          
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+            <button 
+              type="button"
+              onClick={() => {
+                if (!formData.name || !formData.email || !emailVerified || !formData.phone || !ageConfirmed) {
+                  showToast('Please complete all required fields in this step', 'error');
+                  return;
+                }
+                setCurrentStep(2);
+              }}
+              className="btn btn-primary"
+              style={{ padding: '0.875rem 2rem' }}
+            >
+              Next: Preferences →
+            </button>
+          </div>
+          </>
+          )}
+          
+          {/* Step 2: Location + Bio + Hosting Areas + Referral */}
+          {currentStep === 2 && (
+          <>
           <div className="form-group">
             <label style={{ fontWeight: '600', color: '#374151' }}>State</label>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
@@ -912,84 +1039,93 @@ const Registration = ({ setUser }) => {
               <p style={{ margin: '0.5rem 0 0 0', color: '#16a34a', fontSize: '0.875rem' }}>✓ Referral code applied</p>
             )}
           </div>
-
-
-
-          {/* Age Confirmation */}
-          <div className="form-group">
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'flex-start', 
-              gap: '0.75rem',
-              padding: '1rem',
-              background: '#fef3c7',
-              border: '2px solid #f59e0b',
-              borderRadius: '0.75rem',
-              marginBottom: '1rem'
-            }}>
-              <input
-                type="checkbox"
-                id="ageConfirmation"
-                checked={ageConfirmed}
-                onChange={(e) => {
-                  setAgeConfirmed(e.target.checked);
-                  if (validationErrors.ageConfirmed) {
-                    setValidationErrors(prev => ({ ...prev, ageConfirmed: '' }));
-                  }
-                }}
-                style={{ 
-                  marginTop: '0.25rem',
-                  width: '18px',
-                  height: '18px',
-                  cursor: 'pointer'
-                }}
-              />
-              <label 
-                htmlFor="ageConfirmation" 
-                style={{ 
-                  fontWeight: '600', 
-                  color: '#92400e',
-                  cursor: 'pointer',
-                  lineHeight: '1.5',
-                  fontSize: '0.95rem'
-                }}
-              >
-                <strong>Age Verification Required:</strong> I confirm that I am at least 18 years of age and have the legal capacity to enter into binding agreements. Users under 18 are not permitted to use this platform.
-              </label>
-            </div>
-            {validationErrors.ageConfirmed && (
-              <p style={{ margin: '0.5rem 0 0 0', color: '#dc2626', fontSize: '0.875rem', fontWeight: '600' }}>⚠️ {validationErrors.ageConfirmed}</p>
-            )}
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.5rem' }}>
+            <button 
+              type="button"
+              onClick={() => setCurrentStep(1)}
+              className="btn btn-outline"
+              style={{ padding: '0.875rem 2rem' }}
+            >
+              ← Back
+            </button>
+            <button 
+              type="button"
+              onClick={() => {
+                if (!formData.state || !formData.city || !formData.bio) {
+                  showToast('Please complete all required fields in this step', 'error');
+                  return;
+                }
+                if (formData.role === 'Host' && !formData.hostingAreas.some(area => area.cities && area.cities.length > 0)) {
+                  showToast('Hosts must select at least one hosting area', 'error');
+                  return;
+                }
+                setCurrentStep(3);
+              }}
+              className="btn btn-primary"
+              style={{ padding: '0.875rem 2rem' }}
+            >
+              Next: Confirm →
+            </button>
           </div>
-
-          {/* Agreement Checkbox - Removed since disclaimer was already accepted */}
+          </>
+          )}
+          
+          {/* Step 3: Final Confirmation */}
+          {currentStep === 3 && (
+          <>
           <div style={{ 
-            marginTop: '2rem',
-            padding: '1rem', 
+            padding: '1.5rem', 
             background: '#f0fdf4', 
             border: '2px solid #16a34a', 
             borderRadius: '0.75rem',
-            textAlign: 'center'
+            marginBottom: '1.5rem'
           }}>
-            <p style={{ margin: '0', color: '#15803d', fontWeight: '500', fontSize: '0.95rem' }}>
-              ✓ Disclaimer accepted. You may now complete your registration.
+            <p style={{ margin: '0 0 0.5rem 0', color: '#15803d', fontWeight: '600', fontSize: '1.1rem' }}>
+              ✓ Age Verification Confirmed
+            </p>
+            <p style={{ margin: '0', color: '#15803d', fontSize: '0.95rem' }}>
+              You have confirmed that you are at least 18 years of age.
             </p>
           </div>
 
-          <button 
-            type="submit" 
-            className="btn btn-primary" 
-            disabled={loading || registrationSuccessCountdown > 0 || !ageConfirmed} 
-            style={{ 
-              width: '100%', 
-              padding: '1rem', 
-              fontSize: '1.1rem',
-              marginTop: '1.5rem',
-              opacity: (loading || registrationSuccessCountdown > 0 || !ageConfirmed) ? 0.5 : 1
-            }}
-          >
-            {loading ? 'Registering...' : 'Register Now'}
-          </button>
+          <div style={{ 
+            padding: '1.5rem', 
+            background: '#f0fdf4', 
+            border: '2px solid #16a34a', 
+            borderRadius: '0.75rem'
+          }}>
+            <p style={{ margin: '0 0 0.5rem 0', color: '#15803d', fontWeight: '600', fontSize: '1.1rem' }}>
+              ✓ Disclaimer Accepted
+            </p>
+            <p style={{ margin: '0', color: '#15803d', fontSize: '0.95rem' }}>
+              You have read and agreed to our Terms of Service, Privacy Policy, and Safety Guidelines.
+            </p>
+          </div>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.5rem' }}>
+            <button 
+              type="button"
+              onClick={() => setCurrentStep(2)}
+              className="btn btn-outline"
+              style={{ padding: '0.875rem 2rem' }}
+            >
+              ← Back
+            </button>
+            <button 
+              type="submit" 
+              className="btn btn-primary" 
+              disabled={loading || registrationSuccessCountdown > 0 || !ageConfirmed} 
+              style={{ 
+                padding: '0.875rem 2rem',
+                opacity: (loading || registrationSuccessCountdown > 0 || !ageConfirmed) ? 0.5 : 1
+              }}
+            >
+              {loading ? 'Registering...' : 'Register Now'}
+            </button>
+          </div>
+          </>
+          )}
           
 
             </form>

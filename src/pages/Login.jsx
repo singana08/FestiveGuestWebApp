@@ -200,7 +200,15 @@ const Login = ({ setUser }) => {
   };
 
   return (
-    <div className="container">
+    <div style={{ 
+      minHeight: '100vh', 
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '1rem',
+      position: 'relative'
+    }}>
       {toast && (
         <div className="toast-container">
           <div className={`toast ${toast.type} ${toast.hiding ? 'hiding' : ''}`}>
@@ -221,23 +229,63 @@ const Login = ({ setUser }) => {
           </div>
         </div>
       )}
-      <div className="card" style={{ maxWidth: '450px', margin: '50px auto', textAlign: 'center' }}>
-        <div style={{ marginBottom: '2rem' }}>
-          <img 
-            src="/assets/login-logo.png" 
-            alt="Festive Guest Logo" 
-            style={{ height: '150px', width: 'auto', marginBottom: '1.5rem' }} 
-          />
-          <p style={{ color: '#64748b', fontSize: '1.1rem' }}>Connect Guests and Hosts for memorable experiences</p>
+      
+      {/* Logo Circle positioned above the card */}
+      <div style={{
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, calc(-50% - 280px))',
+        width: '140px',
+        height: '140px',
+        background: 'white',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
+        zIndex: 2,
+        padding: '5px',
+        overflow: 'hidden'
+      }}>
+        <img 
+          src="/assets/login-logo.png" 
+          alt="Festive Guest Logo" 
+          style={{ 
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+          }} 
+        />
+      </div>
+      
+      <div style={{ 
+        maxWidth: '420px', 
+        width: '100%',
+        background: 'white',
+        borderRadius: '1.5rem',
+        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+        padding: '5rem 2rem 2.5rem',
+        position: 'relative',
+        marginTop: '70px'
+      }}>
+        <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+          <h1 style={{ 
+            margin: '0 0 0.5rem 0', 
+            fontSize: '1.75rem', 
+            fontWeight: '700',
+            color: '#1e293b'
+          }}>Welcome Back</h1>
+          <p style={{ color: '#64748b', fontSize: '0.95rem', margin: 0 }}>Sign in to continue</p>
         </div>
         
         {!showForgotPassword && (
-        <form onSubmit={handleLogin} style={{ marginTop: '30px' }}>
+        <form onSubmit={handleLogin}>
           <div className="form-group">
             <input
               type="email"
               className="form-control"
-              placeholder="Enter your email address"
+              placeholder="Email address"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -245,28 +293,28 @@ const Login = ({ setUser }) => {
               }}
               onBlur={(e) => validateEmail(e.target.value)}
               required
-              style={{ fontSize: '1rem', padding: '1rem', borderColor: emailError ? '#dc2626' : '#cbd5e1' }}
+              style={{ fontSize: '0.95rem', padding: '0.875rem', borderColor: emailError ? '#dc2626' : '#e2e8f0' }}
             />
             {emailError && (
-              <p style={{ margin: '0.5rem 0 0 0', color: '#dc2626', fontSize: '0.875rem' }}>⚠️ {emailError}</p>
+              <p style={{ margin: '0.5rem 0 0 0', color: '#dc2626', fontSize: '0.8rem' }}>⚠️ {emailError}</p>
             )}
           </div>
           <div className="form-group" style={{ position: 'relative' }}>
             <input
               type={showPassword ? "text" : "password"}
               className="form-control"
-              placeholder="Enter your password"
+              placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              style={{ fontSize: '1rem', padding: '1rem', paddingRight: '3rem' }}
+              style={{ fontSize: '0.95rem', padding: '0.875rem', paddingRight: '3rem' }}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               style={{
                 position: 'absolute',
-                right: '1rem',
+                right: '0.875rem',
                 top: '50%',
                 transform: 'translateY(-50%)',
                 background: 'none',
@@ -278,36 +326,78 @@ const Login = ({ setUser }) => {
                 padding: '0'
               }}
             >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           </div>
-          <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '1rem', fontSize: '1.1rem' }} disabled={loading || emailError !== ''}>
-            {loading ? 'Logging in...' : 'Login'}
+          <button 
+            type="submit" 
+            className="btn btn-primary" 
+            style={{ 
+              width: '100%', 
+              padding: '0.875rem', 
+              fontSize: '1rem',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              border: 'none',
+              marginTop: '0.5rem'
+            }} 
+            disabled={loading || emailError !== ''}
+          >
+            {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
         )}
         
-        <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+        <div style={{ marginTop: '1rem', textAlign: 'center' }}>
           <button 
             type="button" 
             onClick={() => setShowForgotPassword(true)}
             style={{ 
               background: 'none', 
               border: 'none', 
-              color: 'var(--primary)', 
-              textDecoration: 'underline', 
+              color: '#667eea', 
               cursor: 'pointer',
-              fontSize: '0.9rem'
+              fontSize: '0.875rem',
+              fontWeight: '500'
             }}
           >
             Forgot Password?
           </button>
         </div>
         
-        <div style={{ marginTop: '2rem', padding: '1.5rem', background: '#f8fafc', borderRadius: '1rem', border: '1px solid #e2e8f0' }}>
-          <p style={{ margin: '0', color: '#64748b', fontSize: '1.05rem' }}>
-            New user? <button className="btn btn-primary" onClick={() => navigate('/?register=true')} style={{ marginLeft: '0.5rem', padding: '0.5rem 1.5rem' }}>Register</button>
+        <div style={{ 
+          marginTop: '1.5rem', 
+          paddingTop: '1.5rem',
+          borderTop: '1px solid #e2e8f0',
+          textAlign: 'center'
+        }}>
+          <p style={{ margin: '0 0 0.75rem 0', color: '#64748b', fontSize: '0.9rem' }}>
+            Don't have an account?
           </p>
+          <button 
+            onClick={() => navigate('/?register=true')} 
+            style={{ 
+              width: '100%',
+              padding: '0.875rem',
+              background: 'white',
+              border: '2px solid #667eea',
+              borderRadius: 'var(--radius-sm)',
+              color: '#667eea',
+              fontSize: '1rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.background = '#667eea';
+              e.target.style.color = 'white';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.background = 'white';
+              e.target.style.color = '#667eea';
+            }}
+          >
+            Create Account
+          </button>
         </div>
       </div>
       
