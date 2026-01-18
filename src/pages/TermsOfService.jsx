@@ -123,19 +123,42 @@ const TermsOfService = () => {
           <h3>6.2 Booking Process</h3>
           <p>Connections and arrangements are facilitated through our platform messaging system. We provide the tools for communication but are not a party to agreements between users.</p>
 
-          <h3>6.3 Payment Processing</h3>
+          <h3>6.3 Payment Processing and Terms</h3>
           <ul>
-            <li>We use third-party payment processors for secure transactions</li>
-            <li>Payment terms are agreed upon between hosts and guests</li>
-            <li>We may charge service fees for platform usage</li>
-            <li>All payments are subject to applicable taxes</li>
+            <li><strong>Payment Methods:</strong> We use third-party payment processors (Stripe, PayPal, or similar) for secure transactions</li>
+            <li><strong>Service Fees:</strong> We charge a service fee of [X]% on each transaction for platform usage</li>
+            <li><strong>Payment Terms:</strong> Payment terms are agreed upon between hosts and guests through our platform</li>
+            <li><strong>Currency:</strong> All payments are processed in Indian Rupees (INR) unless otherwise specified</li>
+            <li><strong>Taxes:</strong> All payments are subject to applicable GST and other taxes as per Indian law</li>
+            <li><strong>Payment Security:</strong> We do not store credit card information; all payment data is handled by PCI-compliant processors</li>
+            <li><strong>Failed Payments:</strong> Failed payments may result in booking cancellation or account suspension</li>
           </ul>
 
-          <h3>6.4 Cancellation Policy</h3>
-          <p>Cancellation terms are set by individual hosts. Users should review cancellation policies before making arrangements. We reserve the right to implement platform-wide cancellation policies for extraordinary circumstances.</p>
+          <h3>6.4 Refund Policy</h3>
+          <p><strong>Refund eligibility depends on the following:</strong></p>
+          <ul>
+            <li><strong>Host Cancellation Policy:</strong> Each host sets their own cancellation policy (Flexible, Moderate, or Strict)</li>
+            <li><strong>Cancellation Timeframes:</strong>
+              <ul>
+                <li>Flexible: Full refund if cancelled 24 hours before check-in</li>
+                <li>Moderate: Full refund if cancelled 5 days before check-in</li>
+                <li>Strict: 50% refund if cancelled 7 days before check-in</li>
+              </ul>
+            </li>
+            <li><strong>Service Fee:</strong> Service fees are non-refundable except in cases of host cancellation</li>
+            <li><strong>Extraordinary Circumstances:</strong> Full refunds may be provided for natural disasters, government travel bans, or platform errors</li>
+            <li><strong>Dispute Resolution:</strong> Refund disputes must be submitted within 14 days of check-in date</li>
+            <li><strong>Processing Time:</strong> Approved refunds are processed within 5-10 business days</li>
+          </ul>
 
-          <h3>6.5 Refunds and Disputes</h3>
-          <p>Refund eligibility depends on the host's cancellation policy and circumstances. We provide dispute resolution services but are not obligated to provide refunds for disputes between users.</p>
+          <h3>6.5 Chargebacks and Payment Disputes</h3>
+          <p><strong>Important Notice:</strong></p>
+          <ul>
+            <li>Initiating a chargeback without contacting us first may result in immediate account suspension</li>
+            <li>We provide dispute resolution services and will work with both parties to resolve payment issues</li>
+            <li>Fraudulent chargebacks may result in permanent account termination and legal action</li>
+            <li>All payment disputes must be reported within 30 days of the transaction</li>
+          </ul>
         </section>
 
         <section>
@@ -208,19 +231,75 @@ const TermsOfService = () => {
         <section>
           <h2>9. Intellectual Property Rights</h2>
           
-          <h3>9.1 Platform Content</h3>
-          <p>The Service and its original content, features, and functionality are owned by Local Host Connect and are protected by copyright, trademark, and other intellectual property laws.</p>
+          <h3>9.1 Platform Ownership</h3>
+          <p><strong>Local Host Connect owns all rights to:</strong></p>
+          <ul>
+            <li>The "Local Host Connect" and "FestiveGuest" brand names, logos, and trademarks</li>
+            <li>Platform design, layout, and user interface</li>
+            <li>Software, code, algorithms, and technology</li>
+            <li>Platform features and functionality</li>
+            <li>Documentation, guides, and support materials</li>
+          </ul>
+          <p>All platform content is protected by copyright, trademark, patent, and other intellectual property laws of India and international treaties.</p>
 
-          <h3>9.2 User Content</h3>
-          <p>You retain ownership of content you post but grant us a worldwide, non-exclusive, royalty-free license to use, display, and distribute your content in connection with the Service.</p>
+          <h3>9.2 User Content License</h3>
+          <p>By posting content on our platform, you grant us:</p>
+          <ul>
+            <li>A worldwide, non-exclusive, royalty-free, transferable license</li>
+            <li>The right to use, display, reproduce, modify, and distribute your content</li>
+            <li>The right to use your content for marketing and promotional purposes</li>
+            <li>The right to sublicense your content to third parties for platform operation</li>
+          </ul>
+          <p>You retain ownership of your content but grant us these rights for platform operation.</p>
 
-          <h3>9.3 Prohibited Use</h3>
-          <p>You may not reproduce, distribute, modify, or create derivative works of our content without explicit written permission.</p>
+          <h3>9.3 User Content Responsibilities</h3>
+          <p>You represent and warrant that:</p>
+          <ul>
+            <li>You own or have rights to all content you post</li>
+            <li>Your content does not infringe on third-party intellectual property rights</li>
+            <li>You have obtained necessary permissions for photos of people or property</li>
+            <li>Your content complies with all applicable laws</li>
+          </ul>
+
+          <h3>9.4 Prohibited Use of Platform IP</h3>
+          <p>You may not:</p>
+          <ul>
+            <li>Copy, reproduce, or distribute platform content without written permission</li>
+            <li>Use our trademarks, logos, or branding without authorization</li>
+            <li>Create derivative works based on our platform</li>
+            <li>Reverse engineer, decompile, or disassemble our software</li>
+            <li>Use automated tools to scrape or extract platform data</li>
+            <li>Frame or mirror any part of our platform</li>
+          </ul>
+
+          <h3>9.5 DMCA and Copyright Infringement</h3>
+          <p>We respect intellectual property rights. If you believe content on our platform infringes your copyright, contact us with:</p>
+          <ul>
+            <li>Description of the copyrighted work</li>
+            <li>Location of the infringing content</li>
+            <li>Your contact information</li>
+            <li>A statement of good faith belief</li>
+            <li>A statement of accuracy under penalty of perjury</li>
+            <li>Your physical or electronic signature</li>
+          </ul>
         </section>
 
         <section>
           <h2>10. Privacy and Data Protection</h2>
-          <p>Your privacy is important to us. Our Privacy Policy explains how we collect, use, and protect your information. By using the Service, you consent to our data practices as described in the Privacy Policy.</p>
+          <p>Your privacy is important to us. Our <Link to="/privacy-policy" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 'bold' }}>Privacy Policy</Link> explains how we collect, use, and protect your information. By using the Service, you consent to our data practices as described in the Privacy Policy.</p>
+          
+          <h3>10.1 Data Collection and Use</h3>
+          <p>We collect and process personal data as outlined in our Privacy Policy, including:</p>
+          <ul>
+            <li>Account information (name, email, phone, date of birth)</li>
+            <li>Identity verification documents</li>
+            <li>Payment information (processed by third-party processors)</li>
+            <li>Usage data and analytics</li>
+            <li>Communication records</li>
+          </ul>
+
+          <h3>10.2 Data Protection Rights</h3>
+          <p>You have the right to access, correct, delete, or export your personal data. Contact us to exercise these rights.</p>
         </section>
 
         <section>
@@ -323,7 +402,19 @@ const TermsOfService = () => {
 
         <section>
           <h2>17. Governing Law and Jurisdiction</h2>
-          <p>These Terms are governed by the laws of India. Any legal proceedings shall be conducted in the courts of [Your City], India.</p>
+          <p><strong>These Terms are governed by the laws of India, specifically:</strong></p>
+          <ul>
+            <li>Indian Contract Act, 1872</li>
+            <li>Information Technology Act, 2000</li>
+            <li>Consumer Protection Act, 2019</li>
+            <li>Digital Personal Data Protection Act, 2023 (when applicable)</li>
+          </ul>
+          
+          <h3>17.1 Jurisdiction</h3>
+          <p>Any legal proceedings arising from these Terms shall be conducted exclusively in the courts of [Your City], [Your State], India.</p>
+          
+          <h3>17.2 International Users</h3>
+          <p>If you access our Service from outside India, you are responsible for compliance with local laws. For users in the EU, GDPR provisions apply as outlined in our Privacy Policy. For users in California, CCPA provisions apply.</p>
         </section>
 
         <section>
@@ -338,7 +429,17 @@ const TermsOfService = () => {
 
         <section>
           <h2>20. Contact Information</h2>
-          <p>For questions about these Terms, please visit our <Link to="/help" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Help & Support page</Link> for contact information and assistance.</p>
+          <div className="contact-info">
+            <p><strong>Legal and Terms Inquiries:</strong></p>
+            <p>Email: legal@localhostconnect.com</p>
+            <p>Support: support@localhostconnect.com</p>
+            <p>For general questions, visit our <Link to="/help" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Help & Support page</Link>.</p>
+            <p><strong>Registered Office:</strong></p>
+            <p>Local Host Connect<br/>
+            [Your Business Address]<br/>
+            [City, State, PIN Code]<br/>
+            India</p>
+          </div>
         </section>
 
         <section>

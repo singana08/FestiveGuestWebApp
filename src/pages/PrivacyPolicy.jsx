@@ -82,8 +82,16 @@ const PrivacyPolicy = () => {
             <li>Availability and travel dates</li>
           </ul>
 
-          <h3>4.3 Service Providers</h3>
-          <p>We may share information with trusted third-party service providers who assist us in operating our platform, including payment processors, identity verification services, and customer support tools. These providers are bound by strict confidentiality agreements.</p>
+          <h3>4.3 Third-Party Service Providers</h3>
+          <p>We share information with trusted third-party service providers who assist us in operating our platform:</p>
+          <ul>
+            <li><strong>Azure Cloud Services (Microsoft):</strong> Hosting and data storage</li>
+            <li><strong>Payment Processors:</strong> Secure payment processing (names withheld for security)</li>
+            <li><strong>Analytics Tools:</strong> Google Analytics for usage analytics and performance monitoring</li>
+            <li><strong>Communication Services:</strong> Email and notification delivery systems</li>
+            <li><strong>Identity Verification:</strong> Third-party KYC/verification services</li>
+          </ul>
+          <p>These providers are bound by strict confidentiality agreements and process data only as instructed by us.</p>
 
           <h3>4.4 Legal Requirements</h3>
           <p>We may disclose your information when required by law, court order, or government request, or to protect our rights, property, or safety.</p>
@@ -94,16 +102,22 @@ const PrivacyPolicy = () => {
 
         <section>
           <h2>5. Data Security</h2>
-          <p>We implement appropriate technical and organizational security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction. However, no method of transmission over the internet is 100% secure.</p>
+          <p>We implement appropriate technical and organizational security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction. However, no method of transmission over the internet is 100% secure, and we cannot guarantee absolute security.</p>
           
           <h3>Security Measures Include:</h3>
           <ul>
-            <li>Encryption of sensitive data in transit and at rest</li>
-            <li>Regular security audits and vulnerability assessments</li>
-            <li>Access controls and authentication mechanisms</li>
-            <li>Employee training on data protection practices</li>
-            <li>Incident response procedures</li>
+            <li><strong>Encryption:</strong> SSL/TLS encryption for data in transit; AES-256 encryption for sensitive data at rest</li>
+            <li><strong>Access Controls:</strong> Role-based access control (RBAC) with multi-factor authentication for administrative access</li>
+            <li><strong>Monitoring:</strong> 24/7 security monitoring and intrusion detection systems</li>
+            <li><strong>Limited Access:</strong> Personal data access restricted to authorized personnel only on a need-to-know basis</li>
+            <li><strong>Regular Audits:</strong> Periodic security audits and vulnerability assessments</li>
+            <li><strong>Employee Training:</strong> Mandatory data protection and security awareness training for all staff</li>
+            <li><strong>Incident Response:</strong> Documented incident response procedures and breach notification protocols</li>
+            <li><strong>Secure Infrastructure:</strong> Hosted on Microsoft Azure with enterprise-grade security features</li>
           </ul>
+          
+          <h3>5.1 Data Breach Notification</h3>
+          <p>In the event of a data breach that may compromise your personal information, we will notify affected users within 72 hours of becoming aware of the breach, as required by applicable law.</p>
         </section>
 
         <section>
@@ -136,12 +150,18 @@ const PrivacyPolicy = () => {
           <h2>8. Cookies and Tracking Technologies</h2>
           <p>We use cookies and similar technologies to enhance your experience. Types of cookies we use:</p>
           <ul>
-            <li><strong>Essential Cookies:</strong> Required for basic platform functionality</li>
-            <li><strong>Performance Cookies:</strong> Help us understand how users interact with our platform</li>
-            <li><strong>Functional Cookies:</strong> Remember your preferences and settings</li>
-            <li><strong>Marketing Cookies:</strong> Used to deliver relevant advertisements</li>
+            <li><strong>Essential Cookies:</strong> Required for basic platform functionality (session management, authentication)</li>
+            <li><strong>Performance Cookies:</strong> Google Analytics to understand user interactions and improve platform performance</li>
+            <li><strong>Functional Cookies:</strong> Remember your preferences, settings, and language choices</li>
+            <li><strong>Marketing Cookies:</strong> Used to deliver relevant advertisements (if applicable)</li>
           </ul>
-          <p>You can control cookie preferences through your browser settings.</p>
+          <p>You can control cookie preferences through your browser settings. Note that disabling essential cookies may affect platform functionality.</p>
+          
+          <h3>8.1 Session Cookies</h3>
+          <p>We use session cookies to maintain your login state and ensure secure access to your account. These cookies are deleted when you close your browser.</p>
+          
+          <h3>8.2 Analytics and Tracking</h3>
+          <p>We use Google Analytics to collect anonymized data about how users interact with our platform. This helps us improve user experience and identify technical issues. You can opt out of Google Analytics by installing the Google Analytics Opt-out Browser Add-on.</p>
         </section>
 
         <section>
@@ -178,7 +198,17 @@ const PrivacyPolicy = () => {
 
         <section>
           <h2>13. Contact Information</h2>
-          <p>If you have questions about this Privacy Policy or our data practices, please visit our <Link to="/help" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Help & Support page</Link> for contact information and assistance.</p>
+          <div className="contact-info">
+            <p><strong>Data Protection Officer / Privacy Contact:</strong></p>
+            <p>Email: privacy@localhostconnect.com</p>
+            <p>Support Email: support@localhostconnect.com</p>
+            <p>For general inquiries, please visit our <Link to="/help" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Help & Support page</Link>.</p>
+            <p><strong>Mailing Address:</strong></p>
+            <p>Local Host Connect<br/>
+            [Your Business Address]<br/>
+            [City, State, PIN Code]<br/>
+            India</p>
+          </div>
         </section>
 
         <section>

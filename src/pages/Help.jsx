@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, MessageCircle, HelpCircle, Phone, Clock, Users, CheckCircle, AlertCircle, Send } from 'lucide-react';
+import { Mail, MessageCircle, HelpCircle, Phone, Clock, Users, CheckCircle, AlertCircle, Send, Shield, Lock, FileText } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import api from '../utils/api';
 
 const Help = () => {
@@ -118,6 +119,190 @@ const Help = () => {
               <MessageCircle size={16} />
               Chat on WhatsApp
             </button>
+          </div>
+        </div>
+
+        {/* Trust & Security Section */}
+        <div style={{ marginTop: '3rem', background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', padding: '2rem', borderRadius: 'var(--radius)', border: '2px solid #3b82f6' }}>
+          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0', color: '#1e40af' }}>
+              <Shield size={28} style={{ color: '#3b82f6' }} />
+              Trust & Security
+            </h2>
+            <p style={{ color: '#475569', margin: '0' }}>Your safety and privacy are our top priorities</p>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', maxWidth: '900px', margin: '0 auto' }}>
+            <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <Lock size={20} style={{ color: '#16a34a' }} />
+                <h4 style={{ margin: 0, color: '#1e293b' }}>SSL Encryption</h4>
+              </div>
+              <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>All data transmitted is encrypted with 256-bit SSL/TLS security</p>
+            </div>
+            
+            <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <Shield size={20} style={{ color: '#3b82f6' }} />
+                <h4 style={{ margin: 0, color: '#1e293b' }}>Azure Hosting</h4>
+              </div>
+              <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>Hosted on Microsoft Azure with enterprise-grade security</p>
+            </div>
+            
+            <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <CheckCircle size={20} style={{ color: '#16a34a' }} />
+                <h4 style={{ margin: 0, color: '#1e293b' }}>Secure Payments</h4>
+              </div>
+              <p style={{ margin: 0, fontSize: '0.875rem', color: '#64748b' }}>PCI-compliant payment processing through trusted providers</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Important Policies Section */}
+        <div style={{ marginTop: '3rem', background: '#fef3c7', padding: '2rem', borderRadius: 'var(--radius)', border: '2px solid #f59e0b' }}>
+          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0', color: '#92400e' }}>
+              <FileText size={28} style={{ color: '#f59e0b' }} />
+              Important Policies & Guidelines
+            </h2>
+            <p style={{ color: '#78350f', margin: '0' }}>Please review our policies to understand your rights and responsibilities</p>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', maxWidth: '800px', margin: '0 auto' }}>
+            <Link to="/terms-of-service" style={{ textDecoration: 'none' }}>
+              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.2s', border: '1px solid #fbbf24' }}>
+                <FileText size={24} style={{ color: '#f59e0b', marginBottom: '0.5rem' }} />
+                <h4 style={{ margin: '0 0 0.25rem 0', color: '#1e293b' }}>Terms of Service</h4>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>User rights & responsibilities</p>
+              </div>
+            </Link>
+            
+            <Link to="/privacy-policy" style={{ textDecoration: 'none' }}>
+              <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.2s', border: '1px solid #fbbf24' }}>
+                <Lock size={24} style={{ color: '#f59e0b', marginBottom: '0.5rem' }} />
+                <h4 style={{ margin: '0 0 0.25rem 0', color: '#1e293b' }}>Privacy Policy</h4>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>How we protect your data</p>
+              </div>
+            </Link>
+            
+            <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', textAlign: 'center', border: '1px solid #fbbf24' }}>
+              <Shield size={24} style={{ color: '#f59e0b', marginBottom: '0.5rem' }} />
+              <h4 style={{ margin: '0 0 0.25rem 0', color: '#1e293b' }}>Safety Guidelines</h4>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Stay safe while connecting</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Troubleshooting Section */}
+        <div style={{ marginTop: '3rem' }}>
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
+              <AlertCircle size={28} style={{ color: 'var(--warning)' }} />
+              Troubleshooting Common Issues
+            </h2>
+            <p style={{ color: '#64748b', margin: '0' }}>Quick fixes for common technical problems</p>
+          </div>
+          
+          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+            <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
+                <AlertCircle size={20} style={{ color: 'var(--warning)' }} />
+                Can't log in or forgot password?
+              </h4>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#475569', lineHeight: '1.6' }}>Try these steps:</p>
+              <ol style={{ margin: '0', paddingLeft: '1.5rem', color: '#475569', lineHeight: '1.8' }}>
+                <li>Clear your browser cache and cookies</li>
+                <li>Try using incognito/private browsing mode</li>
+                <li>Check if your email is correct (no extra spaces)</li>
+                <li>Use the "Forgot Password" link to reset</li>
+                <li>Contact support if issue persists</li>
+              </ol>
+            </div>
+            
+            <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
+                <AlertCircle size={20} style={{ color: 'var(--warning)' }} />
+                Website not loading or showing errors?
+              </h4>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#475569', lineHeight: '1.6' }}>Try these solutions:</p>
+              <ol style={{ margin: '0', paddingLeft: '1.5rem', color: '#475569', lineHeight: '1.8' }}>
+                <li>Refresh the page (Ctrl+F5 or Cmd+Shift+R)</li>
+                <li>Clear browser cache: Settings → Privacy → Clear browsing data</li>
+                <li>Try a different browser (Chrome, Firefox, Edge)</li>
+                <li>Check your internet connection</li>
+                <li>Flush DNS: Open Command Prompt and type "ipconfig /flushdns"</li>
+                <li>Disable browser extensions temporarily</li>
+              </ol>
+            </div>
+            
+            <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
+                <AlertCircle size={20} style={{ color: 'var(--warning)' }} />
+                Payment not processing?
+              </h4>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#475569', lineHeight: '1.6' }}>Common payment issues:</p>
+              <ol style={{ margin: '0', paddingLeft: '1.5rem', color: '#475569', lineHeight: '1.8' }}>
+                <li>Verify card details are entered correctly</li>
+                <li>Check if your card has sufficient balance</li>
+                <li>Ensure international transactions are enabled</li>
+                <li>Try a different payment method</li>
+                <li>Contact your bank if payment is declined</li>
+                <li>Wait 5 minutes and retry if gateway timeout occurs</li>
+              </ol>
+            </div>
+            
+            <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+              <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
+                <AlertCircle size={20} style={{ color: 'var(--warning)' }} />
+                Not receiving emails or notifications?
+              </h4>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#475569', lineHeight: '1.6' }}>Check these:</p>
+              <ol style={{ margin: '0', paddingLeft: '1.5rem', color: '#475569', lineHeight: '1.8' }}>
+                <li>Check your spam/junk folder</li>
+                <li>Add support@localhostconnect.com to contacts</li>
+                <li>Verify email address in your profile settings</li>
+                <li>Check notification settings in your account</li>
+                <li>Wait up to 10 minutes for email delivery</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        {/* Regional Support Section */}
+        <div style={{ marginTop: '3rem', background: 'linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%)', padding: '2rem', borderRadius: 'var(--radius)', border: '2px solid #f97316' }}>
+          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0', color: '#9a3412' }}>
+              <Users size={28} style={{ color: '#f97316' }} />
+              India-Focused Support
+            </h2>
+            <p style={{ color: '#78350f', margin: '0' }}>Tailored for Indian users with local language support and compliance</p>
+          </div>
+          
+          <div style={{ maxWidth: '700px', margin: '0 auto', background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+            <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#475569', lineHeight: '2' }}>
+              <li><strong>Language Support:</strong> English and Hindi support available</li>
+              <li><strong>Payment Methods:</strong> UPI, Net Banking, Cards, and Wallets accepted</li>
+              <li><strong>Compliance:</strong> Adheres to Indian IT Act 2000, Consumer Protection Act 2019, and DPDP Act 2023</li>
+              <li><strong>Local Time Support:</strong> Customer support available during IST business hours (9 AM - 6 PM)</li>
+              <li><strong>GST Compliant:</strong> All transactions include applicable GST as per Indian tax laws</li>
+              <li><strong>Consumer Rights:</strong> Full compliance with Indian consumer protection regulations</li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Official Contact Warning */}
+        <div style={{ marginTop: '3rem', background: '#fee2e2', padding: '1.5rem', borderRadius: 'var(--radius)', border: '2px solid #dc2626' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
+            <AlertCircle size={32} style={{ color: '#dc2626', flexShrink: 0 }} />
+            <div>
+              <h3 style={{ margin: '0 0 0.5rem 0', color: '#991b1b' }}>⚠️ Beware of Impersonators</h3>
+              <p style={{ margin: '0', color: '#7f1d1d', lineHeight: '1.6' }}>
+                <strong>Official Contact Only:</strong> We will NEVER ask for your password, OTP, or banking details via email, WhatsApp, or phone. 
+                Our only official support channels are <strong>support@localhostconnect.com</strong> and the WhatsApp number listed above. 
+                Report any suspicious contact claiming to be FestiveGuest support immediately.
+              </p>
+            </div>
           </div>
         </div>
 
