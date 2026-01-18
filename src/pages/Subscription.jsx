@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, Check, X, MessageCircle } from 'lucide-react';
+import { Crown, Check, MessageCircle, RefreshCw } from 'lucide-react';
 import api from '../utils/api';
 
 function Subscription() {
@@ -13,7 +13,7 @@ function Subscription() {
   const fetchSubscriptionStatus = async () => {
     try {
       const res = await api.get('user/profile');
-      setSubscriptionStatus(res.data.subscription_status || 'free');
+      setSubscriptionStatus(res.data.subscriptionStatus || 'free');
     } catch (err) {
       console.error('Failed to fetch subscription status:', err);
     } finally {
@@ -23,7 +23,27 @@ function Subscription() {
 
   const handleUpgrade = () => {
     const message = encodeURIComponent('I want to upgrade my subscription.');
-    window.open(`https://wa.me/YOUR_WHATSAPP_NUMBER?text=${message}`, '_blank');
+    window.open(`https://wa.me/919966888484?text=${message}`, '_blank');
+  };
+
+  const getStatusBadge = () => {
+    const badges = {
+      free: { text: 'Free', color: '#64748b', bg: '#f1f5f9' },
+      pending: { text: 'Pending Approval', color: '#f59e0b', bg: '#fef3c7' },
+      paid: { text: '✓ Premium', color: '#10b981', bg: '#dcfce7' }
+    };
+    const badge = badges[subscriptionStatus] || badges.free;
+    return (
+      <span style={{ 
+        fontWeight: 'bold', 
+        color: badge.color,
+        padding: '0.25rem 0.75rem',
+        borderRadius: '1rem',
+        background: badge.bg
+      }}>
+        {badge.text}
+      </span>
+    );
   };
 
   const freeFeatures = [
@@ -51,6 +71,7 @@ function Subscription() {
   }
 
   const isPremium = subscriptionStatus === 'paid';
+  const isPending = subscriptionStatus === 'pending';
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem' }}>
@@ -60,16 +81,22 @@ function Subscription() {
           Subscription
         </h1>
         <p style={{ color: '#64748b', fontSize: '1.1rem' }}>
-          Current Status: <span style={{ 
-            fontWeight: 'bold', 
-            color: isPremium ? '#10b981' : '#64748b',
-            padding: '0.25rem 0.75rem',
-            borderRadius: '1rem',
-            background: isPremium ? '#dcfce7' : '#f1f5f9'
-          }}>
-            {isPremium ? '✓ Premium' : 'Free'}
-          </span>
+          Current Status: {getStatusBadge()}
         </p>
+        {isPending && (
+          <div style={{ 
+            marginTop: '1rem',
+            padding: '1rem',
+            background: '#fef3c7',
+            border: '1px solid #fbbf24',
+            borderRadius: '0.5rem',
+            color: '#92400e',
+            maxWidth: '500px',
+            margin: '1rem auto 0'
+          }}>
+            ⏳ Your upgrade request is pending admin approval. You'll be notified once approved.
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem' }}>
@@ -98,7 +125,7 @@ function Subscription() {
             ))}
           </div>
 
-          {!isPremium && (
+          {!isPremium && !isPending && (
             <div style={{ 
               padding: '0.75rem', 
               background: '#f1f5f9', 
@@ -159,7 +186,7 @@ function Subscription() {
             ))}
           </div>
 
-          {!isPremium ? (
+          {!isPremium && !isPending ? (
             <button
               onClick={handleUpgrade}
               style={{
@@ -184,6 +211,18 @@ function Subscription() {
               <MessageCircle size={20} />
               Upgrade via WhatsApp
             </button>
+          ) : isPending ? (
+            <div style={{ 
+              padding: '0.875rem', 
+              background: 'rgba(251, 191, 36, 0.2)', 
+              borderRadius: '0.5rem',
+              textAlign: 'center',
+              fontWeight: '600',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(251, 191, 36, 0.3)'
+            }}>
+              ⏳ Pending Approval
+            </div>
           ) : (
             <div style={{ 
               padding: '0.875rem', 
@@ -200,7 +239,7 @@ function Subscription() {
       </div>
 
       {/* How to Upgrade Section */}
-      {!isPremium && (
+      {!isPremium && !isPending && (
         <div style={{
           marginTop: '3rem',
           background: '#f8fafc',
@@ -259,6 +298,34 @@ function Subscription() {
               <p style={{ margin: 0, fontSize: '0.9rem' }}>Get verified within 24 hours</p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Refresh Status Button */}
+      {isPending && (
+        <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+          <button
+            onClick={fetchSubscriptionStatus}
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: '#667eea',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.5rem',
+              fontSize: '1rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseOver={(e) => e.target.style.background = '#5856eb'}
+            onMouseOut={(e) => e.target.style.background = '#667eea'}
+          >
+            <RefreshCw size={18} />
+            Refresh Status
+          </button>
         </div>
       )}
     </div>

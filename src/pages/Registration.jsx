@@ -982,7 +982,7 @@ const Registration = ({ setUser }) => {
             <div className="form-group">
               <label style={{ fontWeight: '600', color: '#374151' }}>Areas Where You Can Host</label>
               <p style={{ margin: '0.5rem 0', color: '#64748b', fontSize: '0.9rem' }}>
-                Select all states and cities where you can provide hosting services to travelers.
+                Select up to 3 hosting areas (upgrade to premium for more).
               </p>
               
               <button
@@ -1181,6 +1181,10 @@ const Registration = ({ setUser }) => {
                                   newAreas[existingAreaIndex].cities.push(city);
                                 }
                               } else {
+                                if (newAreas.length >= 3) {
+                                  showToast('Free users can select up to 3 hosting areas only', 'error');
+                                  return;
+                                }
                                 newAreas.push({ state, cities: [city] });
                               }
                               

@@ -21,6 +21,7 @@ import Posts from './pages/Posts';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Subscription from './pages/Subscription';
 import TermsOfService from './pages/TermsOfService';
+import './styles/App.css';
 
 const AppContent = () => {
   const [menuOpen, setMenuOpen] = useState(false);

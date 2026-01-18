@@ -7,6 +7,8 @@ import locationService from '../utils/locationService';
 
 function Profile() {
   const [user, setUser] = useState(null);
+  const [subscriptionStatus, setSubscriptionStatus] = useState('free');
+  const [successfulReferrals, setSuccessfulReferrals] = useState(0);
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -56,7 +58,6 @@ function Profile() {
       console.log('DEBUG: Fetched user data:', fetchedUser);
       console.log('DEBUG: HostingAreas:', fetchedUser.hostingAreas);
 
-      // Preserve token from localStorage
       const savedUser = JSON.parse(localStorage.getItem('user'));
       const updatedUser = { 
         ...fetchedUser, 
@@ -65,6 +66,8 @@ function Profile() {
       };
 
       setUser(updatedUser);
+      setSubscriptionStatus(fetchedUser.subscriptionStatus || 'free');
+      setSuccessfulReferrals(fetchedUser.successfulReferrals || 0);
       localStorage.setItem('user', JSON.stringify(updatedUser));
       
       // Initialize edit form data
@@ -280,14 +283,21 @@ function Profile() {
           👤 My Profile
         </h2>
         <p style={{ color: '#64748b', margin: '0 0 1rem 0' }}>View your profile information</p>
-        <button 
-          onClick={() => setIsEditingProfile(true)}
-          className="btn btn-primary"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
-        >
-          <Edit size={16} />
-          Edit Profile
-        </button>
+        {(subscriptionStatus === 'paid' || successfulReferrals >= 3) && (
+          <button 
+            onClick={() => setIsEditingProfile(true)}
+            className="btn btn-primary"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+          >
+            <Edit size={16} />
+            Edit Profile
+          </button>
+        )}
+        {subscriptionStatus !== 'paid' && successfulReferrals < 3 && (
+          <p style={{ color: '#f59e0b', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+            ⭐ Upgrade to premium or refer 3 friends to edit your profile ({successfulReferrals}/3 referrals)
+          </p>
+        )}
       </div>
       
       <div className="profile-card">
