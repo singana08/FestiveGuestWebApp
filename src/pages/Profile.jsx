@@ -3,6 +3,8 @@ import { Edit, X, Upload, Share, Copy, Users, Key, Eye, EyeOff } from 'lucide-re
 import api from '../utils/api';
 import ImageWithSas from '../components/ImageWithSas';
 
+import locationService from '../utils/locationService';
+
 function Profile() {
   const [user, setUser] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
@@ -20,6 +22,12 @@ function Profile() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccessCountdown, setPasswordSuccessCountdown] = useState(0);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editFormData, setEditFormData] = useState({ bio: '', hostingAreas: [] });
+  const [updatingProfile, setUpdatingProfile] = useState(false);
+  const [updateError, setUpdateError] = useState('');
+  const [locationData, setLocationData] = useState(null);
+  const errorMessageRef = React.useRef(null);
   
   const passwordRequirements = [
     { label: 'At least 8 characters', test: (pw) => pw.length >= 8 },
@@ -35,6 +43,9 @@ function Profile() {
     if (userId) {
       fetchUser();
     }
+    locationService.getLocations()
+      .then(data => setLocationData(data))
+      .catch(err => console.error('Failed to load locations:', err));
   }, [userId]);
 
   const fetchUser = async () => {
@@ -55,6 +66,12 @@ function Profile() {
 
       setUser(updatedUser);
       localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Initialize edit form data
+      setEditFormData({
+        bio: updatedUser.bio || '',
+        hostingAreas: updatedUser.hostingAreas || []
+      });
       
       // Use referral code from API response
       setReferralCode(updatedUser.referralCode || 'Loading...');
@@ -167,6 +184,39 @@ function Profile() {
     }
   };
 
+  const updateProfile = async () => {
+    if (!editFormData.bio || editFormData.bio.trim().length < 10) {
+      setUpdateError('Bio must be at least 10 characters');
+      setTimeout(() => errorMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+      return;
+    }
+    
+    setUpdatingProfile(true);
+    setUpdateError('');
+    try {
+      const payload = user.userType === 'Host' 
+        ? { 
+            bio: editFormData.bio, 
+            hostingAreas: editFormData.hostingAreas.length > 0 
+              ? JSON.stringify(editFormData.hostingAreas.filter(area => area.cities.length > 0)) 
+              : ''
+          }
+        : { bio: editFormData.bio };
+      const res = await api.put('user/profile', payload);
+      if (res.data.success) {
+        setUpdateError('✅ Profile updated successfully!');
+        setTimeout(() => errorMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+        await fetchUser();
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message;
+      setUpdateError(msg);
+      setTimeout(() => errorMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+    } finally {
+      setUpdatingProfile(false);
+    }
+  };
+
   const changePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       setPasswordError('Please fill all password fields');
@@ -229,7 +279,15 @@ function Profile() {
         <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
           👤 My Profile
         </h2>
-        <p style={{ color: '#64748b', margin: '0' }}>View your profile information</p>
+        <p style={{ color: '#64748b', margin: '0 0 1rem 0' }}>View your profile information</p>
+        <button 
+          onClick={() => setIsEditingProfile(true)}
+          className="btn btn-primary"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+        >
+          <Edit size={16} />
+          Edit Profile
+        </button>
       </div>
       
       <div className="profile-card">
@@ -424,22 +482,20 @@ function Profile() {
       </div>
 
       {/* Change Password Section */}
-      <div className="profile-card" style={{ marginTop: '2rem' }}>
-        <div className="security-section">
-          <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
-            <Key size={24} style={{ color: 'var(--primary)' }} />
-            Security
-          </h3>
-          <p style={{ color: '#64748b', margin: '0 0 1rem 0' }}>Manage your account security</p>
-          <button 
-            onClick={() => setShowChangePassword(true)}
-            className="btn btn-secondary"
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 auto' }}
-          >
-            <Key size={16} />
-            Change Password
-          </button>
-        </div>
+      <div style={{ marginTop: '2rem', background: 'var(--surface)', padding: '2rem', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)', border: '1px solid var(--border)', textAlign: 'center' }}>
+        <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
+          <Key size={24} style={{ color: 'var(--primary)' }} />
+          Security
+        </h3>
+        <p style={{ color: '#64748b', margin: '0 0 1rem 0' }}>Manage your account security</p>
+        <button 
+          onClick={() => setShowChangePassword(true)}
+          className="btn btn-secondary"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+        >
+          <Key size={16} />
+          Change Password
+        </button>
       </div>
 
       {/* Refer a Friend Section */}
@@ -659,6 +715,141 @@ function Profile() {
         </div>
       )}
 
+      {/* Edit Profile Modal */}
+      {isEditingProfile && (
+        <div className="modal-overlay" onClick={() => setIsEditingProfile(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              <h3><Edit size={20} /> Edit Profile</h3>
+              <button onClick={() => setIsEditingProfile(false)} className="modal-close">×</button>
+            </div>
+            <div className="modal-body">
+              {updateError && (
+                <div ref={errorMessageRef} style={{ 
+                  color: updateError.includes('✅') ? '#16a34a' : '#dc2626', 
+                  background: updateError.includes('✅') ? '#dcfce7' : '#fee2e2', 
+                  padding: '0.75rem', 
+                  borderRadius: '0.375rem', 
+                  marginBottom: '1rem',
+                  fontSize: '0.875rem',
+                  textAlign: 'center'
+                }}>
+                  {updateError.includes('✅') ? updateError : `⚠️ ${updateError}`}
+                </div>
+              )}
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                  {user.userType === 'Host' ? '🏠 My Offerings' : '✨ My Festival Wishes'}
+                </label>
+                <textarea
+                  value={editFormData.bio}
+                  onChange={(e) => {
+                    setEditFormData({ ...editFormData, bio: e.target.value });
+                    setUpdateError('');
+                  }}
+                  placeholder={user.userType === 'Host' ? 'Describe what you offer to guests...' : 'Describe your festival wishes...'}
+                  rows={4}
+                  style={{ fontSize: '1rem', padding: '0.75rem', width: '100%', resize: 'vertical' }}
+                />
+              </div>
+              {user.userType === 'Host' && (
+                <div className="form-group">
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
+                    🗺️ Hosting Areas <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 'normal' }}>({editFormData.hostingAreas.length}/5 locations)</span>
+                  </label>
+                  <div style={{ 
+                    maxHeight: '300px', 
+                    overflow: 'auto', 
+                    border: '1px solid #e2e8f0', 
+                    borderRadius: '0.5rem', 
+                    padding: '1rem',
+                    scrollbarWidth: 'thin',
+                    scrollbarColor: '#cbd5e1 #f1f5f9'
+                  }}>
+                    {locationData && Object.entries(locationData).map(([state, cities]) => {
+                      const selectedCities = editFormData.hostingAreas.find(area => area.state === state)?.cities || [];
+                      const hasState = selectedCities.length > 0;
+                      return (
+                        <div key={state} style={{ marginBottom: '1rem' }}>
+                          <div style={{ fontWeight: '600', fontSize: '0.95rem', marginBottom: '0.5rem', color: 'var(--primary)' }}>{state}</div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                            {cities.map(city => {
+                              const citySelected = selectedCities.includes(city);
+                              return (
+                                <button
+                                  key={city}
+                                  type="button"
+                                  onClick={() => {
+                                    const newAreas = [...editFormData.hostingAreas];
+                                    const existingAreaIndex = newAreas.findIndex(area => area.state === state);
+                                    if (existingAreaIndex >= 0) {
+                                      if (citySelected) {
+                                        newAreas[existingAreaIndex].cities = newAreas[existingAreaIndex].cities.filter(c => c !== city);
+                                        if (newAreas[existingAreaIndex].cities.length === 0) {
+                                          newAreas.splice(existingAreaIndex, 1);
+                                        }
+                                      } else {
+                                        newAreas[existingAreaIndex].cities.push(city);
+                                      }
+                                      setEditFormData({ ...editFormData, hostingAreas: newAreas });
+                                    } else {
+                                      if (newAreas.length >= 5) {
+                                        setUpdateError('You can select up to 5 locations only');
+                                        setTimeout(() => errorMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+                                        return;
+                                      }
+                                      newAreas.push({ state, cities: [city] });
+                                      setEditFormData({ ...editFormData, hostingAreas: newAreas });
+                                    }
+                                  }}
+                                  style={{
+                                    padding: '0.4rem 0.6rem',
+                                    border: citySelected ? '2px solid var(--primary)' : '1px solid #cbd5e1',
+                                    background: citySelected ? 'var(--primary)' : 'white',
+                                    color: citySelected ? 'white' : 'var(--text)',
+                                    borderRadius: '0.375rem',
+                                    cursor: 'pointer',
+                                    fontSize: '0.8rem',
+                                    transition: 'all 0.2s',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  {city}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                <button 
+                  onClick={() => {
+                    setIsEditingProfile(false);
+                    setUpdateError('');
+                  }}
+                  className="btn btn-secondary"
+                  disabled={updatingProfile}
+                  style={{ flex: 1, padding: '0.75rem' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={updateProfile}
+                  disabled={updatingProfile}
+                  className="btn btn-primary"
+                  style={{ flex: 1, padding: '0.75rem', opacity: updatingProfile ? 0.5 : 1 }}
+                >
+                  {updatingProfile ? 'Updating...' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

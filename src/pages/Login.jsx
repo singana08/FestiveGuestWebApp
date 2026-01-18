@@ -231,7 +231,7 @@ const Login = ({ setUser }) => {
         position: 'absolute',
         top: '50%',
         left: '50%',
-        transform: 'translate(-50%, calc(-50% - 280px))',
+        transform: 'translate(-50%, calc(-50% - 260px))',
         width: '140px',
         height: '140px',
         background: 'white',
@@ -276,7 +276,7 @@ const Login = ({ setUser }) => {
         </div>
         
         {!showForgotPassword && (
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleLogin} style={{ pointerEvents: loading ? 'none' : 'auto', opacity: loading ? 0.6 : 1 }}>
           <div className="form-group">
             <input
               type="email"
@@ -289,7 +289,7 @@ const Login = ({ setUser }) => {
               }}
               onBlur={(e) => validateEmail(e.target.value)}
               required
-              style={{ fontSize: '0.95rem', padding: '0.875rem', borderColor: emailError ? '#dc2626' : '#e2e8f0' }}
+              style={{ fontSize: '0.95rem', padding: '0.875rem', borderColor: emailError ? '#dc2626' : '#e2e8f0', transform: 'none' }}
             />
             {emailError && (
               <p style={{ margin: '0.5rem 0 0 0', color: '#dc2626', fontSize: '0.8rem' }}>⚠️ {emailError}</p>
@@ -303,7 +303,7 @@ const Login = ({ setUser }) => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              style={{ fontSize: '0.95rem', padding: '0.875rem', paddingRight: '3rem' }}
+              style={{ fontSize: '0.95rem', padding: '0.875rem', paddingRight: '3rem', transform: 'none' }}
             />
             <button
               type="button"
@@ -335,7 +335,10 @@ const Login = ({ setUser }) => {
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               border: 'none',
               marginTop: '0.5rem',
-              textAlign: 'center'
+              textAlign: 'center',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }} 
             disabled={loading || emailError !== ''}
           >
@@ -344,7 +347,7 @@ const Login = ({ setUser }) => {
         </form>
         )}
         
-        <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+        <div style={{ marginTop: '1rem', textAlign: 'center', pointerEvents: loading ? 'none' : 'auto', opacity: loading ? 0.6 : 1 }}>
           <button 
             type="button" 
             onClick={() => setShowForgotPassword(true)}
@@ -365,7 +368,9 @@ const Login = ({ setUser }) => {
           marginTop: '1.5rem', 
           paddingTop: '1.5rem',
           borderTop: '1px solid #e2e8f0',
-          textAlign: 'center'
+          textAlign: 'center',
+          pointerEvents: loading ? 'none' : 'auto',
+          opacity: loading ? 0.6 : 1
         }}>
           <p style={{ margin: '0 0 0.75rem 0', color: '#64748b', fontSize: '0.9rem' }}>
             Don't have an account?

@@ -172,7 +172,7 @@ const AppContent = () => {
         <Routes>
           <Route path="/" element={<LandingPage user={user} />} />
           <Route path="/home" element={<LandingPage user={user} />} />
-          <Route path="/login" element={!user ? <Login setUser={setUser} /> : <Navigate to="/home" />} />
+          <Route path="/login" element={!user ? <Login setUser={setUser} /> : <Navigate to="/posts" />} />
           <Route path="/register" element={!user ? <Registration setUser={setUser} /> : <Navigate to="/home" />} />
           <Route path="/browse" element={(user?.role === 'Guest' || user?.userType === 'Guest') ? <GuestDashboard user={user} /> : <Navigate to="/login" />} />
           
