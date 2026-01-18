@@ -19,12 +19,11 @@ const PrivacyPolicy = () => {
           
           <h3>2.1 Personal Information</h3>
           <ul>
-            <li>Full name, email address, phone number</li>
-            <li>Date of birth, gender, nationality</li>
-            <li>Government-issued ID verification documents</li>
+            <li>Full name, email address, phone number, and state (from registration)</li>
+            <li>Messages exchanged via WhatsApp (only for subscription verification)</li>
+            <li>Screenshots of payment confirmations (used solely for subscription activation)</li>
             <li>Profile photos and accommodation photos</li>
             <li>Address and location information</li>
-            <li>Payment information (processed securely through third-party providers)</li>
             <li>Emergency contact details</li>
           </ul>
 
@@ -50,20 +49,24 @@ const PrivacyPolicy = () => {
           <h2>3. How We Use Your Information</h2>
           <ul>
             <li>Facilitate connections between hosts and guests</li>
+            <li>Verify subscription payments manually via WhatsApp</li>
+            <li>Update your database and unlock premium features</li>
+            <li>Communicate with users about their account and support</li>
             <li>Verify user identity and ensure platform safety</li>
-            <li>Process payments and transactions</li>
             <li>Provide customer support and resolve disputes</li>
             <li>Send important notifications about bookings and safety</li>
             <li>Improve our services and user experience</li>
             <li>Comply with legal obligations and prevent fraud</li>
-            <li>Send marketing communications (with your consent)</li>
           </ul>
         </section>
 
         <section>
           <h2>4. Information Sharing and Disclosure</h2>
           
-          <h3>4.1 Privacy-First Approach</h3>
+          <h3>4.1 No Third-Party Sharing</h3>
+          <p><strong>We do not share your personal information or payment details with any external services or third parties.</strong> Your data remains confidential and is used solely for platform operations.</p>
+
+          <h3>4.2 Privacy-First Approach</h3>
           <p>We prioritize user privacy and do NOT share personal contact details (email addresses, phone numbers) directly between users. Instead:</p>
           <ul>
             <li>Contact information is masked/hidden in user profiles</li>
@@ -72,7 +75,7 @@ const PrivacyPolicy = () => {
             <li>We collect contact details solely for our reference and emergency purposes</li>
           </ul>
 
-          <h3>4.2 What We Share Between Users</h3>
+          <h3>4.3 What We Share Between Users</h3>
           <p>We only share non-sensitive information necessary for connections:</p>
           <ul>
             <li>Profile information (name, photo, bio, preferences)</li>
@@ -82,17 +85,6 @@ const PrivacyPolicy = () => {
             <li>Availability and travel dates</li>
           </ul>
 
-          <h3>4.3 Third-Party Service Providers</h3>
-          <p>We share information with trusted third-party service providers who assist us in operating our platform:</p>
-          <ul>
-            <li><strong>Azure Cloud Services (Microsoft):</strong> Hosting and data storage</li>
-            <li><strong>Payment Processors:</strong> Secure payment processing (names withheld for security)</li>
-            <li><strong>Analytics Tools:</strong> Google Analytics for usage analytics and performance monitoring</li>
-            <li><strong>Communication Services:</strong> Email and notification delivery systems</li>
-            <li><strong>Identity Verification:</strong> Third-party KYC/verification services</li>
-          </ul>
-          <p>These providers are bound by strict confidentiality agreements and process data only as instructed by us.</p>
-
           <h3>4.4 Legal Requirements</h3>
           <p>We may disclose your information when required by law, court order, or government request, or to protect our rights, property, or safety.</p>
 
@@ -101,22 +93,28 @@ const PrivacyPolicy = () => {
         </section>
 
         <section>
-          <h2>5. Data Security</h2>
+          <h2>5. Data Storage and Security</h2>
+          
+          <h3>5.1 Data Storage</h3>
+          <ul>
+            <li><strong>Payment Screenshots:</strong> Stored temporarily until verification is complete, then deleted within 7 days</li>
+            <li><strong>User Account Details:</strong> Stored securely in our database hosted on Azure Static Web Apps</li>
+            <li><strong>Access Control:</strong> Access to user data is restricted to authorized admins only</li>
+          </ul>
+
+          <h3>5.2 Security Measures</h3>
           <p>We implement appropriate technical and organizational security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction. However, no method of transmission over the internet is 100% secure, and we cannot guarantee absolute security.</p>
           
-          <h3>Security Measures Include:</h3>
+          <p>Security Measures Include:</p>
           <ul>
-            <li><strong>Encryption:</strong> SSL/TLS encryption for data in transit; AES-256 encryption for sensitive data at rest</li>
-            <li><strong>Access Controls:</strong> Role-based access control (RBAC) with multi-factor authentication for administrative access</li>
-            <li><strong>Monitoring:</strong> 24/7 security monitoring and intrusion detection systems</li>
+            <li><strong>Secure Hosting:</strong> Hosted on Microsoft Azure with enterprise-grade security features</li>
+            <li><strong>Encryption:</strong> SSL/TLS encryption for data in transit</li>
+            <li><strong>Access Controls:</strong> Role-based access control with restricted admin access</li>
             <li><strong>Limited Access:</strong> Personal data access restricted to authorized personnel only on a need-to-know basis</li>
-            <li><strong>Regular Audits:</strong> Periodic security audits and vulnerability assessments</li>
-            <li><strong>Employee Training:</strong> Mandatory data protection and security awareness training for all staff</li>
-            <li><strong>Incident Response:</strong> Documented incident response procedures and breach notification protocols</li>
-            <li><strong>Secure Infrastructure:</strong> Hosted on Microsoft Azure with enterprise-grade security features</li>
+            <li><strong>Regular Monitoring:</strong> Security monitoring and vulnerability assessments</li>
           </ul>
           
-          <h3>5.1 Data Breach Notification</h3>
+          <h3>5.3 Data Breach Notification</h3>
           <p>In the event of a data breach that may compromise your personal information, we will notify affected users within 72 hours of becoming aware of the breach, as required by applicable law.</p>
         </section>
 
@@ -137,13 +135,13 @@ const PrivacyPolicy = () => {
           <ul>
             <li><strong>Access:</strong> Request copies of your personal information</li>
             <li><strong>Rectification:</strong> Request correction of inaccurate information</li>
-            <li><strong>Erasure:</strong> Request deletion of your personal information</li>
+            <li><strong>Erasure:</strong> Request deletion of your personal information (account + payment proof)</li>
             <li><strong>Portability:</strong> Request transfer of your data to another service</li>
             <li><strong>Restriction:</strong> Request limitation of processing</li>
             <li><strong>Objection:</strong> Object to processing for marketing purposes</li>
             <li><strong>Withdraw Consent:</strong> Withdraw consent for data processing</li>
           </ul>
-          <p>To exercise these rights, contact us at privacy@localhostconnect.com</p>
+          <p>To exercise these rights, contact us via WhatsApp at [Your WhatsApp Number] or email at privacy@localhostconnect.com</p>
         </section>
 
         <section>
@@ -212,12 +210,39 @@ const PrivacyPolicy = () => {
         </section>
 
         <section>
-          <h2>14. Governing Law</h2>
+          <h2>14. Manual Payment Verification</h2>
+          <p><strong>Important Notice:</strong> FestiveGuest uses a manual payment verification process via WhatsApp for subscription payments.</p>
+          
+          <h3>14.1 Process</h3>
+          <ul>
+            <li>Payments are verified manually by our team</li>
+            <li>Users submit payment screenshots via WhatsApp</li>
+            <li>Verification may take up to 24-48 hours</li>
+          </ul>
+
+          <h3>14.2 Limitations</h3>
+          <ul>
+            <li>Delays may occur due to manual verification process</li>
+            <li>FestiveGuest is not liable for incorrect or fraudulent payment screenshots</li>
+            <li>Users are responsible for submitting accurate payment proof</li>
+            <li>Refunds are subject to verification and our refund policy</li>
+          </ul>
+
+          <h3>14.3 Data Handling</h3>
+          <ul>
+            <li>Payment screenshots are stored temporarily for verification only</li>
+            <li>Screenshots are deleted within 7 days after verification</li>
+            <li>No payment information is shared with third parties</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>15. Governing Law</h2>
           <p>This Privacy Policy is governed by the laws of India. Any disputes arising from this policy will be subject to the exclusive jurisdiction of the courts in [Your City], India.</p>
         </section>
 
         <section>
-          <h2>15. Compliance</h2>
+          <h2>16. Compliance</h2>
           <p>We comply with applicable data protection laws, including:</p>
           <ul>
             <li>Information Technology Act, 2000 (India)</li>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import { User, Search, ShieldCheck, Menu, X, LayoutDashboard, HelpCircle, LogOut } from 'lucide-react';
+import { User, Search, ShieldCheck, Menu, X, LayoutDashboard, HelpCircle, LogOut, Crown } from 'lucide-react';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import Logo from './components/Logo';
 import Loader from './components/Loader';
@@ -19,8 +19,8 @@ import PublicProfile from './pages/PublicProfile';
 import Help from './pages/Help';
 import Posts from './pages/Posts';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import Subscription from './pages/Subscription';
 import TermsOfService from './pages/TermsOfService';
-import './styles/App.css';
 
 const AppContent = () => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -158,6 +158,7 @@ const AppContent = () => {
                 )}
               </Link>
               <Link to="/profile" className={`nav-item ${isActivePage('/profile') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><User size={20} /> Profile</Link>
+              <Link to="/subscription" className={`nav-item ${isActivePage('/subscription') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><Crown size={20} /> Subscription</Link>
               <Link to="/help" className={`nav-item ${isActivePage('/help') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><HelpCircle size={20} /> Help</Link>
               {(user.role === 'Admin' || user.userType === 'Admin') && <Link to="/admin" className={`nav-item ${isActivePage('/admin') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><ShieldCheck size={20} /> Admin</Link>}
               <button onClick={handleLogout} className="nav-item logout-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -182,6 +183,7 @@ const AppContent = () => {
           <Route path="/posts" element={user ? <Posts /> : <Navigate to="/login" />} />
           
           <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
+          <Route path="/subscription" element={user ? <Subscription /> : <Navigate to="/login" />} />
           <Route path="/profile/:userName" element={<PublicProfile />} />
           <Route path="/admin" element={(user?.role === 'Admin' || user?.userType === 'Admin') ? <Admin /> : <Navigate to="/login" />} />
           <Route path="/chat/:recipientId" element={user ? <Chat user={user} /> : <Navigate to="/login" />} />
