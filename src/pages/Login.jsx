@@ -83,12 +83,8 @@ const Login = ({ setUser }) => {
         setUser(userWithToken);
         showToast('Login successful! Redirecting...', 'success');
         
-        // Direct navigation based on user role
-        const role = user.role || user.userType || user.partitionKey;
-        if (role === 'Host') navigate('/posts');
-        else if (role === 'Guest') navigate('/guest-dashboard');
-        else if (role === 'Admin') navigate('/admin');
-        else navigate('/');
+        // Redirect all users to posts page after login
+        navigate('/posts');
         return;
       }
       showToast('Login failed', 'error');
@@ -338,7 +334,8 @@ const Login = ({ setUser }) => {
               fontSize: '1rem',
               background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
               border: 'none',
-              marginTop: '0.5rem'
+              marginTop: '0.5rem',
+              textAlign: 'center'
             }} 
             disabled={loading || emailError !== ''}
           >
