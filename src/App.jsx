@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { User, Search, ShieldCheck, Menu, X, LayoutDashboard, HelpCircle, LogOut, Crown } from 'lucide-react';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
+import api from './utils/api';
 import Logo from './components/Logo';
 import Loader from './components/Loader';
 import ApiTest from './components/ApiTest';
@@ -20,6 +21,8 @@ import Help from './pages/Help';
 import Posts from './pages/Posts';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Subscription from './pages/Subscription';
+import Referrals from './pages/Referrals';
+import ReferralRedirect from './pages/ReferralRedirect';
 import TermsOfService from './pages/TermsOfService';
 import './styles/App.css';
 
@@ -28,6 +31,7 @@ const AppContent = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [referralPoints, setReferralPoints] = useState(0);
 
   // Initialize user from localStorage immediately
   useEffect(() => {
@@ -37,6 +41,8 @@ const AppContent = () => {
         const userData = JSON.parse(saved);
         if (userData && userData.token && userData.email && (userData.role || userData.userType)) {
           setUser(userData);
+          // Set referral points from stored user data
+          setReferralPoints(userData.referralPoints || 0);
         }
       }
     } catch (e) {
@@ -62,6 +68,7 @@ const AppContent = () => {
           // Validate user data structure - accept both role and userType
           if (userData && userData.token && userData.email && (userData.role || userData.userType)) {
             setUser(userData);
+            setReferralPoints(userData.referralPoints || 0);
           } else {
             setUser(null);
           }
@@ -159,7 +166,9 @@ const AppContent = () => {
                 )}
               </Link>
               <Link to="/profile" className={`nav-item ${isActivePage('/profile') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><User size={20} /> Profile</Link>
-              <Link to="/subscription" className={`nav-item ${isActivePage('/subscription') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><Crown size={20} /> Subscription</Link>
+              <Link to="/referrals" className={`nav-item ${isActivePage('/referrals') ? 'active' : ''}`} onClick={() => setMenuOpen(false)} style={{ position: 'relative' }}>
+                🎁 Refer & Earn
+              </Link>
               <Link to="/help" className={`nav-item ${isActivePage('/help') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><HelpCircle size={20} /> Help</Link>
               {(user.role === 'Admin' || user.userType === 'Admin') && <Link to="/admin" className={`nav-item ${isActivePage('/admin') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><ShieldCheck size={20} /> Admin</Link>}
               <button onClick={handleLogout} className="nav-item logout-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -173,6 +182,7 @@ const AppContent = () => {
       <main className="content full-width">
         <Routes>
           <Route path="/" element={<LandingPage user={user} />} />
+          <Route path="/r/:code" element={<ReferralRedirect />} />
           <Route path="/home" element={<LandingPage user={user} />} />
           <Route path="/login" element={!user ? <Login setUser={setUser} /> : <Navigate to="/posts" />} />
           <Route path="/register" element={!user ? <Registration setUser={setUser} /> : <Navigate to="/home" />} />
@@ -184,6 +194,7 @@ const AppContent = () => {
           <Route path="/posts" element={user ? <Posts /> : <Navigate to="/login" />} />
           
           <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
+          <Route path="/referrals" element={user ? <Referrals /> : <Navigate to="/login" />} />
           <Route path="/subscription" element={user ? <Subscription /> : <Navigate to="/login" />} />
           <Route path="/profile/:userName" element={<PublicProfile />} />
           <Route path="/admin" element={(user?.role === 'Admin' || user?.userType === 'Admin') ? <Admin /> : <Navigate to="/login" />} />

@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, Check, MessageCircle, RefreshCw } from 'lucide-react';
+import { Crown, Check, MessageCircle, RefreshCw, Users } from 'lucide-react';
 import api from '../utils/api';
 
 function Subscription() {
   const [subscriptionStatus, setSubscriptionStatus] = useState('free');
   const [loading, setLoading] = useState(true);
+  const [referralPoints, setReferralPoints] = useState(0);
+  const [referralCode, setReferralCode] = useState('');
+  const [userType, setUserType] = useState('Guest');
 
   useEffect(() => {
     fetchSubscriptionStatus();
@@ -14,6 +17,9 @@ function Subscription() {
     try {
       const res = await api.get('user/profile');
       setSubscriptionStatus(res.data.subscriptionStatus || 'free');
+      setReferralPoints(res.data.referralPoints || 0);
+      setReferralCode(res.data.referralCode || '');
+      setUserType(res.data.userType || 'Guest');
     } catch (err) {
       console.error('Failed to fetch subscription status:', err);
     } finally {
@@ -72,6 +78,7 @@ function Subscription() {
 
   const isPremium = subscriptionStatus === 'paid';
   const isPending = subscriptionStatus === 'pending';
+  const price = userType === 'Host' ? 299 : 199;
 
   return (
     <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '2rem' }}>
@@ -173,8 +180,8 @@ function Subscription() {
           <p style={{ opacity: 0.9, marginBottom: '1.5rem' }}>Unlock all features</p>
           
           <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>₹299</div>
-            <div style={{ opacity: 0.8, fontSize: '0.9rem' }}>Per month</div>
+            <div style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>₹{price}</div>
+            <div style={{ opacity: 0.8, fontSize: '0.9rem' }}>Per month • Non-refundable</div>
           </div>
 
           <div style={{ marginBottom: '1.5rem' }}>
@@ -238,6 +245,91 @@ function Subscription() {
         </div>
       </div>
 
+      {/* Referral Program Section */}
+      {!isPremium && (
+        <div style={{
+          marginTop: '3rem',
+          background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+          border: '2px solid #10b981',
+          borderRadius: '1rem',
+          padding: '2rem',
+          color: 'white',
+          boxShadow: '0 10px 25px rgba(16, 185, 129, 0.3)'
+        }}>
+          <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+            <Users size={40} style={{ marginBottom: '0.5rem' }} />
+            <h3 style={{ margin: '0 0 0.5rem 0' }}>🎁 Get Premium FREE!</h3>
+            <p style={{ opacity: 0.9, margin: 0, fontSize: '1.05rem', fontWeight: '500' }}>
+              Earn 100 points for each friend who registers and subscribes using your referral code. Collect 500 points to unlock 3 months of Premium FREE!
+            </p>
+          </div>
+          
+          <div style={{ 
+            background: 'rgba(255, 255, 255, 0.2)', 
+            borderRadius: '0.75rem', 
+            padding: '1.5rem',
+            backdropFilter: 'blur(10px)',
+            marginBottom: '1.5rem'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+              <div style={{ fontSize: '3rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>
+                {referralPoints} / 500
+              </div>
+              <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>Referral Points</div>
+              <div style={{ fontSize: '0.85rem', opacity: 0.8, marginTop: '0.5rem' }}>
+                {referralPoints >= 500 ? '🎉 Ready to redeem!' : `Need ${500 - referralPoints} more points (${Math.ceil((500 - referralPoints) / 100)} referrals)`}
+              </div>
+            </div>
+            <div style={{ 
+              background: 'rgba(255, 255, 255, 0.3)', 
+              borderRadius: '0.5rem', 
+              height: '12px',
+              overflow: 'hidden'
+            }}>
+              <div style={{ 
+                background: 'white', 
+                height: '100%', 
+                width: `${Math.min(100, (referralPoints / 500) * 100)}%`,
+                transition: 'width 0.3s ease',
+                borderRadius: '0.5rem'
+              }} />
+            </div>
+          </div>
+
+          {referralCode && (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '0.9rem', opacity: 0.9, marginBottom: '0.5rem' }}>Your Referral Code</div>
+              <div style={{ 
+                background: 'rgba(255, 255, 255, 0.2)', 
+                padding: '0.75rem 1.5rem',
+                borderRadius: '0.5rem',
+                fontSize: '1.5rem',
+                fontWeight: 'bold',
+                letterSpacing: '2px',
+                display: 'inline-block',
+                backdropFilter: 'blur(10px)',
+                marginBottom: '1rem'
+              }}>
+                {referralCode}
+              </div>
+              <div>
+                <a 
+                  href="/referrals" 
+                  style={{ 
+                    color: 'white', 
+                    textDecoration: 'underline',
+                    fontSize: '0.95rem',
+                    opacity: 0.9
+                  }}
+                >
+                  View detailed referral stats →
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* How to Upgrade Section */}
       {!isPremium && !isPending && (
         <div style={{
@@ -247,7 +339,7 @@ function Subscription() {
           borderRadius: '1rem',
           padding: '2rem'
         }}>
-          <h3 style={{ margin: '0 0 1rem 0', textAlign: 'center' }}>How to Upgrade</h3>
+          <h3 style={{ margin: '0 0 1rem 0', textAlign: 'center' }}>How to Upgrade via Payment</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ 

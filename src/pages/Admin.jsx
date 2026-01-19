@@ -20,8 +20,8 @@ function Admin() {
   const [loadingLocations, setLoadingLocations] = useState(false);
   const [filterRole, setFilterRole] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [sortBy, setSortBy] = useState('name');
-  const [sortOrder, setSortOrder] = useState('asc');
+  const [sortBy, setSortBy] = useState('createdDate');
+  const [sortOrder, setSortOrder] = useState('desc');
   const [expandedStates, setExpandedStates] = useState({});
   const [showAddCityModal, setShowAddCityModal] = useState(false);
   const [selectedState, setSelectedState] = useState('');
@@ -221,16 +221,16 @@ function Admin() {
           {/* Filters */}
           <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', padding: '1rem', background: '#f8fafc', borderRadius: '0.5rem' }}>
             <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem' }}>Role</label>
-              <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)} style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.375rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem', color: '#475569' }}>Role</label>
+              <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)} style={{ width: '100%', padding: '0.625rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '0.375rem', background: 'white', fontSize: '0.875rem', cursor: 'pointer', outline: 'none' }}>
                 <option value="all">All Roles</option>
                 <option value="Guest">Guest</option>
                 <option value="Host">Host</option>
               </select>
             </div>
             <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem' }}>Status</label>
-              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.375rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem', color: '#475569' }}>Status</label>
+              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ width: '100%', padding: '0.625rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '0.375rem', background: 'white', fontSize: '0.875rem', cursor: 'pointer', outline: 'none' }}>
                 <option value="all">All Status</option>
                 <option value="free">Free</option>
                 <option value="pending">Pending</option>
@@ -238,17 +238,20 @@ function Admin() {
               </select>
             </div>
             <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem' }}>Sort By</label>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.375rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem', color: '#475569' }}>Sort By</label>
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ width: '100%', padding: '0.625rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '0.375rem', background: 'white', fontSize: '0.875rem', cursor: 'pointer', outline: 'none' }}>
                 <option value="name">Name</option>
                 <option value="email">Email</option>
                 <option value="role">Role</option>
                 <option value="status">Status</option>
+                <option value="createdDate">Created Date</option>
+                <option value="referrals">Referrals</option>
+                <option value="points">Points</option>
               </select>
             </div>
             <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem' }}>Order</label>
-              <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.375rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem', color: '#475569' }}>Order</label>
+              <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} style={{ width: '100%', padding: '0.625rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '0.375rem', background: 'white', fontSize: '0.875rem', cursor: 'pointer', outline: 'none' }}>
                 <option value="asc">Ascending</option>
                 <option value="desc">Descending</option>
               </select>
@@ -262,13 +265,16 @@ function Admin() {
                   <th style={{ padding: '1rem', textAlign: 'left' }}>Name</th>
                   <th style={{ padding: '1rem', textAlign: 'left' }}>Email</th>
                   <th style={{ padding: '1rem', textAlign: 'left' }}>Role</th>
+                  <th style={{ padding: '1rem', textAlign: 'center' }}>Referrals</th>
+                  <th style={{ padding: '1rem', textAlign: 'center' }}>Points</th>
+                  <th style={{ padding: '1rem', textAlign: 'left' }}>Created Date</th>
                   <th style={{ padding: '1rem', textAlign: 'center' }}>Status</th>
                   <th style={{ padding: '1rem', textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan="5" style={{ textAlign: 'center', padding: '3rem' }}>
+                  <tr><td colSpan="8" style={{ textAlign: 'center', padding: '3rem' }}>
                     <div style={{ display: 'inline-block', width: '40px', height: '40px', border: '4px solid #f3f4f6', borderTop: '4px solid #667eea', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
                     <p style={{ marginTop: '1rem', color: '#64748b' }}>Loading users...</p>
                   </td></tr>
@@ -282,6 +288,9 @@ function Admin() {
                   else if (sortBy === 'email') { aVal = a.email?.toLowerCase() || ''; bVal = b.email?.toLowerCase() || ''; }
                   else if (sortBy === 'role') { aVal = a.userType || ''; bVal = b.userType || ''; }
                   else if (sortBy === 'status') { aVal = a.subscriptionStatus || 'free'; bVal = b.subscriptionStatus || 'free'; }
+                  else if (sortBy === 'createdDate') { aVal = new Date(a.createdDate || 0).getTime(); bVal = new Date(b.createdDate || 0).getTime(); }
+                  else if (sortBy === 'referrals') { aVal = a.successfulReferrals || 0; bVal = b.successfulReferrals || 0; }
+                  else if (sortBy === 'points') { aVal = a.referralPoints || 0; bVal = b.referralPoints || 0; }
                   if (sortOrder === 'asc') return aVal > bVal ? 1 : -1;
                   return aVal < bVal ? 1 : -1;
                 }).length > 0 ? users.filter(user => {
@@ -294,6 +303,9 @@ function Admin() {
                   else if (sortBy === 'email') { aVal = a.email?.toLowerCase() || ''; bVal = b.email?.toLowerCase() || ''; }
                   else if (sortBy === 'role') { aVal = a.userType || ''; bVal = b.userType || ''; }
                   else if (sortBy === 'status') { aVal = a.subscriptionStatus || 'free'; bVal = b.subscriptionStatus || 'free'; }
+                  else if (sortBy === 'createdDate') { aVal = new Date(a.createdDate || 0).getTime(); bVal = new Date(b.createdDate || 0).getTime(); }
+                  else if (sortBy === 'referrals') { aVal = a.successfulReferrals || 0; bVal = b.successfulReferrals || 0; }
+                  else if (sortBy === 'points') { aVal = a.referralPoints || 0; bVal = b.referralPoints || 0; }
                   if (sortOrder === 'asc') return aVal > bVal ? 1 : -1;
                   return aVal < bVal ? 1 : -1;
                 }).map(user => (
@@ -301,6 +313,9 @@ function Admin() {
                       <td style={{ padding: '1rem' }}>{user.name}</td>
                       <td style={{ padding: '1rem' }}>{user.email}</td>
                       <td style={{ padding: '1rem' }}>{user.userType}</td>
+                      <td style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', color: '#667eea' }}>{user.successfulReferrals || 0}</td>
+                      <td style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', color: '#10b981' }}>{user.referralPoints || 0}</td>
+                      <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#64748b' }}>{user.createdDate ? new Date(user.createdDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</td>
                       <td style={{ padding: '1rem', textAlign: 'center' }}>
                         <SubscriptionBadge status={user.subscriptionStatus || 'free'} />
                       </td>
@@ -309,11 +324,13 @@ function Admin() {
                           value={user.subscriptionStatus || 'free'}
                           onChange={(e) => handleSubscriptionAction(user.userId, e.target.value === 'paid' ? 'approve' : e.target.value === 'pending' ? 'pending' : 'reject')}
                           style={{
-                            padding: '0.5rem',
-                            border: '1px solid #e2e8f0',
+                            padding: '0.5rem 0.75rem',
+                            border: '1px solid #cbd5e1',
                             borderRadius: '0.375rem',
                             cursor: 'pointer',
                             fontWeight: '600',
+                            fontSize: '0.875rem',
+                            outline: 'none',
                             background: user.subscriptionStatus === 'paid' ? '#d1fae5' : user.subscriptionStatus === 'pending' ? '#fef3c7' : '#f3f4f6',
                             color: user.subscriptionStatus === 'paid' ? '#065f46' : user.subscriptionStatus === 'pending' ? '#92400e' : '#374151'
                           }}
@@ -325,7 +342,7 @@ function Admin() {
                       </td>
                     </tr>
                 )) : (
-                  <tr><td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No users found</td></tr>
+                  <tr><td colSpan="8" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No users found</td></tr>
                 )}
               </tbody>
             </table>

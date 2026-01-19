@@ -48,12 +48,13 @@ const GuestDashboard = ({ user }) => {
   const [showMyPosts, setShowMyPosts] = useState(false);
 
   useEffect(() => {
-    // Only fetch data if user is properly authenticated
+    // Only fetch data once on mount if user is authenticated
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
     if (user && user.token) {
       fetchHosts();
       fetchLocations();
     }
-  }, [user]);
+  }, []);
 
   // Handle window resize and set filter defaults
   useEffect(() => {

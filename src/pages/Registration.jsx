@@ -119,8 +119,15 @@ const Registration = ({ setUser }) => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const roleParam = params.get('role');
-    const referralCodeParam = params.get('referralCode');
+    let referralCodeParam = params.get('referralCode') || params.get('ref');
     const disclaimerAcceptedParam = params.get('disclaimerAccepted');
+    
+    // Check for pending referral code from redirect
+    const pendingCode = sessionStorage.getItem('pendingReferralCode');
+    if (pendingCode) {
+      referralCodeParam = pendingCode;
+      sessionStorage.removeItem('pendingReferralCode');
+    }
     
     // Security check for disclaimer acceptance
     const storedAcceptance = sessionStorage.getItem('disclaimerAcceptance');
@@ -149,7 +156,7 @@ const Registration = ({ setUser }) => {
     }
     
     if (referralCodeParam) {
-      setFormData(prev => ({ ...prev, ReferredBy: referralCodeParam }));
+      setFormData(prev => ({ ...prev, ReferredBy: referralCodeParam.toUpperCase() }));
     }
   }, [location.search, navigate]);
 
@@ -1035,8 +1042,11 @@ const Registration = ({ setUser }) => {
               placeholder="Enter referral code if you have one"
               style={{ fontSize: '1rem', padding: '1rem' }}
             />
+            <p style={{ margin: '0.5rem 0 0 0', color: '#64748b', fontSize: '0.875rem' }}>
+              💡 Enter a friend's referral code to help them earn points!
+            </p>
             {formData.ReferredBy && (
-              <p style={{ margin: '0.5rem 0 0 0', color: '#16a34a', fontSize: '0.875rem' }}>✓ Referral code applied</p>
+              <p style={{ margin: '0.5rem 0 0 0', color: '#16a34a', fontSize: '0.875rem' }}>✓ Referral code applied: {formData.ReferredBy}</p>
             )}
           </div>
           

@@ -26,13 +26,14 @@ const HostDashboard = ({ user }) => {
   const [reviewError, setReviewError] = useState('');
 
   useEffect(() => {
-    if (user.status === 'Active' || user.status === 'Verified') {
+    const userStatus = user?.status;
+    if (userStatus === 'Active' || userStatus === 'Verified') {
       fetchGuests();
       fetchLocations();
     } else {
       setLoading(false);
     }
-  }, [user.status]);
+  }, []);
 
   useEffect(() => {
     const handleResize = () => {

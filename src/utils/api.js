@@ -2,7 +2,9 @@ import axios from 'axios';
 
 // Determine base URL based on environment
 const getBaseURL = () => {
+  // Use production API
   return 'https://festive-guest-api.azurewebsites.net/api';
+  // return 'http://localhost:7219/api';
 };
 
 // Create axios instance with security defaults

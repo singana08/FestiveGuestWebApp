@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, X, Upload, Share, Copy, Users, Key, Eye, EyeOff } from 'lucide-react';
+import { Edit, X, Upload, Share, Copy, Users, Key, Eye, EyeOff, Crown } from 'lucide-react';
 import api from '../utils/api';
 import ImageWithSas from '../components/ImageWithSas';
 
@@ -39,16 +39,15 @@ function Profile() {
     { label: 'One special character', test: (pw) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw) }
   ];
   
-  const userId = localStorage.getItem('userId');
-
   useEffect(() => {
+    const userId = localStorage.getItem('userId');
     if (userId) {
       fetchUser();
     }
     locationService.getLocations()
       .then(data => setLocationData(data))
       .catch(err => console.error('Failed to load locations:', err));
-  }, [userId]);
+  }, []);
 
   const fetchUser = async () => {
     try {
@@ -508,66 +507,105 @@ function Profile() {
         </button>
       </div>
 
-      {/* Refer a Friend Section */}
-      <div className="referral-card" style={{ marginTop: '2rem' }}>
-        <div className="referral-header">
-          <h3 className="referral-title">
-            <Users size={24} />
-            Invite Friends & Earn Together
-          </h3>
-          <p className="referral-subtitle">Share FestiveGuest and unlock exclusive rewards for both of you</p>
-        </div>
-        
-        <div className="referral-content">
-          <div className="referral-code-section">
-            <p className="code-label">Your Personal Referral Code</p>
-            <div className="referral-code" style={{ fontSize: '1rem', padding: '0.5rem' }}>{referralCode}</div>
-            <div className="referral-actions">
-              <button 
-                onClick={copyReferralCode}
-                className="referral-btn"
-              >
-                <Copy size={14} style={{ marginRight: '0.25rem' }} />
-                {copied ? 'Copied!' : 'Copy'}
-              </button>
-              <button 
-                onClick={shareReferral}
-                className="referral-btn"
-              >
-                <Share size={14} style={{ marginRight: '0.25rem' }} />
-                Share
-              </button>
-            </div>
+      {/* Subscription Section */}
+      <div style={{ marginTop: '2rem', background: 'var(--surface)', padding: '2rem', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)', border: '1px solid var(--border)' }}>
+        <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 1rem 0' }}>
+          <Crown size={24} style={{ color: subscriptionStatus === 'paid' ? '#f59e0b' : '#64748b' }} />
+          Subscription
+        </h3>
+        <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '1.5rem' }}>
+          Current Status: 
+          <span style={{ 
+            fontWeight: 'bold', 
+            color: subscriptionStatus === 'paid' ? '#10b981' : subscriptionStatus === 'pending' ? '#f59e0b' : '#64748b',
+            padding: '0.25rem 0.75rem',
+            borderRadius: '1rem',
+            background: subscriptionStatus === 'paid' ? '#dcfce7' : subscriptionStatus === 'pending' ? '#fef3c7' : '#f1f5f9',
+            marginLeft: '0.5rem'
+          }}>
+            {subscriptionStatus === 'paid' ? '✓ Premium' : subscriptionStatus === 'pending' ? 'Pending Approval' : 'Free'}
+          </span>
+        </p>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+          {/* Free Plan */}
+          <div style={{
+            background: 'white',
+            border: '2px solid #e2e8f0',
+            borderRadius: '0.75rem',
+            padding: '1.5rem'
+          }}>
+            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem' }}>Free Plan</h4>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>₹0</div>
+            <div style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1rem' }}>Forever free</div>
+            {subscriptionStatus === 'free' && (
+              <div style={{ padding: '0.5rem', background: '#f1f5f9', borderRadius: '0.375rem', textAlign: 'center', color: '#64748b', fontWeight: '600', fontSize: '0.9rem' }}>
+                Current Plan
+              </div>
+            )}
           </div>
-          
-          <div className="referral-benefits">
-            <div className="benefit-item">
-              <span className="benefit-icon">🎁</span>
-              <p className="benefit-text">
-                <strong>Premium Access</strong>
-                Invite 3 friends and unlock 1 month of premium features including priority support and advanced search filters.
-              </p>
-            </div>
-            <div className="benefit-item">
-              <span className="benefit-icon">⭐</span>
-              <p className="benefit-text">
-                <strong>Mutual Rewards</strong>
-                Both you and your friend receive special perks and discounts when they complete their first booking.
-              </p>
-            </div>
-            <div className="benefit-item">
-              <span className="benefit-icon">🚀</span>
-              <p className="benefit-text">
-                <strong>Easy Process</strong>
-                Simply share your code, they register with it, and rewards activate automatically after their first booking.
-              </p>
-            </div>
+
+          {/* Premium Plan */}
+          <div style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            border: '2px solid #667eea',
+            borderRadius: '0.75rem',
+            padding: '1.5rem',
+            color: 'white',
+            position: 'relative'
+          }}>
+            {subscriptionStatus === 'paid' && (
+              <div style={{
+                position: 'absolute',
+                top: '-10px',
+                right: '15px',
+                background: '#f59e0b',
+                color: 'white',
+                padding: '0.25rem 0.75rem',
+                borderRadius: '1rem',
+                fontSize: '0.75rem',
+                fontWeight: 'bold'
+              }}>
+                ACTIVE
+              </div>
+            )}
+            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Crown size={20} style={{ color: '#f59e0b' }} />
+              Premium
+            </h4>
+            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>₹{user.userType === 'Host' ? 299 : 199}</div>
+            <div style={{ opacity: 0.8, fontSize: '0.85rem', marginBottom: '1rem' }}>3 months • Non-refundable</div>
+            {subscriptionStatus !== 'paid' && subscriptionStatus !== 'pending' && (
+              <button
+                onClick={() => window.open(`https://wa.me/919966888484?text=${encodeURIComponent('I want to upgrade my subscription.')}`, '_blank')}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  background: 'white',
+                  color: '#667eea',
+                  border: 'none',
+                  borderRadius: '0.375rem',
+                  fontSize: '0.95rem',
+                  fontWeight: 'bold',
+                  cursor: 'pointer'
+                }}
+              >
+                Upgrade via WhatsApp
+              </button>
+            )}
+            {subscriptionStatus === 'pending' && (
+              <div style={{ padding: '0.75rem', background: 'rgba(251, 191, 36, 0.2)', borderRadius: '0.375rem', textAlign: 'center', fontWeight: '600', fontSize: '0.9rem' }}>
+                ⏳ Pending Approval
+              </div>
+            )}
+            {subscriptionStatus === 'paid' && (
+              <div style={{ padding: '0.75rem', background: 'rgba(255, 255, 255, 0.2)', borderRadius: '0.375rem', textAlign: 'center', fontWeight: '600', fontSize: '0.9rem' }}>
+                ✓ You're Premium!
+              </div>
+            )}
           </div>
         </div>
       </div>
-
-
-
       {/* Change Password Modal */}
       {showChangePassword && (
         <div className="modal-overlay" onClick={() => setShowChangePassword(false)}>
