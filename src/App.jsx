@@ -179,6 +179,22 @@ const AppContent = () => {
         </div>
       </nav>
 
+      {/* Promotional Banner */}
+      {user && (
+        <div style={{
+          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+          color: 'white',
+          padding: '0.75rem 0.5rem',
+          textAlign: 'center',
+          fontSize: 'clamp(0.65rem, 2.5vw, 0.9rem)',
+          fontWeight: '600',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          lineHeight: '1.4'
+        }}>
+          🎉 <strong>Limited Time Offer!</strong> All users can now access premium features FREE during our promotional period! 🎁
+        </div>
+      )}
+
       <main className="content full-width">
         <Routes>
           <Route path="/" element={<LandingPage user={user} />} />

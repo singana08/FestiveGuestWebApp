@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, Check, MessageCircle, RefreshCw, Users } from 'lucide-react';
+import { Crown, Check, MessageCircle, RefreshCw, Users, Gift } from 'lucide-react';
 import api from '../utils/api';
 
 function Subscription() {
@@ -312,18 +312,41 @@ function Subscription() {
               }}>
                 {referralCode}
               </div>
-              <div>
-                <a 
-                  href="/referrals" 
-                  style={{ 
-                    color: 'white', 
-                    textDecoration: 'underline',
-                    fontSize: '0.95rem',
-                    opacity: 0.9
-                  }}
-                >
-                  View detailed referral stats →
-                </a>
+              <div style={{ marginBottom: '1rem' }}>
+                {referralPoints >= 500 ? (
+                  <button
+                    onClick={() => window.location.href = '/referrals'}
+                    style={{
+                      padding: '0.75rem 2rem',
+                      background: 'white',
+                      color: '#10b981',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                    }}
+                  >
+                    <Gift size={20} />
+                    Redeem 500 Points Now!
+                  </button>
+                ) : (
+                  <a 
+                    href="/referrals" 
+                    style={{ 
+                      color: 'white', 
+                      textDecoration: 'underline',
+                      fontSize: '0.95rem',
+                      opacity: 0.9
+                    }}
+                  >
+                    View detailed referral stats →
+                  </a>
+                )}
               </div>
             </div>
           )}

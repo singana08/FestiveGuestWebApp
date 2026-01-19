@@ -3,6 +3,7 @@ import { Plus, MapPin, Users, Calendar, Wifi, Car, Utensils, MessageCircle, More
 import postsService from '../utils/postsService';
 import locationService from '../utils/locationService';
 import ChatWidget from '../components/ChatWidget';
+import api from '../utils/api';
 import '../styles/Posts.css';
 import '../styles/Dashboard.css';
 
@@ -27,6 +28,9 @@ const Posts = () => {
   const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
   const [showMyPosts, setShowMyPosts] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   useEffect(() => {
     console.log('Posts: activeChat state changed:', activeChat);
@@ -62,7 +66,7 @@ const Posts = () => {
   // Handle window resize and set filter defaults
   useEffect(() => {
     const handleResize = () => {
-      const desktop = window.innerWidth > 768;
+      const desktop = window.innerWidth > 1024;
       setIsDesktop(desktop);
       setShowMobileFilters(desktop);
     };
@@ -474,7 +478,15 @@ const Posts = () => {
                   {post.title}
                 </h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: 'var(--text-light)', fontSize: '0.875rem' }}>
-                  <span>{post.userName}</span>
+                  <span 
+                    onClick={() => {
+                      setSelectedProfile({ userName: post.userName, userId: post.userId });
+                      setShowProfileModal(true);
+                    }}
+                    style={{ cursor: 'pointer', color: 'var(--primary)', textDecoration: 'underline' }}
+                  >
+                    {post.userName}
+                  </span>
                   <span>•</span>
                   <span>{post.createdAt.toLocaleDateString()}</span>
                 </div>
@@ -895,6 +907,334 @@ const Posts = () => {
           </div>
         </div>
       )}
+
+      {showProfileModal && selectedProfile && (
+        <ProfileModal 
+          userName={selectedProfile.userName}
+          userId={selectedProfile.userId}
+          onClose={() => {
+            setShowProfileModal(false);
+            setSelectedProfile(null);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+const ProfileModal = ({ userName, userId, onClose }) => {
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ rating: 0, comment: '' });
+  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  useEffect(() => {
+    fetchProfile();
+  }, [userId]);
+
+  const fetchProfile = async () => {
+    try {
+      const profileRes = await api.post('user/public-profile', { userId });
+      const currentUserId = user?.userId;
+      const reviews = profileRes.data.reviews || [];
+      const userReview = reviews.find(r => r.reviewerId === currentUserId);
+      const otherReviews = reviews.filter(r => r.reviewerId !== currentUserId)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      const sortedReviews = userReview ? [userReview, ...otherReviews] : otherReviews;
+      const hasUserReview = !!userReview;
+      
+      setProfile({
+        ...profileRes.data,
+        reviews: sortedReviews,
+        hasUserReview
+      });
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    setReviewError('');
+    
+    if (!reviewForm.comment.trim() || reviewForm.rating === 0) {
+      setReviewError('Please provide both rating and comment');
+      return;
+    }
+    
+    setSubmittingReview(true);
+    try {
+      await api.post('review', {
+        userId: profile.userId,
+        rating: reviewForm.rating,
+        comment: reviewForm.comment.trim()
+      });
+      
+      await fetchProfile();
+      setShowReviewForm(false);
+      setReviewForm({ rating: 0, comment: '' });
+      setReviewError('');
+    } catch (error) {
+      console.error('Failed to submit review:', error);
+      setReviewError(error.response?.data?.message || 'Failed to submit review. Please try again.');
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
+
+  const renderStars = (rating) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <span key={i} style={{ color: i < rating ? '#fbbf24' : '#d1d5db' }}>★</span>
+    ));
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="modal-header" style={{ padding: '0.75rem 1rem' }}>
+          <h3 style={{ margin: 0, fontSize: '1rem' }}>{loading ? 'Loading...' : profile?.name || userName}</h3>
+          <button onClick={onClose} className="modal-close" style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: '1' }}>×</button>
+        </div>
+        <div className="modal-body" style={{ paddingTop: '0.5rem' }}>
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '2rem' }}>Loading profile...</div>
+          ) : !profile ? (
+            <div style={{ textAlign: 'center', padding: '2rem' }}>Profile not found</div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', alignItems: 'center' }}>
+                {profile.profileImageUrl ? (
+                  <img 
+                    src={profile.profileImageUrl} 
+                    alt={profile.name}
+                    style={{ 
+                      width: '120px', 
+                      height: '120px', 
+                      borderRadius: '50%', 
+                      objectFit: 'cover',
+                      border: '2px solid var(--primary)',
+                      flexShrink: 0
+                    }}
+                  />
+                ) : (
+                  <div style={{ 
+                    width: '120px', 
+                    height: '120px', 
+                    borderRadius: '50%', 
+                    background: 'var(--primary)', 
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '2.5rem',
+                    fontWeight: 'bold',
+                    flexShrink: 0
+                  }}>
+                    {profile.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem' }}>{profile.name}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <span style={{ color: '#64748b', fontSize: '0.85rem' }}>📍 {profile.location}</span>
+                  </div>
+                  <p style={{ color: '#64748b', fontSize: '0.8rem', margin: '0' }}>
+                    {profile.userType} • Joined {new Date(profile.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
+                  </p>
+                </div>
+              </div>
+              
+              {profile.bio && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h4 style={{ marginBottom: '0.75rem', color: 'var(--text)' }}>
+                    {profile.userType === 'Host' ? '🏠 About My Hosting' : '✨ About Me'}
+                  </h4>
+                  <p style={{ 
+                    color: '#475569', 
+                    lineHeight: '1.5',
+                    background: '#f8fafc',
+                    padding: '1rem',
+                    borderRadius: '0.5rem',
+                    margin: 0
+                  }}>
+                    {profile.bio}
+                  </p>
+                </div>
+              )}
+              
+              {profile.userType === 'Host' && profile.hostingAreas && profile.hostingAreas.length > 0 && (
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <h4 style={{ marginBottom: '0.75rem', color: 'var(--text)' }}>🗺️ Hosting Areas</h4>
+                  <div style={{ 
+                    background: '#f0fdf4',
+                    padding: '1rem',
+                    borderRadius: '0.5rem',
+                    border: '1px solid #86efac'
+                  }}>
+                    {profile.hostingAreas.map((area, idx) => (
+                      <div key={idx} style={{ marginBottom: idx < profile.hostingAreas.length - 1 ? '0.5rem' : '0', color: '#166534' }}>
+                        <strong>{area.state}:</strong> {area.cities.join(', ')}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <h4 style={{ margin: '0', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    ⭐ Reviews ({profile.totalReviews || profile.reviews?.length || 0})
+                    {profile.averageRating > 0 && (
+                      <span style={{ fontSize: '0.9rem', color: '#64748b' }}>({profile.averageRating.toFixed(1)} avg)</span>
+                    )}
+                  </h4>
+                  {!profile.hasUserReview && (
+                    <button 
+                      className="btn btn-outline"
+                      onClick={() => setShowReviewForm(!showReviewForm)}
+                      style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
+                    >
+                      {showReviewForm ? 'Cancel' : 'Write Review'}
+                    </button>
+                  )}
+                </div>
+                
+                {showReviewForm && (
+                  <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>
+                    {reviewError && (
+                      <div style={{ 
+                        background: '#fee2e2', 
+                        color: '#dc2626', 
+                        padding: '0.5rem', 
+                        borderRadius: '0.375rem', 
+                        marginBottom: '0.75rem',
+                        fontSize: '0.85rem'
+                      }}>
+                        {reviewError}
+                      </div>
+                    )}
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Rating:</label>
+                      <div style={{ display: 'flex', gap: '0.25rem' }}>
+                        {Array.from({ length: 5 }, (_, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={() => {
+                              setReviewForm(prev => ({ ...prev, rating: i + 1 }));
+                              setReviewError('');
+                            }}
+                            style={{ 
+                              background: 'none',
+                              border: 'none',
+                              fontSize: '1.5rem',
+                              cursor: 'pointer',
+                              color: i < reviewForm.rating ? '#fbbf24' : '#d1d5db',
+                              padding: '0'
+                            }}
+                          >
+                            ★
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{ marginBottom: '0.75rem' }}>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Comment:</label>
+                      <textarea
+                        value={reviewForm.comment}
+                        onChange={(e) => {
+                          setReviewForm(prev => ({ ...prev, comment: e.target.value }));
+                          setReviewError('');
+                        }}
+                        placeholder="Share your experience..."
+                        rows={3}
+                        style={{
+                          width: '100%',
+                          padding: '0.5rem',
+                          border: '1px solid var(--border)',
+                          borderRadius: '0.375rem',
+                          resize: 'vertical',
+                          fontFamily: 'inherit'
+                        }}
+                      />
+                    </div>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={handleSubmitReview}
+                      disabled={submittingReview}
+                      style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
+                    >
+                      {submittingReview ? 'Submitting...' : 'Submit Review'}
+                    </button>
+                  </div>
+                )}
+                
+                {profile.reviews && profile.reviews.length > 0 && (
+                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                    {profile.reviews.map((review, index) => {
+                      const isUserReview = review.reviewerId === user?.userId;
+                      return (
+                        <div 
+                          key={index}
+                          style={{ 
+                            background: isUserReview ? '#fef3c7' : '#f8fafc',
+                            padding: '0.75rem',
+                            borderRadius: '0.5rem',
+                            border: `1px solid ${isUserReview ? '#fbbf24' : 'var(--border)'}`,
+                            marginBottom: '0.75rem',
+                            position: 'relative'
+                          }}
+                        >
+                          {isUserReview && (
+                            <div style={{ 
+                              position: 'absolute',
+                              top: '0.5rem',
+                              right: '0.5rem',
+                              background: '#fbbf24',
+                              color: 'white',
+                              padding: '0.125rem 0.5rem',
+                              borderRadius: '0.25rem',
+                              fontSize: '0.7rem',
+                              fontWeight: '600'
+                            }}>
+                              Your Review
+                            </div>
+                          )}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem', paddingRight: isUserReview ? '5rem' : '0' }}>
+                            <strong style={{ fontSize: '0.9rem' }}>{review.reviewerName}</strong>
+                            <div>
+                              {Array.from({ length: 5 }, (_, i) => (
+                                <span key={i} style={{ color: i < review.rating ? '#fbbf24' : '#d1d5db' }}>★</span>
+                              ))}
+                            </div>
+                          </div>
+                          <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.85rem', color: '#475569', lineHeight: '1.4' }}>
+                            {review.comment}
+                          </p>
+                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                            {new Date(review.createdAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                
+                {(!profile.reviews || profile.reviews.length === 0) && !showReviewForm && (
+                  <p style={{ color: '#64748b', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
+                    No reviews yet. Be the first to share your experience!
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

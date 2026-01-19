@@ -20,6 +20,14 @@ const LandingPage = ({ user }) => {
     setShowDisclaimerModal(true);
   };
 
+  // Check for referral code in URL and store it
+  useEffect(() => {
+    const refCode = searchParams.get('ref');
+    if (refCode) {
+      sessionStorage.setItem('pendingReferralCode', refCode.toUpperCase());
+    }
+  }, [searchParams]);
+
   const getDashboardRoute = () => {
     return '/posts';
   };

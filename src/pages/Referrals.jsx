@@ -71,9 +71,9 @@ function Referrals() {
     try {
       const res = await api.post('referralpoints/redeem');
       if (res.data.success) {
-        showToast('🎉 Success! 3 months premium activated!', 'success');
+        showToast('🎉 Congratulations! Your 3-month premium subscription is now active! Check your Profile page to see your updated subscription status.', 'success');
         setShowRedeemModal(false);
-        fetchData();
+        await fetchData();
       }
     } catch (err) {
       const msg = err.response?.data?.message || err.message;
@@ -105,11 +105,13 @@ function Referrals() {
           right: '20px',
           background: toast.type === 'success' ? '#10b981' : '#ef4444',
           color: 'white',
-          padding: '0.75rem 1rem',
+          padding: '1rem 1.5rem',
           borderRadius: '0.5rem',
           boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
           zIndex: 1000,
-          fontSize: '0.9rem'
+          fontSize: '0.9rem',
+          maxWidth: '400px',
+          lineHeight: '1.5'
         }}>
           {toast.message}
         </div>
@@ -408,11 +410,11 @@ function Referrals() {
                     {item.type === 'earned' ? '✓ Earned' : '✗ Redeemed'} {Math.abs(item.points)} points
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                    {item.description || (item.type === 'earned' ? `Referred: ${item.referredUserName || item.referredEmail || 'User'}` : '3 months subscription activated')}
+                    {item.type === 'earned' ? `Earned 100 points for referring user ${item.referredUserName || item.userName || 'User'}` : (item.description || '3 months subscription activated')}
                   </div>
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#64748b', textAlign: 'right' }}>
-                  {new Date(item.timestamp).toLocaleDateString('en-IN', {
+                  {new Date(item.createdDate || item.timestamp).toLocaleDateString('en-IN', {
                     day: '2-digit',
                     month: 'short',
                     year: 'numeric'
@@ -478,7 +480,7 @@ function Referrals() {
                   ✓ 3 Months Premium Subscription
                 </div>
                 <div style={{ color: '#15803d' }}>
-                  ✓ Worth ₹{price * 3} ({userType})
+                  ✓ Worth ₹{price} (3 months for {userType})
                 </div>
               </div>
 
