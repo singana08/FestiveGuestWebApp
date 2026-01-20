@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, MessageCircle, HelpCircle, Phone, Clock, Users, CheckCircle, AlertCircle, Send, Shield, Lock, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../i18n/LanguageContext';
 import api from '../utils/api';
 
 const Help = () => {
+  const { t } = useLanguage();
   const [feedback, setFeedback] = useState({ name: '', email: '', message: '' });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -85,9 +87,9 @@ const Help = () => {
           <HelpCircle size={48} className="help-icon" style={{ color: 'var(--primary)' }} />
           <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
             <Users size={32} style={{ color: 'var(--primary)' }} />
-            Help & Support
+            {t('helpSupport')}
           </h1>
-          <p>We're here to help you with any questions or issues you may have.</p>
+          <p>{t('helpDescription')}</p>
         </div>
 
         <div className="help-content">
@@ -95,12 +97,12 @@ const Help = () => {
             <Mail size={32} className="card-icon" style={{ color: 'var(--primary)' }} />
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Clock size={20} />
-              Email Support
+              {t('emailSupport')}
             </h3>
-            <p>Send us an email and we'll get back to you as soon as possible.</p>
+            <p>{t('emailSupportDesc')}</p>
             <a href="mailto:customer-support@festiveguest.com" className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Mail size={16} />
-              Customer Support
+              {t('customerSupport')}
             </a>
           </div>
 
@@ -108,16 +110,16 @@ const Help = () => {
             <MessageCircle size={32} className="card-icon" style={{ color: '#25D366' }} />
             <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Phone size={20} />
-              WhatsApp Support
+              {t('whatsappSupport')}
             </h3>
-            <p>Chat with our support team directly for quick assistance.</p>
+            <p>{t('whatsappSupportDesc')}</p>
             <button 
               onClick={handleWhatsAppClick}
               className="btn btn-primary whatsapp-btn"
               style={{ cursor: 'pointer', border: 'none', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
             >
               <MessageCircle size={16} />
-              Chat on WhatsApp
+              {t('chatOnWhatsapp')}
             </button>
           </div>
         </div>
@@ -127,32 +129,32 @@ const Help = () => {
           <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
             <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0', color: '#92400e' }}>
               <FileText size={28} style={{ color: '#f59e0b' }} />
-              Important Policies & Guidelines
+              {t('importantPolicies')}
             </h2>
-            <p style={{ color: '#78350f', margin: '0' }}>Please review our policies to understand your rights and responsibilities</p>
+            <p style={{ color: '#78350f', margin: '0' }}>{t('policiesDesc')}</p>
           </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', maxWidth: '800px', margin: '0 auto' }}>
             <Link to="/terms-of-service" style={{ textDecoration: 'none' }}>
               <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.2s', border: '1px solid #fbbf24' }}>
                 <FileText size={24} style={{ color: '#f59e0b', marginBottom: '0.5rem' }} />
-                <h4 style={{ margin: '0 0 0.25rem 0', color: '#1e293b' }}>Terms of Service</h4>
-                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>User rights & responsibilities</p>
+                <h4 style={{ margin: '0 0 0.25rem 0', color: '#1e293b' }}>{t('termsOfService')}</h4>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>{t('termsDesc')}</p>
               </div>
             </Link>
             
             <Link to="/privacy-policy" style={{ textDecoration: 'none' }}>
               <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', textAlign: 'center', cursor: 'pointer', transition: 'transform 0.2s', border: '1px solid #fbbf24' }}>
                 <Lock size={24} style={{ color: '#f59e0b', marginBottom: '0.5rem' }} />
-                <h4 style={{ margin: '0 0 0.25rem 0', color: '#1e293b' }}>Privacy Policy</h4>
-                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>How we protect your data</p>
+                <h4 style={{ margin: '0 0 0.25rem 0', color: '#1e293b' }}>{t('privacyPolicy')}</h4>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>{t('privacyDesc')}</p>
               </div>
             </Link>
             
             <div style={{ background: 'white', padding: '1.25rem', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', textAlign: 'center', border: '1px solid #fbbf24' }}>
               <Shield size={24} style={{ color: '#f59e0b', marginBottom: '0.5rem' }} />
-              <h4 style={{ margin: '0 0 0.25rem 0', color: '#1e293b' }}>Safety Guidelines</h4>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>Stay safe while connecting</p>
+              <h4 style={{ margin: '0 0 0.25rem 0', color: '#1e293b' }}>{t('safetyGuidelines')}</h4>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: '#64748b' }}>{t('safetyDesc')}</p>
             </div>
           </div>
         </div>
@@ -162,71 +164,71 @@ const Help = () => {
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
               <AlertCircle size={28} style={{ color: 'var(--warning)' }} />
-              Troubleshooting Common Issues
+              {t('troubleshooting')}
             </h2>
-            <p style={{ color: '#64748b', margin: '0' }}>Quick fixes for common technical problems</p>
+            <p style={{ color: '#64748b', margin: '0' }}>{t('troubleshootingDesc')}</p>
           </div>
           
           <div style={{ maxWidth: '800px', margin: '0 auto' }}>
             <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
                 <AlertCircle size={20} style={{ color: 'var(--warning)' }} />
-                Can't log in or forgot password?
+                {t('troubleLoginTitle')}
               </h4>
-              <p style={{ margin: '0 0 0.5rem 0', color: '#475569', lineHeight: '1.6' }}>Try these steps:</p>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#475569', lineHeight: '1.6' }}>{t('troubleLoginDesc')}</p>
               <ol style={{ margin: '0', paddingLeft: '1.5rem', color: '#475569', lineHeight: '1.8' }}>
-                <li>Clear your browser cache and cookies</li>
-                <li>Try using incognito/private browsing mode</li>
-                <li>Check if your email is correct (no extra spaces)</li>
-                <li>Use the "Forgot Password" link to reset</li>
-                <li>Contact support if issue persists</li>
+                <li>{t('troubleLoginStep1')}</li>
+                <li>{t('troubleLoginStep2')}</li>
+                <li>{t('troubleLoginStep3')}</li>
+                <li>{t('troubleLoginStep4')}</li>
+                <li>{t('troubleLoginStep5')}</li>
               </ol>
             </div>
             
             <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
                 <AlertCircle size={20} style={{ color: 'var(--warning)' }} />
-                Website not loading or showing errors?
+                {t('troubleLoadingTitle')}
               </h4>
-              <p style={{ margin: '0 0 0.5rem 0', color: '#475569', lineHeight: '1.6' }}>Try these solutions:</p>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#475569', lineHeight: '1.6' }}>{t('troubleLoadingDesc')}</p>
               <ol style={{ margin: '0', paddingLeft: '1.5rem', color: '#475569', lineHeight: '1.8' }}>
-                <li>Refresh the page (Ctrl+F5 or Cmd+Shift+R)</li>
-                <li>Clear browser cache: Settings → Privacy → Clear browsing data</li>
-                <li>Try a different browser (Chrome, Firefox, Edge)</li>
-                <li>Check your internet connection</li>
-                <li>Flush DNS: Open Command Prompt and type "ipconfig /flushdns"</li>
-                <li>Disable browser extensions temporarily</li>
+                <li>{t('troubleLoadingStep1')}</li>
+                <li>{t('troubleLoadingStep2')}</li>
+                <li>{t('troubleLoadingStep3')}</li>
+                <li>{t('troubleLoadingStep4')}</li>
+                <li>{t('troubleLoadingStep5')}</li>
+                <li>{t('troubleLoadingStep6')}</li>
               </ol>
             </div>
             
             <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
                 <AlertCircle size={20} style={{ color: 'var(--warning)' }} />
-                Payment not processing?
+                {t('troublePaymentTitle')}
               </h4>
-              <p style={{ margin: '0 0 0.5rem 0', color: '#475569', lineHeight: '1.6' }}>Common payment issues:</p>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#475569', lineHeight: '1.6' }}>{t('troublePaymentDesc')}</p>
               <ol style={{ margin: '0', paddingLeft: '1.5rem', color: '#475569', lineHeight: '1.8' }}>
-                <li>Verify card details are entered correctly</li>
-                <li>Check if your card has sufficient balance</li>
-                <li>Ensure international transactions are enabled</li>
-                <li>Try a different payment method</li>
-                <li>Contact your bank if payment is declined</li>
-                <li>Wait 5 minutes and retry if gateway timeout occurs</li>
+                <li>{t('troublePaymentStep1')}</li>
+                <li>{t('troublePaymentStep2')}</li>
+                <li>{t('troublePaymentStep3')}</li>
+                <li>{t('troublePaymentStep4')}</li>
+                <li>{t('troublePaymentStep5')}</li>
+                <li>{t('troublePaymentStep6')}</li>
               </ol>
             </div>
             
             <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
                 <AlertCircle size={20} style={{ color: 'var(--warning)' }} />
-                Not receiving emails or notifications?
+                {t('troubleEmailTitle')}
               </h4>
-              <p style={{ margin: '0 0 0.5rem 0', color: '#475569', lineHeight: '1.6' }}>Check these:</p>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#475569', lineHeight: '1.6' }}>{t('troubleEmailDesc')}</p>
               <ol style={{ margin: '0', paddingLeft: '1.5rem', color: '#475569', lineHeight: '1.8' }}>
-                <li>Check your spam/junk folder</li>
-                <li>Add customer-support@festiveguest.com to contacts</li>
-                <li>Verify email address in your profile settings</li>
-                <li>Check notification settings in your account</li>
-                <li>Wait up to 10 minutes for email delivery</li>
+                <li>{t('troubleEmailStep1')}</li>
+                <li>{t('troubleEmailStep2')}</li>
+                <li>{t('troubleEmailStep3')}</li>
+                <li>{t('troubleEmailStep4')}</li>
+                <li>{t('troubleEmailStep5')}</li>
               </ol>
             </div>
           </div>
@@ -237,19 +239,19 @@ const Help = () => {
           <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
             <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0', color: '#9a3412' }}>
               <Users size={28} style={{ color: '#f97316' }} />
-              India-Focused Support
+              {t('indiaSupport')}
             </h2>
-            <p style={{ color: '#78350f', margin: '0' }}>Tailored for Indian users with local language support and compliance</p>
+            <p style={{ color: '#78350f', margin: '0' }}>{t('indiaSupportDesc')}</p>
           </div>
           
           <div style={{ maxWidth: '700px', margin: '0 auto', background: 'white', padding: '1.5rem', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
             <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#475569', lineHeight: '2' }}>
-              <li><strong>Language Support:</strong> English and Hindi support available</li>
-              <li><strong>Payment Methods:</strong> UPI, Net Banking, Cards, and Wallets accepted</li>
-              <li><strong>Compliance:</strong> Adheres to Indian IT Act 2000, Consumer Protection Act 2019, and DPDP Act 2023</li>
-              <li><strong>Local Time Support:</strong> Customer support available during IST business hours (9 AM - 6 PM)</li>
-              <li><strong>GST Compliant:</strong> All transactions include applicable GST as per Indian tax laws</li>
-              <li><strong>Consumer Rights:</strong> Full compliance with Indian consumer protection regulations</li>
+              <li>{t('indiaSupportLang')}</li>
+              <li>{t('indiaSupportPayment')}</li>
+              <li>{t('indiaSupportCompliance')}</li>
+              <li>{t('indiaSupportTime')}</li>
+              <li>{t('indiaSupportGST')}</li>
+              <li>{t('indiaSupportConsumer')}</li>
             </ul>
           </div>
         </div>
@@ -259,11 +261,9 @@ const Help = () => {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
             <AlertCircle size={32} style={{ color: '#dc2626', flexShrink: 0 }} />
             <div>
-              <h3 style={{ margin: '0 0 0.5rem 0', color: '#991b1b' }}>⚠️ Beware of Impersonators</h3>
+              <h3 style={{ margin: '0 0 0.5rem 0', color: '#991b1b' }}>{t('bewareImpersonators')}</h3>
               <p style={{ margin: '0', color: '#7f1d1d', lineHeight: '1.6' }}>
-                <strong>Official Contact Only:</strong> We will NEVER ask for your password, OTP, or banking details via email, WhatsApp, or phone. 
-                Our only official support channels are <strong>customer-support@festiveguest.com</strong> and the WhatsApp number listed above. 
-                Report any suspicious contact claiming to be FestiveGuest support immediately.
+                <strong>{t('officialContactOnly')}:</strong> {t('warningMessage')}
               </p>
             </div>
           </div>
@@ -274,9 +274,9 @@ const Help = () => {
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
               <Send size={28} style={{ color: 'var(--primary)' }} />
-              Send Feedback
+              {t('sendFeedback')}
             </h2>
-            <p style={{ color: '#64748b', margin: '0' }}>Share your thoughts, suggestions, or report issues directly with us</p>
+            <p style={{ color: '#64748b', margin: '0' }}>{t('sendFeedbackDesc')}</p>
           </div>
           
           <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -297,15 +297,15 @@ const Help = () => {
               {sent ? (
                 <div style={{ color: 'var(--success)', textAlign: 'center', padding: '1rem' }}>
                   <CheckCircle size={48} style={{ marginBottom: '1rem', color: '#16a34a' }} />
-                  <h3 style={{ color: '#16a34a', margin: '0 0 0.5rem 0' }}>Feedback Sent Successfully!</h3>
-                  <p style={{ margin: '0', color: '#64748b' }}>Thank you for your feedback. We'll review it and get back to you if needed.</p>
+                  <h3 style={{ color: '#16a34a', margin: '0 0 0.5rem 0' }}>{t('feedbackSent')}</h3>
+                  <p style={{ margin: '0', color: '#64748b' }}>{t('feedbackThanks')}</p>
                 </div>
               ) : (
                 <form onSubmit={handleFeedbackSubmit}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <input
                       type="text"
-                      placeholder="Your Name"
+                      placeholder={t('yourName')}
                       value={feedback.name}
                       onChange={(e) => setFeedback({...feedback, name: e.target.value})}
                       disabled={!!user}
@@ -322,7 +322,7 @@ const Help = () => {
                     />
                     <input
                       type="email"
-                      placeholder="Your Email"
+                      placeholder={t('yourEmail')}
                       value={feedback.email}
                       onChange={(e) => setFeedback({...feedback, email: e.target.value})}
                       disabled={!!user}
@@ -338,7 +338,7 @@ const Help = () => {
                       }}
                     />
                     <textarea
-                      placeholder="Your feedback, suggestions, or issues..."
+                      placeholder={t('yourFeedback')}
                       value={feedback.message}
                       onChange={(e) => {
                         setFeedback({...feedback, message: e.target.value});
@@ -354,7 +354,7 @@ const Help = () => {
                       style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'center', padding: '0.75rem 1.5rem', fontSize: '1rem' }}
                     >
                       <Send size={16} />
-                      {sending ? 'Sending...' : 'Send Feedback'}
+                      {sending ? t('sending') : t('sendFeedback')}
                     </button>
                   </div>
                 </form>
@@ -368,106 +368,106 @@ const Help = () => {
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
               <HelpCircle size={28} style={{ color: 'var(--primary)' }} />
-              Frequently Asked Questions
+              {t('faq')}
             </h2>
-            <p style={{ color: '#64748b', margin: '0' }}>Find answers to common questions about Local Host Connect</p>
+            <p style={{ color: '#64748b', margin: '0' }}>{t('faqDesc')}</p>
           </div>
           
           <div style={{ maxWidth: '800px', margin: '0 auto' }}>
             <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
                 <CheckCircle size={20} style={{ color: 'var(--success)' }} />
-                How do I become a host?
+                {t('faqHowBecomeHost')}
               </h4>
-              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Go to the registration page, select "Local Host", and fill out your profile details including your location, offerings, and bio. Once registered, you can start connecting with travelers looking for authentic local experiences.</p>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>{t('faqHowBecomeHostAnswer')}</p>
             </div>
             
             <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
                 <AlertCircle size={20} style={{ color: 'var(--warning)' }} />
-                Is it free to use?
+                {t('faqIsFree')}
               </h4>
-              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Registration is completely free for both travelers and hosts. You can browse profiles, chat with other users, and arrange local experiences at no cost. Individual arrangements between hosts and travelers may have their own terms.</p>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>{t('faqIsFreeAnswer')}</p>
             </div>
             
             <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
                 <Users size={20} style={{ color: 'var(--primary)' }} />
-                How do I find hosts or travelers?
+                {t('faqHowFindHosts')}
               </h4>
-              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>After logging in, go to your dashboard where you can browse profiles, filter by location, and view detailed information about other users. Use the chat feature to connect and arrange local experiences.</p>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>{t('faqHowFindHostsAnswer')}</p>
             </div>
             
             <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
                 <MessageCircle size={20} style={{ color: 'var(--primary)' }} />
-                How does the referral system work?
+                {t('faqReferralSystem')}
               </h4>
-              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Share your referral code with friends. When they register using your code, both of you get special benefits. Invite 3 friends to unlock Premium features for 1 month including priority support and advanced filters!</p>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>{t('faqReferralSystemAnswer')}</p>
             </div>
             
             <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
                 <AlertCircle size={20} style={{ color: 'var(--warning)' }} />
-                What safety measures should I take?
+                {t('faqSafetyMeasures')}
               </h4>
-              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Always meet in public places first, share your plans with trusted contacts, verify the other person's identity through video calls, keep emergency contacts handy, and trust your instincts. Never share personal financial information or make large advance payments.</p>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>{t('faqSafetyMeasuresAnswer')}</p>
             </div>
             
             <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
                 <AlertCircle size={20} style={{ color: 'var(--warning)' }} />
-                How do I report suspicious behavior?
+                {t('faqReportSuspicious')}
               </h4>
-              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>If you encounter any suspicious behavior, inappropriate messages, or safety concerns, immediately contact our support team via WhatsApp or email. We take all reports seriously and will investigate promptly to ensure community safety.</p>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>{t('faqReportSuspiciousAnswer')}</p>
             </div>
             
             <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
                 <CheckCircle size={20} style={{ color: 'var(--success)' }} />
-                What if I have a dispute with a host/traveler?
+                {t('faqDispute')}
               </h4>
-              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Contact our support team immediately with details of the issue. We'll mediate between both parties to find a fair resolution. Remember, all arrangements are between users - we facilitate introductions but cannot guarantee outcomes.</p>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>{t('faqDisputeAnswer')}</p>
             </div>
             
             <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
                 <AlertCircle size={20} style={{ color: 'var(--warning)' }} />
-                How should I handle payments?
+                {t('faqPayments')}
               </h4>
-              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Use secure payment methods, avoid large advance payments, and consider paying after services are rendered when possible. Never share banking passwords or OTPs. For high-value arrangements, consider meeting in person first to build trust.</p>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>{t('faqPaymentsAnswer')}</p>
             </div>
             
             <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
                 <CheckCircle size={20} style={{ color: 'var(--success)' }} />
-                Can I verify someone's identity?
+                {t('faqVerifyIdentity')}
               </h4>
-              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Yes! We recommend video calls before meeting, checking their profile completeness, reading reviews from other users, and asking for references if needed. Trust your instincts - if something feels off, it's better to be cautious.</p>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>{t('faqVerifyIdentityAnswer')}</p>
             </div>
             
             <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
                 <Users size={20} style={{ color: 'var(--primary)' }} />
-                What types of experiences can I find?
+                {t('faqExperiences')}
               </h4>
-              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Our platform connects you for various travel needs: business travel accommodation, leisure tourism, festival celebrations, educational exchanges, family visits, cultural immersion, local food experiences, and city tours with insider knowledge.</p>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>{t('faqExperiencesAnswer')}</p>
             </div>
             
             <div className="faq-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '0.75rem', marginBottom: '1rem', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
               <h4 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', margin: '0 0 0.75rem 0', color: 'var(--primary)' }}>
                 <CheckCircle size={20} style={{ color: 'var(--success)' }} />
-                Is my information safe?
+                {t('faqInfoSafe')}
               </h4>
-              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>Yes, we take privacy seriously. Your personal information is protected and only shared with users you choose to connect with. We strongly recommend meeting in public places first, sharing your plans with trusted contacts, and taking all necessary safety precautions.</p>
+              <p style={{ margin: '0', color: '#475569', lineHeight: '1.6' }}>{t('faqInfoSafeAnswer')}</p>
             </div>
           </div>
         </div>
 
         {/* Social Media Section */}
         <div style={{ marginTop: '3rem', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', padding: '2rem', borderRadius: 'var(--radius)', textAlign: 'center' }}>
-          <h2 style={{ color: 'white', margin: '0 0 0.5rem 0' }}>Connect With Us</h2>
-          <p style={{ color: 'white', margin: '0 0 1.5rem 0', opacity: 0.9 }}>Follow us on social media for updates, tips, and community stories</p>
+          <h2 style={{ color: 'white', margin: '0 0 0.5rem 0' }}>{t('connectWithUs')}</h2>
+          <p style={{ color: 'white', margin: '0 0 1.5rem 0', opacity: 0.9 }}>{t('socialMediaDesc')}</p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '2rem', flexWrap: 'wrap' }}>
             <a href="https://twitter.com/festiveguest" target="_blank" rel="noopener noreferrer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', color: 'white', textDecoration: 'none', transition: 'transform 0.3s' }}>
               <div style={{ background: 'white', borderRadius: '50%', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

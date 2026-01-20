@@ -92,6 +92,11 @@ body {
   flex-wrap: wrap;
 }
 
+/* Telugu language specific font size */
+.nav-links[data-lang="te"] .nav-item {
+  font-size: 0.75rem;
+}
+
 .menu-toggle {
   display: none;
   background: none;

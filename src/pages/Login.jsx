@@ -3,8 +3,10 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, ArrowRight, Eye, EyeOff, Key } from 'lucide-react';
 import api from '../utils/api';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const Login = ({ setUser }) => {
+  const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -398,7 +400,7 @@ const Login = ({ setUser }) => {
               e.target.style.color = '#667eea';
             }}
           >
-            Create Account
+            {t('createAccount')}
           </button>
         </div>
       </div>

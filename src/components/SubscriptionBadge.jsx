@@ -1,10 +1,13 @@
 import React from 'react';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const SubscriptionBadge = ({ status }) => {
+  const { t } = useLanguage();
+  
   const badges = {
-    free: { text: 'Free', color: '#64748b', bg: '#f1f5f9' },
-    pending: { text: 'Pending', color: '#f59e0b', bg: '#fef3c7' },
-    paid: { text: 'Premium', color: '#10b981', bg: '#dcfce7' }
+    free: { text: t('freeBadge'), color: '#64748b', bg: '#f1f5f9' },
+    pending: { text: t('pendingBadge'), color: '#f59e0b', bg: '#fef3c7' },
+    paid: { text: t('premiumBadge'), color: '#10b981', bg: '#dcfce7' }
   };
   
   const badge = badges[status] || badges.free;

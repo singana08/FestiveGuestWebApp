@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import DisclaimerModal from '../components/DisclaimerModal';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const LandingPage = ({ user }) => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [showDisclaimerModal, setShowDisclaimerModal] = useState(false);
@@ -33,7 +35,7 @@ const LandingPage = ({ user }) => {
   };
 
   const getDashboardText = () => {
-    return 'Go to Posts';
+    return t('goToPosts');
   };
 
   return (
@@ -41,18 +43,18 @@ const LandingPage = ({ user }) => {
       {/* Hero Section */}
       <section className="hero">
         <div className="hero-content">
-          <h1 className="hero-title">Connect with Local Hosts Anywhere</h1>
+          <h1 className="hero-title">{t('connectWithLocalHosts')}</h1>
           <p className="hero-subtitle">
-            Experience authentic local culture and hospitality during your travels
+            {t('experienceAuthentic')}
           </p>
           <div className="hero-buttons">
             {!user ? (
               <>
                 <button className="btn btn-primary" onClick={() => handleRoleSelection('Guest')}>
-                  Join as a Guest
+                  {t('joinAsGuest')}
                 </button>
                 <button className="btn btn-secondary" onClick={() => handleRoleSelection('Host')}>
-                  Join as a Host
+                  {t('joinAsHost')}
                 </button>
               </>
             ) : (
@@ -64,8 +66,8 @@ const LandingPage = ({ user }) => {
         </div>
         <div className="hero-image">
           <div className="festival-card">
-            <h3>🌍 Travel & Connect</h3>
-            <p>Stay with locals, experience culture, make lasting memories</p>
+            <h3>🌍 {t('travelConnect')}</h3>
+            <p>{t('stayWithLocals')}</p>
             <br />
             <p>✈️ Safely explore new places</p>
             <p>🤝 Connect with trusted hosts</p>
@@ -294,10 +296,10 @@ const LandingPage = ({ user }) => {
             {!user ? (
               <>
                 <button className="btn btn-primary" onClick={() => handleRoleSelection('Guest')}>
-                  Join as a Guest
+                  {t('joinAsGuest')}
                 </button>
                 <button className="btn btn-primary" onClick={() => navigate('/login')}>
-                  Already have an account?
+                  {t('alreadyHaveAccount')}
                 </button>
               </>
             ) : (

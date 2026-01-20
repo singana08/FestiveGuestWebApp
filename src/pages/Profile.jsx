@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Edit, X, Upload, Share, Copy, Users, Key, Eye, EyeOff, Crown } from 'lucide-react';
 import api from '../utils/api';
 import ImageWithSas from '../components/ImageWithSas';
-
+import { useLanguage } from '../i18n/LanguageContext';
 import locationService from '../utils/locationService';
 
 function Profile() {
+  const { t } = useLanguage();
   const [user, setUser] = useState(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState('free');
   const [successfulReferrals, setSuccessfulReferrals] = useState(0);
@@ -32,11 +33,11 @@ function Profile() {
   const errorMessageRef = React.useRef(null);
   
   const passwordRequirements = [
-    { label: 'At least 8 characters', test: (pw) => pw.length >= 8 },
-    { label: 'One uppercase letter', test: (pw) => /[A-Z]/.test(pw) },
-    { label: 'One lowercase letter', test: (pw) => /[a-z]/.test(pw) },
-    { label: 'One number', test: (pw) => /\d/.test(pw) },
-    { label: 'One special character', test: (pw) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw) }
+    { label: t('atLeast8Chars'), test: (pw) => pw.length >= 8 },
+    { label: t('oneUppercase'), test: (pw) => /[A-Z]/.test(pw) },
+    { label: t('oneLowercase'), test: (pw) => /[a-z]/.test(pw) },
+    { label: t('oneNumber'), test: (pw) => /\d/.test(pw) },
+    { label: t('oneSpecialChar'), test: (pw) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw) }
   ];
   
   useEffect(() => {
@@ -271,7 +272,7 @@ function Profile() {
 
   if (!user) return (
     <div className="profile-container text-center" style={{ padding: '3rem' }}>
-      <div className="loading">Loading profile...</div>
+      <div className="loading">{t('loadingProfile')}</div>
     </div>
   );
 
@@ -279,9 +280,9 @@ function Profile() {
     <div className="profile-container">
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
         <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
-          👤 My Profile
+          👤 {t('myProfile')}
         </h2>
-        <p style={{ color: '#64748b', margin: '0 0 1rem 0' }}>View your profile information</p>
+        <p style={{ color: '#64748b', margin: '0 0 1rem 0' }}>{t('viewProfileInfo')}</p>
         {(subscriptionStatus === 'paid' || successfulReferrals >= 3) && (
           <button 
             onClick={() => setIsEditingProfile(true)}
@@ -289,12 +290,12 @@ function Profile() {
             style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
           >
             <Edit size={16} />
-            Edit Profile
+            {t('editProfile')}
           </button>
         )}
         {subscriptionStatus !== 'paid' && successfulReferrals < 3 && (
           <p style={{ color: '#f59e0b', fontSize: '0.9rem', marginTop: '0.5rem' }}>
-            ⭐ Upgrade to premium or refer 3 friends to edit your profile ({successfulReferrals}/3 referrals)
+            ⭐ {t('upgradeToPremium')} ({successfulReferrals}/3 {t('referrals')})
           </p>
         )}
       </div>
@@ -314,7 +315,7 @@ function Profile() {
                 onClick={() => setIsEditing(true)}
                 style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}
               >
-                <Edit size={14} /> Edit Photo
+                <Edit size={14} /> {t('editPhoto')}
               </button>
             ) : (
               <>
@@ -323,7 +324,7 @@ function Profile() {
                   className="btn btn-secondary"
                   style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}
                 >
-                  📁 Choose File
+                  📁 {t('chooseFile')}
                 </label>
                 <input 
                   id="file-input"
@@ -338,7 +339,7 @@ function Profile() {
                   disabled={!selectedFile}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}
                 >
-                  <Upload size={14} /> Upload
+                  <Upload size={14} /> {t('upload')}
                 </button>
                 <button 
                   className="btn btn-secondary" 
@@ -349,50 +350,50 @@ function Profile() {
                   }}
                   style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}
                 >
-                  <X size={14} /> Cancel
+                  <X size={14} /> {t('cancel')}
                 </button>
               </>
             )}
           </div>
-          <p style={{ color: '#64748b', fontSize: '0.875rem', textAlign: 'center' }}>Upload a profile photo</p>
+          <p style={{ color: '#64748b', fontSize: '0.875rem', textAlign: 'center' }}>{t('uploadProfilePhoto')}</p>
         </div>
         
         <div className="profile-details">
           <div style={{ display: 'grid', gap: '1rem' }}>
             <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #3b82f6' }}>
               <p style={{ margin: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <strong>📧 Email:</strong> {user.email}
+                <strong>📧 {t('email')}:</strong> {user.email}
               </p>
             </div>
 
             <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #ef4444' }}>
               <p style={{ margin: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <strong>📱 Phone:</strong> {user.phone}
+                <strong>📱 {t('phone')}:</strong> {user.phone}
               </p>
             </div>
 
             <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #6366f1' }}>
               <p style={{ margin: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <strong>📝 Name:</strong> {user.name}
+                <strong>📝 {t('name')}:</strong> {user.name}
               </p>
             </div>
             
             <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #10b981' }}>
               <p style={{ margin: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <strong>🎭 Role:</strong> {user.userType === 'Host' ? '🏠 Host' : '🎉 Guest'}
+                <strong>🎭 {t('role')}:</strong> {user.userType === 'Host' ? `🏠 ${t('host')}` : `🎉 ${t('guest')}`}
               </p>
             </div>
             
             <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #f59e0b' }}>
               <p style={{ margin: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <strong>📍 Location:</strong> {user.location}
+                <strong>📍 {t('location')}:</strong> {user.location}
               </p>
             </div>
 
             <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #ec4899' }}>
               <p style={{ margin: '0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <strong>{user.userType === 'Host' ? '🏠 My Offerings:' : '✨ My Festival Wishes:'}</strong>
-                <span style={{ color: '#475569', fontSize: '0.95rem', lineHeight: '1.5' }}>{user.bio || 'Not specified'}</span>
+                <strong>{user.userType === 'Host' ? `🏠 ${t('myOfferings')}:` : `✨ ${t('myFestivalWishes')}:`}</strong>
+                <span style={{ color: '#475569', fontSize: '0.95rem', lineHeight: '1.5' }}>{user.bio || t('notSpecified')}</span>
               </p>
             </div>
 
@@ -411,7 +412,7 @@ function Profile() {
                   gap: '0.5rem',
                   fontWeight: 'bold'
                 }}>
-                  🗺️ My Hosting Areas:
+                  🗺️ {t('myHostingAreas')}:
                 </p>
                 {user.hostingAreas && user.hostingAreas.length > 0 ? (
                   user.hostingAreas
@@ -441,7 +442,7 @@ function Profile() {
                         fontStyle: 'italic',
                         lineHeight: '1.4'
                       }}>
-                        No hosting areas selected yet. Update your hosting preferences in settings.
+                        {t('noHostingAreas')}
                       </div>
                     )
                 ) : (
@@ -451,7 +452,7 @@ function Profile() {
                     fontStyle: 'italic',
                     lineHeight: '1.4'
                   }}>
-                    No hosting areas selected yet. Update your hosting preferences in settings.
+                    {t('noHostingAreas')}
                   </div>
                 )}
               </div>
@@ -459,7 +460,7 @@ function Profile() {
 
             <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #f59e0b' }}>
               <p style={{ margin: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <strong>🟢 Status:</strong> 
+                <strong>🟢 {t('status')}:</strong> 
                 <span style={{ 
                   padding: '0.25rem 0.75rem', 
                   borderRadius: '1rem', 
@@ -474,7 +475,7 @@ function Profile() {
             
             <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #8b5cf6' }}>
               <p style={{ margin: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <strong>📞 Contact Enabled:</strong> 
+                <strong>📞 {t('contactEnabled')}:</strong> 
                 <span style={{ 
                   padding: '0.25rem 0.75rem', 
                   borderRadius: '1rem', 
@@ -482,7 +483,7 @@ function Profile() {
                   background: user.isVerified ? '#dcfce7' : '#fee2e2',
                   color: user.isVerified ? '#166534' : '#dc2626'
                 }}>
-                  {user.isVerified ? '✓ Yes' : '✗ No'}
+                  {user.isVerified ? `✓ ${t('yes')}` : `✗ ${t('no')}`}
                 </span>
               </p>
             </div>
@@ -494,16 +495,16 @@ function Profile() {
       <div style={{ marginTop: '2rem', background: 'var(--surface)', padding: '2rem', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)', border: '1px solid var(--border)', textAlign: 'center' }}>
         <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
           <Key size={24} style={{ color: 'var(--primary)' }} />
-          Security
+          {t('security')}
         </h3>
-        <p style={{ color: '#64748b', margin: '0 0 1rem 0' }}>Manage your account security</p>
+        <p style={{ color: '#64748b', margin: '0 0 1rem 0' }}>{t('manageAccountSecurity')}</p>
         <button 
           onClick={() => setShowChangePassword(true)}
           className="btn btn-secondary"
           style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
         >
           <Key size={16} />
-          Change Password
+          {t('changePassword')}
         </button>
       </div>
 
@@ -511,10 +512,10 @@ function Profile() {
       <div style={{ marginTop: '2rem', background: 'var(--surface)', padding: '2rem', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)', border: '1px solid var(--border)' }}>
         <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 1rem 0' }}>
           <Crown size={24} style={{ color: subscriptionStatus === 'paid' ? '#f59e0b' : '#64748b' }} />
-          Subscription
+          {t('subscription')}
         </h3>
         <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '1.5rem' }}>
-          Current Status: 
+          {t('currentStatus')}: 
           <span style={{ 
             fontWeight: 'bold', 
             color: subscriptionStatus === 'paid' ? '#10b981' : subscriptionStatus === 'pending' ? '#f59e0b' : '#64748b',
@@ -523,7 +524,7 @@ function Profile() {
             background: subscriptionStatus === 'paid' ? '#dcfce7' : subscriptionStatus === 'pending' ? '#fef3c7' : '#f1f5f9',
             marginLeft: '0.5rem'
           }}>
-            {subscriptionStatus === 'paid' ? '✓ Premium' : subscriptionStatus === 'pending' ? 'Pending Approval' : 'Free'}
+            {subscriptionStatus === 'paid' ? `✓ ${t('premium')}` : subscriptionStatus === 'pending' ? t('pendingApproval') : t('free')}
           </span>
         </p>
 
@@ -535,12 +536,12 @@ function Profile() {
             borderRadius: '0.75rem',
             padding: '1.5rem'
           }}>
-            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem' }}>Free Plan</h4>
+            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem' }}>{t('freePlan')}</h4>
             <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>₹0</div>
-            <div style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1rem' }}>Forever free</div>
+            <div style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1rem' }}>{t('foreverFree')}</div>
             {subscriptionStatus === 'free' && (
               <div style={{ padding: '0.5rem', background: '#f1f5f9', borderRadius: '0.375rem', textAlign: 'center', color: '#64748b', fontWeight: '600', fontSize: '0.9rem' }}>
-                Current Plan
+                {t('currentPlan')}
               </div>
             )}
           </div>
@@ -571,10 +572,10 @@ function Profile() {
             )}
             <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Crown size={20} style={{ color: '#f59e0b' }} />
-              Premium
+              {t('premium')}
             </h4>
             <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>₹{user.userType === 'Host' ? 299 : 199}</div>
-            <div style={{ opacity: 0.8, fontSize: '0.85rem', marginBottom: '1rem' }}>3 months • Non-refundable</div>
+            <div style={{ opacity: 0.8, fontSize: '0.85rem', marginBottom: '1rem' }}>3 {t('months')} • {t('nonRefundable')}</div>
             {subscriptionStatus !== 'paid' && subscriptionStatus !== 'pending' && (
               <button
                 onClick={() => window.open(`https://wa.me/919966888484?text=${encodeURIComponent('I want to upgrade my subscription.')}`, '_blank')}
@@ -590,17 +591,17 @@ function Profile() {
                   cursor: 'pointer'
                 }}
               >
-                Upgrade via WhatsApp
+                {t('upgradeViaWhatsApp')}
               </button>
             )}
             {subscriptionStatus === 'pending' && (
               <div style={{ padding: '0.75rem', background: 'rgba(251, 191, 36, 0.2)', borderRadius: '0.375rem', textAlign: 'center', fontWeight: '600', fontSize: '0.9rem' }}>
-                ⏳ Pending Approval
+                ⏳ {t('pendingApproval')}
               </div>
             )}
             {subscriptionStatus === 'paid' && (
               <div style={{ padding: '0.75rem', background: 'rgba(255, 255, 255, 0.2)', borderRadius: '0.375rem', textAlign: 'center', fontWeight: '600', fontSize: '0.9rem' }}>
-                ✓ You're Premium!
+                ✓ {t('youArePremium')}
               </div>
             )}
           </div>
@@ -611,7 +612,7 @@ function Profile() {
         <div className="modal-overlay" onClick={() => setShowChangePassword(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
             <div className="modal-header">
-              <h3><Key size={20} /> Change Password</h3>
+              <h3><Key size={20} /> {t('changePassword')}</h3>
               <button onClick={() => setShowChangePassword(false)} className="modal-close">×</button>
             </div>
             <div className="modal-body">
@@ -639,7 +640,7 @@ function Profile() {
                 </div>
               )}
               <div className="form-group">
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>Current Password</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>{t('currentPasswordLabel')}</label>
                 <div style={{ position: 'relative' }}>
                   <input
                     type={showCurrentPassword ? 'text' : 'password'}
@@ -648,7 +649,7 @@ function Profile() {
                       setCurrentPassword(e.target.value);
                       setPasswordError('');
                     }}
-                    placeholder="Enter current password"
+                    placeholder={t('enterCurrentPassword')}
                     disabled={passwordSuccessCountdown > 0}
                     style={{ fontSize: '1rem', padding: '0.75rem', width: '100%', paddingRight: '2.5rem', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }}
                   />
@@ -671,7 +672,7 @@ function Profile() {
                 </div>
               </div>
               <div className="form-group">
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>New Password</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>{t('newPasswordLabel')}</label>
                 <div style={{ position: 'relative' }}>
                   <input
                     type={showNewPassword ? 'text' : 'password'}
@@ -680,7 +681,7 @@ function Profile() {
                       setNewPassword(e.target.value);
                       setPasswordError('');
                     }}
-                    placeholder="Enter new password (min 8 characters)"
+                    placeholder={t('enterNewPassword')}
                     disabled={passwordSuccessCountdown > 0}
                     style={{ fontSize: '1rem', padding: '0.75rem', width: '100%', paddingRight: '2.5rem', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }}
                   />
@@ -721,7 +722,7 @@ function Profile() {
                 </div>
               </div>
               <div className="form-group">
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>Confirm New Password</label>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>{t('confirmNewPassword')}</label>
                 <input
                   type="password"
                   value={confirmPassword}
@@ -729,7 +730,7 @@ function Profile() {
                     setConfirmPassword(e.target.value);
                     setPasswordError('');
                   }}
-                  placeholder="Confirm new password"
+                  placeholder={t('confirmNewPasswordPlaceholder')}
                   disabled={passwordSuccessCountdown > 0}
                   style={{ fontSize: '1rem', padding: '0.75rem', width: '100%', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }}
                 />
@@ -747,7 +748,7 @@ function Profile() {
                   disabled={passwordSuccessCountdown > 0}
                   style={{ flex: 1, padding: '0.75rem', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }}
                 >
-                  Cancel
+                  {t('cancel')}
                 </button>
                 <button 
                   onClick={changePassword}
@@ -755,7 +756,7 @@ function Profile() {
                   className="btn btn-primary"
                   style={{ flex: 1, padding: '0.75rem', opacity: (changingPassword || passwordSuccessCountdown > 0) ? 0.5 : 1 }}
                 >
-                  {changingPassword ? 'Changing...' : 'Change Password'}
+                  {changingPassword ? t('changingPassword') : t('changePassword')}
                 </button>
               </div>
             </div>
@@ -768,7 +769,7 @@ function Profile() {
         <div className="modal-overlay" onClick={() => setIsEditingProfile(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
             <div className="modal-header">
-              <h3><Edit size={20} /> Edit Profile</h3>
+              <h3><Edit size={20} /> {t('editProfile')}</h3>
               <button onClick={() => setIsEditingProfile(false)} className="modal-close">×</button>
             </div>
             <div className="modal-body">
@@ -787,7 +788,7 @@ function Profile() {
               )}
               <div className="form-group">
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-                  {user.userType === 'Host' ? '🏠 My Offerings' : '✨ My Festival Wishes'}
+                  {user.userType === 'Host' ? `🏠 ${t('myOfferings')}` : `✨ ${t('myFestivalWishes')}`}
                 </label>
                 <textarea
                   value={editFormData.bio}
@@ -795,7 +796,7 @@ function Profile() {
                     setEditFormData({ ...editFormData, bio: e.target.value });
                     setUpdateError('');
                   }}
-                  placeholder={user.userType === 'Host' ? 'Describe what you offer to guests...' : 'Describe your festival wishes...'}
+                  placeholder={user.userType === 'Host' ? t('describeOfferings') : t('describeFestivalWishes')}
                   rows={4}
                   style={{ fontSize: '1rem', padding: '0.75rem', width: '100%', resize: 'vertical' }}
                 />
@@ -803,7 +804,7 @@ function Profile() {
               {user.userType === 'Host' && (
                 <div className="form-group">
                   <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>
-                    🗺️ Hosting Areas <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 'normal' }}>({editFormData.hostingAreas.length}/5 locations)</span>
+                    🗺️ {t('hostingAreas')} <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight: 'normal' }}>({editFormData.hostingAreas.length}/5 {t('locations')})</span>
                   </label>
                   <div style={{ 
                     maxHeight: '300px', 
@@ -883,7 +884,7 @@ function Profile() {
                   disabled={updatingProfile}
                   style={{ flex: 1, padding: '0.75rem' }}
                 >
-                  Cancel
+                  {t('cancel')}
                 </button>
                 <button 
                   onClick={updateProfile}
@@ -891,7 +892,7 @@ function Profile() {
                   className="btn btn-primary"
                   style={{ flex: 1, padding: '0.75rem', opacity: updatingProfile ? 0.5 : 1 }}
                 >
-                  {updatingProfile ? 'Updating...' : 'Save Changes'}
+                  {updatingProfile ? t('updating') : t('saveChanges')}
                 </button>
               </div>
             </div>

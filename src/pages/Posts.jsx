@@ -4,10 +4,12 @@ import postsService from '../utils/postsService';
 import locationService from '../utils/locationService';
 import ChatWidget from '../components/ChatWidget';
 import api from '../utils/api';
+import { useLanguage } from '../i18n/LanguageContext';
 import '../styles/Posts.css';
 import '../styles/Dashboard.css';
 
 const Posts = () => {
+  const { t } = useLanguage();
   const [posts, setPosts] = useState([]);
   const [filteredPosts, setFilteredPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -298,7 +300,7 @@ const Posts = () => {
           setShowFilters(!showFilters);
         }}
       >
-        <span>Filter by Location {selectedLocations.length > 0 && `(${selectedLocations.length})`}</span>
+        <span>{t('filterByLocation')} {selectedLocations.length > 0 && `(${selectedLocations.length})`}</span>
         {showFilters ? <Minus size={16} /> : <Plus size={16} />}
       </button>
 
@@ -311,7 +313,7 @@ const Posts = () => {
           <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: isDesktop ? 'default' : 'pointer', width: '100%' }} onClick={() => !isDesktop && setShowMobileFilters(!showMobileFilters)}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Filter size={20} style={{ color: 'var(--primary)' }} />
-              {user?.userType === 'Host' ? 'Filter by Hosting Areas' : 'Filter by Location'}
+              {user?.userType === 'Host' ? t('filterByHostingAreas') : t('filterByLocation')}
             </div>
             {!isDesktop && (
               <span style={{ color: 'var(--primary)', fontSize: '1.2rem' }}>
@@ -322,7 +324,7 @@ const Posts = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {selectedLocations.length > 0 && (
               <button onClick={clearFilters} className="clear-filters-btn">
-                Clear ({selectedLocations.length})
+                {t('clear')} ({selectedLocations.length})
               </button>
             )}
           </div>
@@ -361,7 +363,7 @@ const Posts = () => {
               ))
             ) : (
               <div style={{ padding: '1rem', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>
-                No hosting areas configured
+                {t('noHostingAreasConfigured')}
               </div>
             )
           ) : (
@@ -403,14 +405,14 @@ const Posts = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div style={{ flex: '1 1 auto', minWidth: '200px' }}>
           <h1 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>
-            {showMyPosts ? 'My Posts' : (user?.userType === 'Host' ? 'Guest Posts' : 'All Posts')}
+            {showMyPosts ? t('myPosts') : (user?.userType === 'Host' ? t('guestPosts') : t('allPosts'))}
           </h1>
           <p style={{ margin: 0, color: 'var(--text-light)' }}>
             {showMyPosts 
-              ? `Manage your ${user?.userType === 'Host' ? 'host' : 'guest'} posts (${filteredPosts.length} found)`
+              ? `${t('manageYourPosts').replace('{userType}', user?.userType === 'Host' ? t('host') : t('guest'))} (${filteredPosts.length} ${t('found')})`
               : (user?.userType === 'Host' 
-                ? `Browse accommodation requests from guests (${filteredPosts.length} found)` 
-                : `Browse all accommodation posts (${filteredPosts.length} found)`)
+                ? `${t('browseAccommodationRequests')} (${filteredPosts.length} ${t('found')})` 
+                : `${t('browseAllAccommodation')} (${filteredPosts.length} ${t('found')})`)
             }
             {' • '}
             <a 
@@ -418,7 +420,7 @@ const Posts = () => {
               onClick={(e) => { e.preventDefault(); setShowHowItWorks(true); }}
               style={{ color: 'var(--primary)', textDecoration: 'underline', cursor: 'pointer' }}
             >
-              How it works?
+              {t('howItWorks')}
             </a>
           </p>
         </div>
@@ -428,7 +430,7 @@ const Posts = () => {
             className={showMyPosts ? 'btn btn-outline' : 'btn btn-secondary'}
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}
           >
-            {showMyPosts ? 'All Posts' : 'My Posts'}
+            {showMyPosts ? t('allPosts') : t('myPosts')}
           </button>
           {showMyPosts && (
             <button 
@@ -437,7 +439,7 @@ const Posts = () => {
               style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}
             >
               <Plus size={20} />
-              Create Post
+              {t('createPost')}
             </button>
           )}
         </div>
@@ -447,18 +449,18 @@ const Posts = () => {
         {loading ? (
           <div style={{ textAlign: 'center', padding: '2rem' }}>
             <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔄</div>
-            <p>Loading posts...</p>
+            <p>{t('loadingPosts')}</p>
           </div>
         ) : filteredPosts.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem' }}>
             <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📍</div>
             <p>{selectedLocations.length > 0 
-              ? 'No posts found for selected locations. Try selecting different locations or clear filters.' 
-              : 'No posts available at the moment. Check back later for new postings.'}
+              ? t('noPostsForLocation') 
+              : t('noPostsAvailable')}
             </p>
             {selectedLocations.length > 0 && (
               <button onClick={clearFilters} className="btn btn-outline">
-                Clear filters
+                {t('clearFilters')}
               </button>
             )}
           </div>
@@ -540,7 +542,7 @@ const Posts = () => {
                           }}
                         >
                           <Edit size={14} />
-                          Edit
+                          {t('edit')}
                         </button>
                         <button
                           onClick={() => handleDeletePost(post)}
@@ -573,12 +575,12 @@ const Posts = () => {
             </p>
 
             <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b', margin: '0 0 0.5rem 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              {post.userType === 'Host' ? 'Available Locations' : 'Visiting Location'}
+              {post.userType === 'Host' ? t('availableLocations') : t('visitingLocation')}
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem', fontSize: '0.875rem', color: 'var(--text-light)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <MapPin size={16} />
-                {post.location || 'Location not specified'}
+                {post.location || t('locationNotSpecified')}
               </div>
               {post.userType === 'Guest' && (
                 <>
@@ -603,16 +605,16 @@ const Posts = () => {
                   {post.commenceDate && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                       <Calendar size={16} />
-                      Since {new Date(post.commenceDate).toLocaleDateString()}
+                      {t('since')} {new Date(post.commenceDate).toLocaleDateString()}
                     </div>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <Users size={16} />
-                    Up to {post.maxGuests} guest{post.maxGuests !== 1 ? 's' : ''}
+                    {t('upTo')} {post.maxGuests} {post.maxGuests !== 1 ? t('guests') : t('guest')}
                   </div>
                   {post.pricePerNight > 0 && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      ₹{post.pricePerNight}/night
+                      ₹{post.pricePerNight}/{t('night')}
                     </div>
                   )}
                 </>
@@ -621,7 +623,7 @@ const Posts = () => {
 
             {post.facilities && post.facilities.length > 0 && (
               <div style={{ marginBottom: '1rem' }}>
-                <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b', margin: '0 0 0.5rem 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Preferred Facilities</p>
+                <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b', margin: '0 0 0.5rem 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('preferredFacilities')}</p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                   {post.facilities.map(facility => (
                     <span key={facility} style={{
@@ -645,7 +647,7 @@ const Posts = () => {
 
             {post.amenities && post.amenities.length > 0 && (
               <div style={{ marginBottom: '1rem' }}>
-                <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b', margin: '0 0 0.5rem 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Amenities & Services</p>
+                <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b', margin: '0 0 0.5rem 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('amenitiesServices')}</p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                   {post.amenities.map(amenity => (
                     <span key={amenity} style={{
@@ -694,7 +696,7 @@ const Posts = () => {
                   }}
                 >
                   <MessageCircle size={16} />
-                  Contact Guest
+                  {t('contactGuest')}
                 </button>
               </div>
             )}
@@ -727,7 +729,7 @@ const Posts = () => {
                   }}
                 >
                   <MessageCircle size={16} />
-                  {post.userType === 'Host' ? 'Contact Host' : 'Contact Guest'}
+                  {post.userType === 'Host' ? t('contactHost') : t('contactGuest')}
                 </button>
               </div>
             )}
@@ -771,15 +773,15 @@ const Posts = () => {
             <div className="modal-header">
               <h3 style={{ color: '#dc2626', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <Trash2 size={20} />
-                Delete Post
+                {t('deletePost')}
               </h3>
             </div>
             <div className="modal-body">
               <p style={{ margin: '0 0 1rem 0', color: 'var(--text)' }}>
-                Are you sure you want to delete <strong>"{deletingPost.title}"</strong>?
+                {t('areYouSureDelete')} <strong>"{deletingPost.title}"</strong>?
               </p>
               <p style={{ margin: '0', color: 'var(--text-light)', fontSize: '0.875rem' }}>
-                This action cannot be undone.
+                {t('thisActionCannotBeUndone')}
               </p>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', padding: '1rem' }}>
@@ -788,7 +790,7 @@ const Posts = () => {
                 className="btn btn-outline"
                 style={{ minWidth: '80px' }}
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button 
                 onClick={confirmDeletePost}
@@ -800,7 +802,7 @@ const Posts = () => {
                   border: '1px solid #dc2626'
                 }}
               >
-                Delete
+                {t('delete')}
               </button>
             </div>
           </div>
@@ -836,7 +838,7 @@ const Posts = () => {
         <div className="modal-overlay" onClick={() => setShowHowItWorks(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
             <div className="modal-header">
-              <h3>How It Works</h3>
+              <h3>{t('howItWorks')}</h3>
               <button onClick={() => setShowHowItWorks(false)} className="modal-close">×</button>
             </div>
             <div className="modal-body">
@@ -845,29 +847,29 @@ const Posts = () => {
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
                     <div style={{ fontSize: '2rem', flexShrink: 0 }}>1️⃣</div>
                     <div>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Browse Guest Requests</h4>
-                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>View accommodation requests from guests looking for places to stay in your hosting areas.</p>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>{t('browseGuestRequests')}</h4>
+                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>{t('browseGuestRequests')}</p>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
                     <div style={{ fontSize: '2rem', flexShrink: 0 }}>2️⃣</div>
                     <div>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Filter by Location</h4>
-                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>Use the location filter to find guests visiting your area.</p>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>{t('filterByLocation')}</h4>
+                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>{t('filterByLocationDesc')}</p>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
                     <div style={{ fontSize: '2rem', flexShrink: 0 }}>3️⃣</div>
                     <div>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Contact Guests</h4>
-                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>Click "Contact Guest" to start a conversation and offer your hosting services. Use the built-in chat to discuss details, availability, and arrangements.</p>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>{t('contactGuest')}</h4>
+                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>{t('contactGuestsDesc')}</p>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
                     <div style={{ fontSize: '2rem', flexShrink: 0 }}>4️⃣</div>
                     <div>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Create Your Post</h4>
-                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>Switch to "My Posts" to create your own hosting post showcasing your services and amenities.</p>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>{t('createPost')}</h4>
+                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>{t('createYourHostPost')}</p>
                     </div>
                   </div>
                 </div>
@@ -876,29 +878,29 @@ const Posts = () => {
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
                     <div style={{ fontSize: '2rem', flexShrink: 0 }}>1️⃣</div>
                     <div>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Browse All Posts</h4>
-                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>View accommodation posts from both guests and hosts.</p>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>{t('allPosts')}</h4>
+                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>{t('browseAllPostsDesc')}</p>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
                     <div style={{ fontSize: '2rem', flexShrink: 0 }}>2️⃣</div>
                     <div>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Filter by Location</h4>
-                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>Use the location filter to find posts in your desired destination.</p>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>{t('filterByLocation')}</h4>
+                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>{t('filterByLocationGuest')}</p>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
                     <div style={{ fontSize: '2rem', flexShrink: 0 }}>3️⃣</div>
                     <div>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Create Your Post</h4>
-                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>Click "My Posts" then "Create Post" to share your accommodation needs with hosts.</p>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>{t('createPost')}</h4>
+                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>{t('createYourGuestPost')}</p>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
                     <div style={{ fontSize: '2rem', flexShrink: 0 }}>4️⃣</div>
                     <div>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>Manage Your Posts</h4>
-                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>Edit or delete your posts anytime from the "My Posts" section.</p>
+                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>{t('myPosts')}</h4>
+                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>{t('manageYourPostsDesc')}</p>
                     </div>
                   </div>
                 </div>

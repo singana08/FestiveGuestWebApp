@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const DisclaimerModal = ({ isOpen, onClose, selectedRole }) => {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [agreementTimestamp, setAgreementTimestamp] = useState(null);
@@ -46,7 +48,7 @@ const DisclaimerModal = ({ isOpen, onClose, selectedRole }) => {
     <div className="modal-overlay" style={{ zIndex: 9999 }}>
       <div className="modal-content" style={{ maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
         <div className="modal-header" style={{ padding: '1.5rem', flexShrink: 0 }}>
-          <h3 style={{ color: '#1e293b', margin: 0 }}>⚠️ Important Disclaimer - Please Read Carefully</h3>
+          <h3 style={{ color: '#1e293b', margin: 0 }}>{t('importantDisclaimer')}</h3>
         </div>
         
         <div className="modal-body" style={{ padding: '0 1.5rem', overflowY: 'auto', flex: 1 }}>
@@ -76,16 +78,16 @@ const DisclaimerModal = ({ isOpen, onClose, selectedRole }) => {
           }}>
             <div style={{ color: '#92400e', fontSize: '0.95rem', lineHeight: '1.6' }}>
               <p style={{ margin: '0 0 1rem 0', fontWeight: '600' }}>
-                <strong>Local Host Connect</strong> is a platform that connects travelers with local hosts for authentic cultural experiences. By proceeding, you acknowledge and agree that:
+                <strong>Local Host Connect</strong> {t('disclaimerIntro')}
               </p>
               <ul style={{ margin: '0', paddingLeft: '1.5rem' }}>
-                <li style={{ marginBottom: '0.75rem' }}>We are <strong>not responsible</strong> for any incidents, damages, or issues that may occur during your interactions or meetings.</li>
-                <li style={{ marginBottom: '0.75rem' }}>We do <strong>not guarantee</strong> that you will find suitable hosts or guests, as this depends on availability and mutual compatibility.</li>
-                <li style={{ marginBottom: '0.75rem' }}>We act solely as a <strong>platform for introductions</strong> and do not verify the background, intentions, or authenticity of users.</li>
-                <li style={{ marginBottom: '0.75rem' }}>All interactions, arrangements, and meetings are <strong>at your own risk and discretion</strong>.</li>
-                <li style={{ marginBottom: '0.75rem' }}><strong>Payment & Financial Caution:</strong> Hosts may request payment for services. It is entirely your responsibility to decide payment terms. Exercise caution and verify authenticity before any financial transactions.</li>
-                <li style={{ marginBottom: '0.75rem' }}>We <strong>strongly recommend</strong> meeting in public places first and taking necessary safety precautions.</li>
-                <li>By proceeding, you accept <strong>full responsibility</strong> for your safety and interactions.</li>
+                <li style={{ marginBottom: '0.75rem' }}>{t('notResponsible')}</li>
+                <li style={{ marginBottom: '0.75rem' }}>{t('noGuarantee')}</li>
+                <li style={{ marginBottom: '0.75rem' }}>{t('platformOnly')}</li>
+                <li style={{ marginBottom: '0.75rem' }}>{t('ownRisk')}</li>
+                <li style={{ marginBottom: '0.75rem' }}>{t('paymentCaution')}</li>
+                <li style={{ marginBottom: '0.75rem' }}>{t('meetPublic')}</li>
+                <li>{t('fullResponsibility')}</li>
               </ul>
             </div>
           </div>
@@ -119,9 +121,7 @@ const DisclaimerModal = ({ isOpen, onClose, selectedRole }) => {
                 }}
               />
               <span style={{ color: '#0c4a6e', fontWeight: '500' }}>
-                I have read, understood, and agree to the <strong>Important Disclaimer</strong> above. 
-                I acknowledge that I am using this platform at my own risk and accept full responsibility 
-                for my safety and interactions. I also agree to the{' '}
+                {t('iAgree')}{' '}
                 <button 
                   type="button"
                   style={{ 
@@ -135,9 +135,9 @@ const DisclaimerModal = ({ isOpen, onClose, selectedRole }) => {
                   }}
                   onClick={() => window.open('/privacy-policy', '_blank')}
                 >
-                  Privacy Policy
+                  {t('privacyPolicy')}
                 </button>
-                {' '}and{' '}
+                {' '}{t('and')}{' '}
                 <button 
                   type="button"
                   style={{ 
@@ -151,7 +151,7 @@ const DisclaimerModal = ({ isOpen, onClose, selectedRole }) => {
                   }}
                   onClick={() => window.open('/terms-of-service', '_blank')}
                 >
-                  Terms of Service
+                  {t('termsOfService')}
                 </button>.
               </span>
             </label>
@@ -164,7 +164,7 @@ const DisclaimerModal = ({ isOpen, onClose, selectedRole }) => {
             className="btn btn-outline"
             style={{ padding: '0.75rem 1.5rem' }}
           >
-            Cancel
+            {t('cancel')}
           </button>
           <button 
             onClick={handleAccept}
@@ -176,7 +176,7 @@ const DisclaimerModal = ({ isOpen, onClose, selectedRole }) => {
               cursor: !disclaimerAccepted ? 'not-allowed' : 'pointer'
             }}
           >
-            Agree & Continue
+            {t('agreeContinue')}
           </button>
         </div>
       </div>

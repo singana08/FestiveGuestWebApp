@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useLanguage } from '../i18n/LanguageContext';
 
 const PaymentModal = ({ amount, purpose, onComplete, onCancel }) => {
+  const { t } = useLanguage();
   const [transactionId, setTransactionId] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -17,7 +19,7 @@ const PaymentModal = ({ amount, purpose, onComplete, onCancel }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!transactionId.trim()) {
-      alert('Please enter transaction ID');
+      alert(t('enterTransactionIdPlaceholder'));
       return;
     }
 
@@ -25,7 +27,7 @@ const PaymentModal = ({ amount, purpose, onComplete, onCancel }) => {
     try {
       await onComplete(transactionId);
     } catch (error) {
-      alert('Payment verification failed. Please try again.');
+      alert(t('paymentNote'));
     } finally {
       setLoading(false);
     }
@@ -49,67 +51,67 @@ const PaymentModal = ({ amount, purpose, onComplete, onCancel }) => {
       zIndex: 1000
     }}>
       <div className="card" style={{ maxWidth: '400px', margin: '20px', background: 'white' }}>
-        <h3>Payment Required</h3>
-        <p><strong>Purpose:</strong> {purpose}</p>
-        <p><strong>Amount:</strong> ₹{amount}</p>
+        <h3>{t('paymentRequired')}</h3>
+        <p><strong>{t('purpose')}:</strong> {purpose}</p>
+        <p><strong>{t('amount')}:</strong> ₹{amount}</p>
 
         <div className="qr-payment">
-          <h4>Pay via UPI</h4>
+          <h4>{t('payViaUpi')}</h4>
           
           <div className="qr-code">
             <div style={{ textAlign: 'center' }}>
-              <p>QR Code</p>
-              <p style={{ fontSize: '12px' }}>Scan with any UPI app</p>
+              <p>{t('qrCode')}</p>
+              <p style={{ fontSize: '12px' }}>{t('scanUpi')}</p>
             </div>
           </div>
 
-          <p><strong>UPI ID:</strong> {upiId}</p>
+          <p><strong>{t('upiId')}:</strong> {upiId}</p>
           
           <button 
             className="btn btn-primary" 
             onClick={handleUpiClick}
             style={{ width: '100%', marginBottom: '20px' }}
           >
-            Pay with UPI App
+            {t('payWithUpiApp')}
           </button>
 
           <div style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '5px', background: '#f9f9f9', color: '#333' }}>
-            <h4>Manual Payment Instructions:</h4>
+            <h4>{t('manualPaymentInstructions')}</h4>
             <ol style={{ textAlign: 'left', fontSize: '14px', margin: '10px 0', paddingLeft: '20px' }}>
-              <li>Open any UPI app (PhonePe, Google Pay, Paytm, etc.)</li>
-              <li>Send ₹{amount} to UPI ID: <strong>{upiId}</strong></li>
-              <li>Add note: "{purpose}"</li>
-              <li>Complete the payment</li>
-              <li>Enter the transaction ID below</li>
+              <li>{t('openUpiApp')}</li>
+              <li>{t('sendAmount', { amount })}</li>
+              <li>{t('addNote', { purpose })}</li>
+              <li>{t('completePayment')}</li>
+              <li>{t('enterTransactionId')}</li>
             </ol>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} style={{ marginTop: '20px' }}>
           <div className="form-group">
-            <label>UPI Transaction ID</label>
+            <label>{t('upiTransactionId')}</label>
             <input
               type="text"
               className="form-control"
               value={transactionId}
               onChange={(e) => setTransactionId(e.target.value)}
-              placeholder="Enter 12-digit transaction ID"
+              placeholder={t('enterTransactionIdPlaceholder')}
               required
             />
           </div>
 
           <div style={{ display: 'flex', gap: '10px' }}>
             <button type="submit" className="btn btn-primary" disabled={loading}>
-              {loading ? 'Verifying...' : 'Verify Payment'}
+              {loading ? t('verifying') : t('verifyPayment')}
             </button>
             <button type="button" className="btn btn-secondary" onClick={onCancel}>
-              Cancel
+              {t('cancel')}
             </button>
           </div>
         </form>
 
         <div style={{ marginTop: '15px', fontSize: '12px', color: '#666' }}>
-          <p>Note: Payment verification may take a few minutes. You'll be notified once approved by admin.</p>
+          <p>{t('paymentNote')}</p>
         </div>
       </div>
     </div>

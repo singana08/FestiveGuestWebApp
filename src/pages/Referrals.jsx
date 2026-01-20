@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Copy, Share2, Gift, TrendingUp, Clock } from 'lucide-react';
+import { useLanguage } from '../i18n/LanguageContext';
 import api from '../utils/api';
 
 function Referrals() {
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [referralPoints, setReferralPoints] = useState(0);
   const [referralCode, setReferralCode] = useState('');
@@ -34,7 +36,7 @@ function Referrals() {
       setPointsHistory(historyRes.data || []);
     } catch (err) {
       console.error('Failed to fetch referral data:', err);
-      showToast('Failed to load referral data', 'error');
+      showToast(t('failedToLoad'), 'error');
     } finally {
       setLoading(false);
     }
@@ -47,7 +49,7 @@ function Referrals() {
 
   const copyReferralCode = () => {
     navigator.clipboard.writeText(referralCode);
-    showToast('Referral code copied to clipboard!', 'success');
+    showToast(t('codeCopied'), 'success');
   };
 
   const shareViaWhatsApp = () => {
@@ -58,12 +60,12 @@ function Referrals() {
 
   const handleRedeem = async () => {
     if (subscriptionStatus === 'paid') {
-      showToast('You already have an active subscription. Redeem after it expires.', 'error');
+      showToast(t('alreadySubscribed'), 'error');
       return;
     }
     
     if (referralPoints < 500) {
-      showToast('You need 500 points to redeem. Keep referring!', 'error');
+      showToast(t('needPointsToRedeem'), 'error');
       return;
     }
 
@@ -71,13 +73,13 @@ function Referrals() {
     try {
       const res = await api.post('referralpoints/redeem');
       if (res.data.success) {
-        showToast('🎉 Congratulations! Your 3-month premium subscription is now active! Check your Profile page to see your updated subscription status.', 'success');
+        showToast(t('redemptionSuccess'), 'success');
         setShowRedeemModal(false);
         await fetchData();
       }
     } catch (err) {
       const msg = err.response?.data?.message || err.message;
-      showToast('Redemption failed: ' + msg, 'error');
+      showToast(t('redemptionFailed').replace('{error}', msg), 'error');
     } finally {
       setRedeeming(false);
     }
@@ -91,7 +93,7 @@ function Referrals() {
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '3rem' }}>
-        <div className="loading">Loading referral data...</div>
+        <div className="loading">{t('loadingReferralData')}</div>
       </div>
     );
   }
@@ -119,7 +121,7 @@ function Referrals() {
 
       <h1 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.5rem' }}>
         <Gift size={28} style={{ color: '#667eea' }} />
-        Refer & Earn
+        {t('referEarn')}
       </h1>
 
       {/* Points Balance Card */}
@@ -135,7 +137,7 @@ function Referrals() {
           <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>
             {referralPoints} 🎁
           </div>
-          <div style={{ fontSize: '1rem', opacity: 0.9 }}>Your Referral Points</div>
+          <div style={{ fontSize: '1rem', opacity: 0.9 }}>{t('yourReferralPoints')}</div>
         </div>
 
         {/* Two columns: Progress Bar and Referral Code */}
@@ -147,9 +149,9 @@ function Referrals() {
             padding: '0.75rem',
             backdropFilter: 'blur(10px)'
           }}>
-            <div style={{ fontSize: '0.85rem', opacity: 0.9, marginBottom: '0.5rem' }}>Progress to 3 months FREE</div>
+            <div style={{ fontSize: '0.85rem', opacity: 0.9, marginBottom: '0.5rem' }}>{t('progressToFree')}</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-              {referralPoints}/500 points
+              {referralPoints}/500 {t('points')}
             </div>
             <div style={{
               background: 'rgba(255, 255, 255, 0.3)',
@@ -167,7 +169,7 @@ function Referrals() {
               }} />
             </div>
             <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>
-              {referralPoints >= 500 ? '🎉 Ready to redeem!' : `Need ${pointsNeeded} more points (${referralsNeeded} referrals)`}
+              {referralPoints >= 500 ? t('readyToRedeem') : t('needMorePoints').replace('{points}', pointsNeeded).replace('{referrals}', referralsNeeded)}
             </div>
           </div>
 
@@ -178,7 +180,7 @@ function Referrals() {
             padding: '0.75rem',
             backdropFilter: 'blur(10px)'
           }}>
-            <div style={{ fontSize: '0.85rem', opacity: 0.9, marginBottom: '0.5rem' }}>Your Referral Code</div>
+            <div style={{ fontSize: '0.85rem', opacity: 0.9, marginBottom: '0.5rem' }}>{t('yourReferralCode')}</div>
             <div style={{
               fontSize: '1.5rem',
               fontWeight: 'bold',
@@ -207,7 +209,7 @@ function Referrals() {
                 }}
               >
                 <Copy size={14} />
-                Copy
+                {t('copy')}
               </button>
               <button
                 onClick={shareViaWhatsApp}
@@ -228,7 +230,7 @@ function Referrals() {
                 }}
               >
                 <Share2 size={14} />
-                Share
+                {t('share')}
               </button>
             </div>
           </div>
@@ -258,7 +260,7 @@ function Referrals() {
             }}
           >
             <Gift size={18} />
-            Redeem Points
+            {t('redeemPoints')}
           </button>
         )}
       </div>
@@ -281,7 +283,7 @@ function Referrals() {
           <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e293b' }}>
             {successfulReferrals}
           </div>
-          <div style={{ color: '#64748b', fontSize: '0.8rem' }}>Referrals</div>
+          <div style={{ color: '#64748b', fontSize: '0.8rem' }}>{t('referrals')}</div>
         </div>
 
         <div style={{
@@ -295,7 +297,7 @@ function Referrals() {
           <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e293b' }}>
             {referralPoints}
           </div>
-          <div style={{ color: '#64748b', fontSize: '0.8rem' }}>Points</div>
+          <div style={{ color: '#64748b', fontSize: '0.8rem' }}>{t('points')}</div>
         </div>
 
         <div style={{
@@ -309,7 +311,7 @@ function Referrals() {
           <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1e293b' }}>
             ₹{price}
           </div>
-          <div style={{ color: '#64748b', fontSize: '0.8rem' }}>Goal (500 pts)</div>
+          <div style={{ color: '#64748b', fontSize: '0.8rem' }}>{t('goal')}</div>
         </div>
       </div>
 
@@ -324,49 +326,49 @@ function Referrals() {
       }}>
         <h2 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
           <Share2 size={20} />
-          How the Referral Program Works
+          {t('howReferralWorks')}
         </h2>        <div style={{
           background: '#f0fdf4',
           border: '1px solid #16a34a',
           borderRadius: '0.5rem',
           padding: '1rem'
         }}>
-          <h3 style={{ margin: '0 0 0.75rem 0', color: '#15803d', fontSize: '0.95rem' }}>📋 How the Referral Program Works:</h3>
+          <h3 style={{ margin: '0 0 0.75rem 0', color: '#15803d', fontSize: '0.95rem' }}>{t('howItWorksTitle')}</h3>
           <div style={{ color: '#15803d', lineHeight: '1.8', fontSize: '0.85rem' }}>
             <div style={{ marginBottom: '0.75rem', paddingLeft: '1rem', borderLeft: '3px solid #16a34a' }}>
-              <strong>Step 1: Share Your Code</strong>
-              <p style={{ margin: '0.25rem 0 0 0', opacity: 0.9 }}>Copy your unique referral code and share it with friends via WhatsApp, social media, or direct message.</p>
+              <strong>{t('step1Title')}</strong>
+              <p style={{ margin: '0.25rem 0 0 0', opacity: 0.9 }}>{t('step1Desc')}</p>
             </div>
             
             <div style={{ marginBottom: '0.75rem', paddingLeft: '1rem', borderLeft: '3px solid #16a34a' }}>
-              <strong>Step 2: Friend Registers</strong>
-              <p style={{ margin: '0.25rem 0 0 0', opacity: 0.9 }}>Your friend signs up using your referral code during registration.</p>
+              <strong>{t('step2Title')}</strong>
+              <p style={{ margin: '0.25rem 0 0 0', opacity: 0.9 }}>{t('step2Desc')}</p>
             </div>
             
             <div style={{ marginBottom: '0.75rem', paddingLeft: '1rem', borderLeft: '3px solid #16a34a' }}>
-              <strong>Step 3: Friend Subscribes</strong>
-              <p style={{ margin: '0.25rem 0 0 0', opacity: 0.9 }}>When your friend purchases a premium subscription (₹199 for Guests or ₹299 for Hosts), you earn points!</p>
+              <strong>{t('step3Title')}</strong>
+              <p style={{ margin: '0.25rem 0 0 0', opacity: 0.9 }}>{t('step3Desc')}</p>
             </div>
             
             <div style={{ marginBottom: '0.75rem', paddingLeft: '1rem', borderLeft: '3px solid #16a34a' }}>
-              <strong>Step 4: Earn 100 Points</strong>
-              <p style={{ margin: '0.25rem 0 0 0', opacity: 0.9 }}>You receive 100 points for each successful referral. Points are credited instantly after payment verification.</p>
+              <strong>{t('step4Title')}</strong>
+              <p style={{ margin: '0.25rem 0 0 0', opacity: 0.9 }}>{t('step4Desc')}</p>
             </div>
             
             <div style={{ marginBottom: '0.75rem', paddingLeft: '1rem', borderLeft: '3px solid #16a34a' }}>
-              <strong>Step 5: Collect 500 Points</strong>
-              <p style={{ margin: '0.25rem 0 0 0', opacity: 0.9 }}>Accumulate 500 points (5 successful referrals) to unlock your reward.</p>
+              <strong>{t('step5Title')}</strong>
+              <p style={{ margin: '0.25rem 0 0 0', opacity: 0.9 }}>{t('step5Desc')}</p>
             </div>
             
             <div style={{ paddingLeft: '1rem', borderLeft: '3px solid #16a34a' }}>
-              <strong>Step 6: Redeem for 3 Months FREE</strong>
-              <p style={{ margin: '0.25rem 0 0 0', opacity: 0.9 }}>Once you have 500 points, redeem them for 3 months of premium subscription absolutely FREE! (Worth ₹{price})</p>
+              <strong>{t('step6Title')}</strong>
+              <p style={{ margin: '0.25rem 0 0 0', opacity: 0.9 }}>{t('step6Desc').replace('{price}', price)}</p>
             </div>
           </div>
           
           <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'rgba(22, 163, 74, 0.1)', borderRadius: '0.375rem' }}>
             <p style={{ margin: 0, fontSize: '0.8rem', color: '#15803d', fontWeight: '600' }}>
-              💡 <strong>Pro Tip:</strong> Points never expire! Keep referring friends and stack up points for multiple free months.
+              {t('proTip')}
             </p>
           </div>
         </div>
@@ -382,13 +384,13 @@ function Referrals() {
       }}>
         <h2 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem' }}>
           <Clock size={20} />
-          Points History
+          {t('pointsHistory')}
         </h2>
 
         {pointsHistory.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>
             <Users size={40} style={{ opacity: 0.3, marginBottom: '0.5rem' }} />
-            <p style={{ fontSize: '0.9rem', margin: 0 }}>No referral history yet. Start sharing your code!</p>
+            <p style={{ fontSize: '0.9rem', margin: 0 }}>{t('noReferralHistory')}</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -407,10 +409,10 @@ function Referrals() {
               >
                 <div>
                   <div style={{ fontWeight: '600', color: '#1e293b', marginBottom: '0.125rem', fontSize: '0.9rem' }}>
-                    {item.type === 'earned' ? '✓ Earned' : '✗ Redeemed'} {Math.abs(item.points)} points
+                    {item.type === 'earned' ? t('earned') : t('redeemed')} {Math.abs(item.points)} {t('points')}
                   </div>
                   <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                    {item.type === 'earned' ? `Earned 100 points for referring user ${item.referredUserName || item.userName || 'User'}` : (item.description || '3 months subscription activated')}
+                    {item.type === 'earned' ? t('earnedPoints').replace('{user}', item.referredUserName || item.userName || 'User') : (item.description || t('subscriptionActivated'))}
                   </div>
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#64748b', textAlign: 'right' }}>
@@ -453,7 +455,7 @@ function Referrals() {
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 style={{ marginBottom: '1.5rem', color: '#1e293b' }}>Redeem Your Points</h2>
+            <h2 style={{ marginBottom: '1.5rem', color: '#1e293b' }}>{t('redeemYourPoints')}</h2>
 
             <div style={{
               background: '#f8fafc',
@@ -462,7 +464,7 @@ function Referrals() {
               marginBottom: '1.5rem'
             }}>
               <div style={{ marginBottom: '1rem' }}>
-                <div style={{ color: '#64748b', fontSize: '0.9rem' }}>Current Balance</div>
+                <div style={{ color: '#64748b', fontSize: '0.9rem' }}>{t('currentBalance')}</div>
                 <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#667eea' }}>
                   {referralPoints} points
                 </div>
@@ -474,13 +476,13 @@ function Referrals() {
                 marginTop: '1rem'
               }}>
                 <div style={{ fontWeight: '600', color: '#1e293b', marginBottom: '0.5rem' }}>
-                  Redeem for:
+                  {t('redeemFor')}
                 </div>
                 <div style={{ color: '#15803d', marginBottom: '0.25rem' }}>
-                  ✓ 3 Months Premium Subscription
+                  ✓ {t('monthsPremium')}
                 </div>
                 <div style={{ color: '#15803d' }}>
-                  ✓ Worth ₹{price} (3 months for {userType})
+                  ✓ {t('worth').replace('{price}', price).replace('{userType}', userType)}
                 </div>
               </div>
 
@@ -491,9 +493,9 @@ function Referrals() {
                 color: '#64748b',
                 fontSize: '0.9rem'
               }}>
-                <div style={{ fontWeight: '600', marginBottom: '0.5rem' }}>After redemption:</div>
-                <div>• Points: 0</div>
-                <div>• Subscription: Active for 3 months</div>
+                <div style={{ fontWeight: '600', marginBottom: '0.5rem' }}>{t('afterRedemption')}</div>
+                <div>• {t('pointsZero')}</div>
+                <div>• {t('subscriptionActive')}</div>
               </div>
             </div>
 
@@ -510,7 +512,7 @@ function Referrals() {
                   fontWeight: '600'
                 }}
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 onClick={handleRedeem}
@@ -527,7 +529,7 @@ function Referrals() {
                   opacity: redeeming ? 0.5 : 1
                 }}
               >
-                {redeeming ? 'Redeeming...' : 'Confirm Redemption'}
+                {redeeming ? t('redeeming') : t('confirmRedemption')}
               </button>
             </div>
           </div>

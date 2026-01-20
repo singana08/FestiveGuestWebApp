@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import { User, Search, ShieldCheck, Menu, X, LayoutDashboard, HelpCircle, LogOut, Crown } from 'lucide-react';
+import { User, Search, ShieldCheck, Menu, X, LayoutDashboard, HelpCircle, LogOut, Crown, Globe } from 'lucide-react';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
+import { LanguageProvider, useLanguage } from './i18n/LanguageContext';
 import api from './utils/api';
 import Logo from './components/Logo';
 import Loader from './components/Loader';
@@ -51,6 +52,7 @@ const AppContent = () => {
     }
   }, []);
   const { unreadCount, clearUnreadCount } = useNotifications();
+  const { language, toggleLanguage, t } = useLanguage();
   const location = useLocation();
 
   // Sync with localStorage on mount and listen for changes
@@ -141,12 +143,15 @@ const AppContent = () => {
           {menuOpen ? <X size={28} /> : <Menu size={28} />}
         </button>
 
-        <div className={`nav-links ${menuOpen ? 'mobile-open' : ''}`}>
+        <div className={`nav-links ${menuOpen ? 'mobile-open' : ''}`} data-lang={language}>
           {!user ? (
             <>
-              <Link to="/help" className="nav-item" onClick={() => setMenuOpen(false)}><HelpCircle size={20} /> Help</Link>
-              <Link to="/login" className="nav-item" onClick={() => setMenuOpen(false)}>Login</Link>
-              <Link to="/?register=true" className="nav-item btn btn-primary" style={{ color: 'white', padding: '0.5rem 1rem' }} onClick={() => setMenuOpen(false)}>Register</Link>
+              <Link to="/help" className="nav-item" onClick={() => setMenuOpen(false)}><HelpCircle size={20} /> {t('help')}</Link>
+              <Link to="/login" className="nav-item" onClick={() => setMenuOpen(false)}>{t('login')}</Link>
+              <Link to="/?register=true" className="nav-item btn btn-primary" style={{ color: 'white', padding: '0.5rem 1rem' }} onClick={() => setMenuOpen(false)}>{t('register')}</Link>
+              <button onClick={toggleLanguage} className="nav-item" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Globe size={20} /> {language === 'en' ? 'తెలుగు' : 'English'}
+              </button>
             </>
           ) : (
             <>
@@ -156,23 +161,26 @@ const AppContent = () => {
                 </span>
               </div>
               <Link to={getDashboardRoute(user)} className={`nav-item ${isActivePage('/dashboard') ? 'active' : ''}`} onClick={() => setMenuOpen(false)} style={{ display: 'none' }}><LayoutDashboard size={20} /> Dashboard</Link>
-              <Link to="/posts" className={`nav-item ${isActivePage('/posts') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}>📝 Posts</Link>
+              <Link to="/posts" className={`nav-item ${isActivePage('/posts') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}>📝 {t('posts')}</Link>
               <Link to="/chats" className={`nav-item chat-nav-item ${isActivePage('/chats') ? 'active' : ''}`} onClick={handleChatsClick}>
-                💬 Chats
+                💬 {t('chats')}
                 {unreadCount > 0 && (
                   <span className={`unread-badge ${unreadCount > 9 ? 'large-count' : ''}`}>
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
               </Link>
-              <Link to="/profile" className={`nav-item ${isActivePage('/profile') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><User size={20} /> Profile</Link>
+              <Link to="/profile" className={`nav-item ${isActivePage('/profile') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><User size={20} /> {t('profile')}</Link>
               <Link to="/referrals" className={`nav-item ${isActivePage('/referrals') ? 'active' : ''}`} onClick={() => setMenuOpen(false)} style={{ position: 'relative' }}>
-                🎁 Refer & Earn
+                🎁 {t('referEarnNav')}
               </Link>
-              <Link to="/help" className={`nav-item ${isActivePage('/help') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><HelpCircle size={20} /> Help</Link>
+              <Link to="/help" className={`nav-item ${isActivePage('/help') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><HelpCircle size={20} /> {t('help')}</Link>
               {(user.role === 'Admin' || user.userType === 'Admin') && <Link to="/admin" className={`nav-item ${isActivePage('/admin') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><ShieldCheck size={20} /> Admin</Link>}
+              <button onClick={toggleLanguage} className="nav-item" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Globe size={20} /> {language === 'en' ? 'తెలుగు' : 'English'}
+              </button>
               <button onClick={handleLogout} className="nav-item logout-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <LogOut size={20} /> Logout
+                <LogOut size={20} /> {t('logout')}
               </button>
             </>
           )}
@@ -247,7 +255,7 @@ const AppContent = () => {
                 className="btn btn-outline"
                 style={{ minWidth: '80px' }}
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button 
                 onClick={confirmLogout}
@@ -259,7 +267,7 @@ const AppContent = () => {
                   border: '1px solid #dc2626'
                 }}
               >
-                Logout
+                {t('logout')}
               </button>
             </div>
           </div>
@@ -273,7 +281,9 @@ function App() {
   return (
     <Router>
       <NotificationProvider>
-        <AppContent />
+        <LanguageProvider>
+          <AppContent />
+        </LanguageProvider>
       </NotificationProvider>
     </Router>
   );
