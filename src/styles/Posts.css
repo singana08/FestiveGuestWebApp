@@ -108,7 +108,7 @@
 .modal-header h3 {
   margin: 0;
   color: var(--text);
-  font-size: 1.25rem;
+  font-size: 1rem;
 }
 
 .modal-body {
@@ -166,6 +166,18 @@
   transition: all 0.3s ease;
 }
 
+.post-card h3 {
+  font-size: 1rem !important;
+}
+
+.post-card p {
+  font-size: 0.8rem !important;
+}
+
+.post-card > div {
+  font-size: 0.8rem !important;
+}
+
 .post-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -208,14 +220,14 @@
 
 .modal-title-section h2 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
 }
 
 .modal-title-section p {
   margin: 0.25rem 0 0 0;
   opacity: 0.9;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 .modal-close-modern {
@@ -264,7 +276,7 @@
   gap: 0.25rem;
   font-weight: 600;
   color: #374151;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
 }
 
 .required-star {
@@ -272,10 +284,10 @@
 }
 
 .modern-input, .modern-textarea {
-  padding: 1rem;
+  padding: 0.75rem;
   border: 2px solid #e5e7eb;
   border-radius: 12px;
-  font-size: 1rem;
+  font-size: 0.875rem;
   transition: all 0.3s ease;
   background: #f9fafb;
 }
@@ -335,9 +347,9 @@
   border: none;
   background: none;
   text-align: center;
-  font-size: 1rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  padding: 1rem 0.5rem;
+  padding: 0.75rem 0.5rem;
   flex: 1;
   outline: none;
 }
@@ -353,12 +365,12 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.75rem;
   border: 2px solid #e5e7eb;
   border-radius: 8px;
   background: white;
   color: #6b7280;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -505,12 +517,12 @@
 }
 
 .state-filter-btn {
-  padding: 0.75rem 1.25rem;
+  padding: 0.5rem 1rem;
   border: 2px solid #e5e7eb;
   border-radius: 8px;
   background: white;
   color: #374151;
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -541,12 +553,12 @@
 }
 
 .city-filter-btn {
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 0.75rem;
   border: 2px solid #e5e7eb;
   border-radius: 6px;
   background: white;
   color: #374151;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -584,25 +596,102 @@
   }
   
   .container h1 {
-    font-size: 1.5rem !important;
+    font-size: 1.25rem !important;
   }
   
   .container p {
-    font-size: 0.9rem !important;
+    font-size: 0.8rem !important;
   }
 }
 
 @media (max-width: 480px) {
   .container h1 {
-    font-size: 1.25rem !important;
+    font-size: 1.1rem !important;
   }
   
   .container p {
-    font-size: 0.85rem !important;
+    font-size: 0.75rem !important;
   }
   
   .btn {
     font-size: 0.875rem !important;
     padding: 0.625rem 1rem !important;
   }
+}
+
+/* Posts Page Header Adjustments */
+.browse-main .container > div:first-child {
+  margin-bottom: 1rem !important;
+}
+
+.browse-main .container h1 {
+  font-size: 1.5rem !important;
+  margin: 0 0 0.25rem 0 !important;
+}
+
+.browse-main .container p {
+  font-size: 0.85rem !important;
+}
+
+.browse-layout {
+  padding-top: 1rem !important;
+}
+
+.browse-main .container {
+  padding-top: 0.5rem !important;
+}
+
+.browse-main .container .btn {
+  padding: 0.5rem 1rem !important;
+  font-size: 0.85rem !important;
+}
+
+.browse-main .container .btn-secondary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark)) !important;
+  color: white !important;
+  border: 1px solid transparent !important;
+}
+
+.browse-main .container .btn-secondary:hover {
+  background: linear-gradient(135deg, var(--primary-dark), #3730a3) !important;
+}
+
+/* Post card size reduction for laptop/desktop only */
+@media (min-width: 769px) {
+  .post-card {
+    padding: 1rem !important;
+  }
+  
+  .post-card h3 {
+    font-size: 0.95rem !important;
+  }
+  
+  .post-card p {
+    font-size: 0.75rem !important;
+  }
+  
+  .post-card > div {
+    font-size: 0.75rem !important;
+  }
+  
+  .posts-grid {
+    gap: 1rem !important;
+  }
+}
+
+.browse-main .container > div:first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+.browse-layout {
+  padding-top: 0.5rem !important;
+}
+
+.browse-main {
+  padding-top: 0 !important;
+}
+
+html {
+  overflow-y: scroll !important;
 }

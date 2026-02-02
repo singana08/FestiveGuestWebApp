@@ -79,27 +79,37 @@ const LandingPage = ({ user }) => {
       {/* Features Section */}
       <section className="features">
         <div className="container">
-          <h2>Why Choose Local Host Connect?</h2>
+          <h2>{t('whyChooseTitle')}</h2>
           <div className="features-grid">
             <div className="feature-card">
-              <div className="feature-icon">🏠</div>
-              <h3>Local Accommodation</h3>
-              <p>Stay with friendly hosts who provide comfortable accommodation and local insights</p>
+              <div className="feature-icon">🏷️</div>
+              <h3>{t('purposeBasedStays')}</h3>
+              <p>{t('purposeBasedStaysDesc')}</p>
             </div>
             <div className="feature-card">
-              <div className="feature-icon">🗺️</div>
-              <h3>Local Experiences</h3>
-              <p>Discover hidden gems, local attractions, and authentic experiences with insider knowledge</p>
+              <div className="feature-icon">🆕</div>
+              <h3>{t('firstTimeIndicator')}</h3>
+              <p>{t('firstTimeIndicatorDesc')}</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon">🤝</div>
-              <h3>Cultural Exchange</h3>
-              <p>Connect with locals and fellow travellers, learn about local customs and traditions</p>
+              <h3>{t('hostComfortPrefs')}</h3>
+              <p>{t('hostComfortPrefsDesc')}</p>
+            </div>
+            <div className="feature-card">
+              <div className="feature-icon">🗣️</div>
+              <h3>{t('languageComfort')}</h3>
+              <p>{t('languageComfortDesc')}</p>
+            </div>
+            <div className="feature-card">
+              <div className="feature-icon">🚨</div>
+              <h3>{t('emergencyStays')}</h3>
+              <p>{t('emergencyStaysDesc')}</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon">🍽️</div>
-              <h3>Authentic Cuisine</h3>
-              <p>Enjoy homemade local food and discover regional specialties you won't find in restaurants</p>
+              <h3>{t('authenticCuisine')}</h3>
+              <p>{t('authenticCuisineDesc')}</p>
             </div>
           </div>
         </div>
@@ -108,38 +118,60 @@ const LandingPage = ({ user }) => {
       {/* Travel Types Section */}
       <section className="testimonials">
         <div className="container">
-          <h2>Perfect for Every Type of Travel</h2>
+          <h2>{t('perfectForTitle')}</h2>
           <div className="travel-types-grid">
             <div className="travel-card">
               <div className="feature-icon">💼</div>
-              <h3>Business & Work</h3>
-              <p>Comfortable stays for work trips with local networking opportunities</p>
+              <h3>{t('businessWork')}</h3>
+              <p>{t('businessWorkDesc')}</p>
             </div>
             <div className="travel-card">
-              <div className="feature-icon">🎒</div>
-              <h3>Adventure & Leisure</h3>
-              <p>Explore new destinations with insider tips from local hosts</p>
+              <div className="feature-icon">🏥</div>
+              <h3>{t('adventureLeisure')}</h3>
+              <p>{t('adventureLeisureDesc')}</p>
             </div>
             <div className="travel-card">
               <div className="feature-icon">🎉</div>
-              <h3>Festivals & Events</h3>
-              <p>Experience authentic celebrations during Diwali, Pongal, and local festivals</p>
+              <h3>{t('festivalsEvents')}</h3>
+              <p>{t('festivalsEventsDesc')}</p>
             </div>
             <div className="travel-card">
               <div className="feature-icon">🎓</div>
-              <h3>Education & Research</h3>
-              <p>Perfect for students, researchers, and cultural learning experiences</p>
+              <h3>{t('educationResearch')}</h3>
+              <p>{t('educationResearchDesc')}</p>
             </div>
             <div className="travel-card">
-              <div className="feature-icon">👨‍👩‍👧‍👦</div>
-              <h3>Family Visits</h3>
-              <p>Extended family stays and reunions in different cities</p>
+              <div className="feature-icon">📊</div>
+              <h3>{t('familyVisits')}</h3>
+              <p>{t('familyVisitsDesc')}</p>
             </div>
             <div className="travel-card">
-              <div className="feature-icon">🌍</div>
-              <h3>Cultural Exchange</h3>
-              <p>Immerse yourself in local traditions and make lasting connections</p>
+              <div className="feature-icon">⚡</div>
+              <h3>{t('culturalExchange')}</h3>
+              <p>{t('culturalExchangeDesc')}</p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Who Is This For Section */}
+      <section className="features">
+        <div className="container">
+          <h2>{t('whoIsThisForTitle')}</h2>
+          <p style={{ textAlign: 'center', fontSize: '1.1rem', marginBottom: '2rem', maxWidth: '800px', margin: '0 auto 2rem' }}>
+            {t('whoIsThisForBody')}
+          </p>
+          <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'left' }}>
+            <p style={{ fontSize: '1.05rem', marginBottom: '1rem', fontWeight: '500' }}>{t('whoIsThisForIntro')}</p>
+            <ul style={{ fontSize: '1rem', lineHeight: '1.8', marginBottom: '1.5rem', paddingLeft: '1.5rem' }}>
+              <li>{t('whoIsThisForPoint1')}</li>
+              <li>{t('whoIsThisForPoint2')}</li>
+              <li>{t('whoIsThisForPoint3')}</li>
+              <li>{t('whoIsThisForPoint4')}</li>
+            </ul>
+            <p style={{ fontSize: '1.05rem', fontStyle: 'italic', textAlign: 'center', marginTop: '1.5rem' }}>
+              {t('whoIsThisForClosing')}
+            </p>
           </div>
         </div>
       </section>
@@ -147,22 +179,22 @@ const LandingPage = ({ user }) => {
       {/* How It Works */}
       <section className="how-it-works">
         <div className="container">
-          <h2>How It Works</h2>
+          <h2>{t('howItWorksTitle')}</h2>
           <div className="steps">
             <div className="step">
               <div className="step-number">1</div>
-              <h3>Register</h3>
-              <p>Sign up as a Guest or Host for free</p>
+              <h3>{t('howItWorksStep1')}</h3>
+              <p>{t('howItWorksStep1Desc')}</p>
             </div>
             <div className="step">
               <div className="step-number">2</div>
-              <h3>Connect</h3>
-              <p>Browse profiles and connect with hosts/guests in your destination</p>
+              <h3>{t('howItWorksStep2')}</h3>
+              <p>{t('howItWorksStep2Desc')}</p>
             </div>
             <div className="step">
               <div className="step-number">3</div>
-              <h3>Experience</h3>
-              <p>Enjoy authentic local experiences and create lasting memories</p>
+              <h3>{t('howItWorksStep3')}</h3>
+              <p>{t('howItWorksStep3Desc')}</p>
             </div>
           </div>
         </div>
@@ -171,24 +203,45 @@ const LandingPage = ({ user }) => {
       {/* Testimonials */}
       <section className="testimonials">
         <div className="container">
-          <h2>What Our Users Say</h2>
+          <h2>{t('testimonialsTitle')}</h2>
           <div className="testimonials-compact-grid">
             <div className="testimonial-compact">
-              <p>"Amazing experience staying with a local family in Rajahmundry! They showed me places I never would have found on my own."</p>
-              <div className="testimonial-author">- Priya, Hyderabad</div>
+              <p>{t('testimonial1')}</p>
+              <div className="testimonial-author">{t('testimonial1Author')}</div>
             </div>
             <div className="testimonial-compact">
-              <p>"Hosting travellers has been so rewarding. I've made friends from all over India and learned so much about different cultures."</p>
-              <div className="testimonial-author">- Ravi, Kakinada</div>
+              <p>{t('testimonial2')}</p>
+              <div className="testimonial-author">{t('testimonial2Author')}</div>
             </div>
             <div className="testimonial-compact">
-              <p>"Perfect for my business trips to Chennai. My host helped me navigate the city and even introduced me to local business contacts."</p>
-              <div className="testimonial-author">- Amit, Mumbai</div>
+              <p>{t('testimonial3')}</p>
+              <div className="testimonial-author">{t('testimonial3Author')}</div>
             </div>
             <div className="testimonial-compact">
-              <p>"As a student researching folk traditions, staying with local families gave me insights no textbook could provide."</p>
-              <div className="testimonial-author">- Meera, Delhi</div>
+              <p>{t('testimonial4')}</p>
+              <div className="testimonial-author">{t('testimonial4Author')}</div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Real Life Story Section */}
+      <section className="how-it-works">
+        <div className="container">
+          <h2>{t('realLifeStoryTitle')}</h2>
+          <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
+            <p style={{ fontSize: '1.05rem', lineHeight: '1.8', marginBottom: '1rem' }}>
+              {t('realLifeStoryPara1')}
+            </p>
+            <p style={{ fontSize: '1.05rem', lineHeight: '1.8', marginBottom: '1rem' }}>
+              {t('realLifeStoryPara2')}
+            </p>
+            <p style={{ fontSize: '1.05rem', lineHeight: '1.8', marginBottom: '1rem', fontWeight: '500' }}>
+              {t('realLifeStoryPara3')}
+            </p>
+            <p style={{ fontSize: '1.1rem', fontStyle: 'italic', marginTop: '1.5rem', fontWeight: '500' }}>
+              {t('realLifeStoryClosing')}
+            </p>
           </div>
         </div>
       </section>
@@ -196,28 +249,43 @@ const LandingPage = ({ user }) => {
       {/* Safety & Trust Section */}
       <section className="features">
         <div className="container">
-          <h2>Your Safety & Trust is Our Priority</h2>
+          <h2>{t('safetyTrustTitle')}</h2>
           <div className="features-grid">
             <div className="feature-card">
               <div className="feature-icon">📝</div>
-              <h3>Profile Registration</h3>
-              <p>All users create detailed profiles with personal information for transparency and trust</p>
+              <h3>{t('shareYourPlans')}</h3>
+              <p>{t('shareYourPlansDesc')}</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon">⭐</div>
-              <h3>Review System</h3>
-              <p>Read genuine reviews from previous guests and hosts to make informed decisions</p>
+              <h3>{t('meetPublicFirst')}</h3>
+              <p>{t('meetPublicFirstDesc')}</p>
             </div>
             <div className="feature-card">
               <div className="feature-icon">💬</div>
-              <h3>Secure Messaging</h3>
-              <p>Connect with hosts and guests through our secure in-app messaging system</p>
+              <h3>{t('videoCallBefore')}</h3>
+              <p>{t('videoCallBeforeDesc')}</p>
             </div>
             <div className="feature-card">
-              <div className="feature-icon">🆘</div>
-              <h3>24/7 Support</h3>
-              <p>Our support team is available round the clock to help with any issues or concerns</p>
+              <div className="feature-icon">🤝</div>
+              <h3>{t('keepEmergencyContacts')}</h3>
+              <p>{t('keepEmergencyContactsDesc')}</p>
             </div>
+            <div className="feature-card">
+              <div className="feature-icon">✅</div>
+              <h3>{t('trustInstincts')}</h3>
+              <p>{t('trustInstinctsDesc')}</p>
+            </div>
+            <div className="feature-card">
+              <div className="feature-icon">🔒</div>
+              <h3>{t('securePayment')}</h3>
+              <p>{t('securePaymentDesc')}</p>
+            </div>
+          </div>
+          <div style={{ maxWidth: '800px', margin: '3rem auto 0', textAlign: 'center', padding: '1.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: '8px' }}>
+            <p style={{ fontSize: '1.05rem', lineHeight: '1.8', fontStyle: 'italic' }}>
+              {t('dignityStatement')}
+            </p>
           </div>
         </div>
       </section>
@@ -227,23 +295,67 @@ const LandingPage = ({ user }) => {
       {/* Host Benefits */}
       <section className="how-it-works">
         <div className="container">
-          <h2>Benefits of Becoming a Host</h2>
+          <h2>{t('hostBenefitsTitle')}</h2>
           <div className="steps">
             <div className="step">
-              <div className="step-number">💰</div>
-              <h3>Earn Extra Income</h3>
-              <p>Generate additional revenue by hosting travelers in your spare room</p>
+              <div className="step-number">🤝</div>
+              <h3>{t('earnIncome')}</h3>
+              <p>{t('earnIncomeDesc')}</p>
             </div>
             <div className="step">
-              <div className="step-number">🌍</div>
-              <h3>Meet New People</h3>
-              <p>Connect with travellers from different cultures and backgrounds</p>
+              <div className="step-number">🧭</div>
+              <h3>{t('meetPeople')}</h3>
+              <p>{t('meetPeopleDesc')}</p>
             </div>
             <div className="step">
-              <div className="step-number">🏠</div>
-              <h3>Share Your Culture</h3>
-              <p>Showcase your local traditions, food, and hidden gems to visitors</p>
+              <div className="step-number">🌐</div>
+              <h3>{t('shareCulture')}</h3>
+              <p>{t('shareCultureDesc')}</p>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Host Eligibility Section */}
+      <section className="features">
+        <div className="container">
+          <h2>{t('hostEligibilityTitle')}</h2>
+          <p style={{ textAlign: 'center', fontSize: '1.1rem', marginBottom: '2rem', maxWidth: '800px', margin: '0 auto 2rem' }}>
+            {t('hostEligibilityIntro')}
+          </p>
+          <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'left' }}>
+            <p style={{ fontSize: '1.05rem', marginBottom: '1rem', fontWeight: '500' }}>{t('hostEligibilitySubtitle')}</p>
+            <ul style={{ fontSize: '1rem', lineHeight: '1.8', marginBottom: '1.5rem', paddingLeft: '1.5rem' }}>
+              <li>{t('hostEligibilityPoint1')}</li>
+              <li>{t('hostEligibilityPoint2')}</li>
+              <li>{t('hostEligibilityPoint3')}</li>
+            </ul>
+            <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+              <p style={{ fontSize: '1.05rem', lineHeight: '1.8' }}>{t('hostEligibilityClosing1')}</p>
+              <p style={{ fontSize: '1.05rem', lineHeight: '1.8' }}>{t('hostEligibilityClosing2')}</p>
+              <p style={{ fontSize: '1.05rem', lineHeight: '1.8', fontWeight: '500' }}>{t('hostEligibilityClosing3')}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* How Hosts Earn Section */}
+      <section className="how-it-works">
+        <div className="container">
+          <h2>{t('howHostsEarnTitle')}</h2>
+          <div style={{ maxWidth: '700px', margin: '0 auto', textAlign: 'center' }}>
+            <p style={{ fontSize: '1.05rem', lineHeight: '1.8', marginBottom: '1rem' }}>
+              {t('howHostsEarnPara1')}
+            </p>
+            <p style={{ fontSize: '1.05rem', lineHeight: '1.8', marginBottom: '1.5rem' }}>
+              {t('howHostsEarnPara2')}
+            </p>
+            <p style={{ fontSize: '1.05rem', lineHeight: '1.8' }}>{t('howHostsEarnPara3')}</p>
+            <p style={{ fontSize: '1.05rem', lineHeight: '1.8' }}>{t('howHostsEarnPara4')}</p>
+            <p style={{ fontSize: '1.05rem', lineHeight: '1.8', marginBottom: '1.5rem' }}>{t('howHostsEarnPara5')}</p>
+            <p style={{ fontSize: '1.1rem', fontStyle: 'italic', fontWeight: '500' }}>
+              {t('howHostsEarnClosing')}
+            </p>
           </div>
         </div>
       </section>
@@ -290,13 +402,16 @@ const LandingPage = ({ user }) => {
       {/* CTA Section */}
       <section className="cta">
         <div className="container">
-          <h2>Ready to Start Your Travel Journey?</h2>
-          <p>Join thousands of travellers and hosts connecting across India</p>
+          <h2>{t('ctaTitle')}</h2>
+          <p>{t('ctaSubtitle')}</p>
+          <p style={{ fontSize: '1.1rem', fontStyle: 'italic', marginTop: '1rem', marginBottom: '2rem' }}>
+            {t('ctaIntentText')}
+          </p>
           <div className="cta-buttons">
             {!user ? (
               <>
                 <button className="btn btn-primary" onClick={() => handleRoleSelection('Guest')}>
-                  {t('joinAsGuest')}
+                  {t('findHomeNewCity')}
                 </button>
                 <button className="btn btn-primary" onClick={() => navigate('/login')}>
                   {t('alreadyHaveAccount')}

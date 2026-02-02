@@ -375,7 +375,7 @@
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 0.9rem;
+  font-size: 0.7rem;
   font-weight: 500;
   cursor: pointer;
   margin-bottom: 1rem;
@@ -418,4 +418,12 @@
   .filter-header {
     gap: 0;
   }
+}
+
+.location-sidebar {
+  margin-bottom: 0.5rem !important;
+}
+
+.mobile-filter-toggle {
+  margin-bottom: 0.5rem !important;
 }

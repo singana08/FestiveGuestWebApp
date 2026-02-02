@@ -4317,3 +4317,70 @@ body {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* Telugu Language Font Size Adjustments */
+body[lang="te"] {
+  font-size: 0.9rem;
+}
+
+body[lang="te"] .btn {
+  font-size: 0.85rem;
+  padding: 0.65rem 1.3rem;
+}
+
+body[lang="te"] .nav-item {
+  font-size: 0.8rem;
+}
+
+body[lang="te"] h1 {
+  font-size: 2rem;
+}
+
+body[lang="te"] h2 {
+  font-size: 1.6rem;
+}
+
+body[lang="te"] h3 {
+  font-size: 1.3rem;
+}
+
+body[lang="te"] .hero-title {
+  font-size: 2.8rem;
+  line-height: 1.3;
+}
+
+body[lang="te"] .hero-subtitle {
+  font-size: 1.3rem;
+}
+
+body[lang="te"] .feature-card h3,
+body[lang="te"] .travel-card h3,
+body[lang="te"] .safety-card h3 {
+  font-size: 0.9rem;
+}
+
+body[lang="te"] .feature-card p,
+body[lang="te"] .travel-card p,
+body[lang="te"] .safety-card p {
+  font-size: 0.8rem;
+}
+
+body[lang="te"] .host-card h3,
+body[lang="te"] .compact-card-title {
+  font-size: 0.95rem;
+}
+
+body[lang="te"] .host-location,
+body[lang="te"] .compact-card-location {
+  font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+  body[lang="te"] .hero-title {
+    font-size: 2rem;
+  }
+  
+  body[lang="te"] .hero-subtitle {
+    font-size: 1.1rem;
+  }
+}

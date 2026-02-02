@@ -55,6 +55,11 @@ const AppContent = () => {
   const { language, toggleLanguage, t } = useLanguage();
   const location = useLocation();
 
+  // Set lang attribute on body element
+  useEffect(() => {
+    document.body.setAttribute('lang', language);
+  }, [language]);
+
   // Sync with localStorage on mount and listen for changes
   useEffect(() => {
     // Only show loader if no user is found, otherwise load immediately
