@@ -25,6 +25,7 @@ import Subscription from './pages/Subscription';
 import Referrals from './pages/Referrals';
 import ReferralRedirect from './pages/ReferralRedirect';
 import TermsOfService from './pages/TermsOfService';
+import SafetyGuidelines from './pages/SafetyGuidelines';
 import './styles/App.css';
 
 const AppContent = () => {
@@ -231,6 +232,7 @@ const AppContent = () => {
           <Route path="/help" element={<Help />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms-of-service" element={<TermsOfService />} />
+          <Route path="/safety-guidelines" element={<SafetyGuidelines />} />
           <Route path="/api-test" element={<ApiTest />} />
           <Route path="/chat-debug" element={<ChatDebug />} />
         </Routes>

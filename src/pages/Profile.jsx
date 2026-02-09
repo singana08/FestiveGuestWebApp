@@ -295,7 +295,10 @@ function Profile() {
         )}
         {subscriptionStatus !== 'paid' && successfulReferrals < 3 && (
           <p style={{ color: '#f59e0b', fontSize: '0.9rem', marginTop: '0.5rem' }}>
-            ⭐ {t('upgradeToPremium')} ({successfulReferrals}/3 {t('referrals')})
+            ⭐ {t('upgradeToPremium')} ({successfulReferrals}/3 {t('referrals')}) •{' '}
+            <a href="/referrals" style={{ color: '#3b82f6', textDecoration: 'underline', fontWeight: '600' }}>
+              {t('referEarnNav')}
+            </a>
           </p>
         )}
       </div>
@@ -469,21 +472,6 @@ function Profile() {
                   color: user.status === 'Active' ? '#166534' : '#92400e'
                 }}>
                   {user.status}
-                </span>
-              </p>
-            </div>
-            
-            <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #8b5cf6' }}>
-              <p style={{ margin: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <strong>📞 {t('contactEnabled')}:</strong> 
-                <span style={{ 
-                  padding: '0.25rem 0.75rem', 
-                  borderRadius: '1rem', 
-                  fontSize: '0.875rem',
-                  background: user.isVerified ? '#dcfce7' : '#fee2e2',
-                  color: user.isVerified ? '#166534' : '#dc2626'
-                }}>
-                  {user.isVerified ? `✓ ${t('yes')}` : `✗ ${t('no')}`}
                 </span>
               </p>
             </div>

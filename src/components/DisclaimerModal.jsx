@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -7,6 +7,32 @@ const DisclaimerModal = ({ isOpen, onClose, selectedRole }) => {
   const navigate = useNavigate();
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [agreementTimestamp, setAgreementTimestamp] = useState(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+      document.documentElement.style.overflow = 'hidden';
+      
+      // Prevent scroll on touch devices
+      const preventScroll = (e) => {
+        if (!e.target.closest('.modal-content')) {
+          e.preventDefault();
+        }
+      };
+      document.addEventListener('touchmove', preventScroll, { passive: false });
+      document.addEventListener('wheel', preventScroll, { passive: false });
+      
+      return () => {
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        document.documentElement.style.overflow = '';
+        document.removeEventListener('touchmove', preventScroll);
+        document.removeEventListener('wheel', preventScroll);
+      };
+    }
+  }, [isOpen]);
 
   const handleAccept = () => {
     if (!disclaimerAccepted) return;
@@ -46,7 +72,7 @@ const DisclaimerModal = ({ isOpen, onClose, selectedRole }) => {
 
   return (
     <div className="modal-overlay" style={{ zIndex: 9999 }}>
-      <div className="modal-content" style={{ maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+      <div className="modal-content" style={{ maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overscrollBehavior: 'contain' }}>
         <div className="modal-header" style={{ padding: '1.5rem', flexShrink: 0 }}>
           <h3 style={{ color: '#1e293b', margin: 0 }}>{t('importantDisclaimer')}</h3>
         </div>
