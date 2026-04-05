@@ -52,7 +52,7 @@ const AppContent = () => {
       localStorage.removeItem('user');
     }
   }, []);
-  const { unreadCount, clearUnreadCount } = useNotifications();
+  const { unreadCount, fetchUnreadCount, toast: msgToast, dismissToast } = useNotifications();
   const { language, toggleLanguage, t } = useLanguage();
   const location = useLocation();
 
@@ -119,7 +119,8 @@ const AppContent = () => {
   };
 
   const handleChatsClick = () => {
-    clearUnreadCount();
+    localStorage.removeItem('chatReadState');
+    fetchUnreadCount();
     setMenuOpen(false);
   };
 
@@ -192,6 +193,35 @@ const AppContent = () => {
           )}
         </div>
       </nav>
+
+      {/* New Message Toast */}
+      {msgToast && (
+        <div
+          onClick={dismissToast}
+          style={{
+            position: 'fixed',
+            top: '80px',
+            right: '20px',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            padding: '0.75rem 1.25rem',
+            borderRadius: '12px',
+            boxShadow: '0 8px 25px rgba(102, 126, 234, 0.4)',
+            zIndex: 9999,
+            cursor: 'pointer',
+            animation: 'slideInRight 0.3s ease-out',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            maxWidth: '320px',
+            fontSize: '0.9rem'
+          }}
+        >
+          <span style={{ fontSize: '1.25rem' }}>💬</span>
+          <span><strong>{msgToast.senderName}</strong> sent you a message</span>
+          <span style={{ opacity: 0.7, fontSize: '1.1rem', marginLeft: 'auto' }}>✕</span>
+        </div>
+      )}
 
       {/* Promotional Banner */}
       {user && (

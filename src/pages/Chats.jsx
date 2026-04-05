@@ -1,24 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { MessageCircle, Send, X, ArrowLeft } from 'lucide-react';
 import api from '../utils/api';
-import chatService from '../utils/chatService';
 import ImageWithSas from '../components/ImageWithSas';
+import { useNotifications } from '../contexts/NotificationContext';
 
 const Chats = () => {
   const [conversations, setConversations] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [showChatView, setShowChatView] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
-  
-  // Get userId consistently
+
   const getUserId = () => {
     const storedUserId = localStorage.getItem('userId');
     if (storedUserId) return storedUserId;
-    
     try {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       return user.userId || user.id;
@@ -26,52 +24,50 @@ const Chats = () => {
       return null;
     }
   };
-  
+
   const userId = getUserId();
   const messagesEndRef = useRef(null);
+  const selectedChatRef = useRef(null);
+  const lastMessageCountRef = useRef(0);
+  const { fetchUnreadCount, setActiveConversation, clearActiveConversation } = useNotifications();
 
+  // Clear active conversation when leaving the page
   useEffect(() => {
-    fetchConversations();
-    
-    // Temporarily disable SignalR due to CORS issues
-    // TODO: Re-enable when backend CORS is fixed
-    /*
-    const setupSignalR = async () => {
-      try {
-        await chatService.connect();
-        chatService.onReceiveMessage((data) => {
-          console.log('Received message in Chats page:', data);
-          fetchConversations();
-        });
-      } catch (error) {
-        console.error('Failed to setup SignalR in Chats:', error);
-      }
-    };
-    
-    setupSignalR();
-    */
+    return () => clearActiveConversation();
   }, []);
 
+  // Keep ref in sync
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+    selectedChatRef.current = selectedChat;
+  }, [selectedChat]);
+
+  // Auto-scroll only when new messages arrive
+  useEffect(() => {
+    if (messages.length > lastMessageCountRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+    lastMessageCountRef.current = messages.length;
   }, [messages]);
 
-  const handleProfileClick = async (userId) => {
-    try {
-      const profileRes = await api.post('user/public-profile', {
-        userId: userId
-      });
-      setSelectedProfile(profileRes.data);
-    } catch (error) {
-      console.error('Failed to fetch profile:', error);
-    }
-  };
+  // Single poll: refresh conversations + active chat messages
+  useEffect(() => {
+    fetchConversations(true);
 
-  const fetchConversations = async () => {
+    const poll = setInterval(() => {
+      fetchConversations(false);
+      const current = selectedChatRef.current;
+      if (current?.otherUserId) {
+        refreshMessages(current.otherUserId);
+      }
+    }, 5000);
+
+    return () => clearInterval(poll);
+  }, []);
+
+  const fetchConversations = async (showLoader) => {
     try {
-      setLoading(true);
+      if (showLoader) setLoading(true);
       const response = await api.get('chat/conversations');
-      
       const validConversations = (response.data || []).map(conv => ({
         ...conv,
         otherUserName: conv.otherUserName || 'Unknown User',
@@ -79,37 +75,53 @@ const Chats = () => {
         timestamp: conv.timestamp || new Date().toISOString(),
         unreadCount: conv.unreadCount || 0
       }));
-      
       setConversations(validConversations);
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
     } finally {
-      setLoading(false);
+      if (showLoader) setLoading(false);
     }
   };
 
-  const handleConversationClick = async (conversation) => {
-    setSelectedChat(conversation);
-    setMessages([]);
-    
-    if (!conversation.otherUserId) {
-      console.error('No otherUserId in conversation:', conversation);
-      return;
+  const markAllRead = async (otherUserId) => {
+    try {
+      await api.post(`chat/mark-read-all/${otherUserId}`);
+    } catch {
+      // Silently fail if endpoint not deployed yet
     }
-    
-    await loadMessages(conversation.otherUserId);
-    setShowChatView(true);
+  };
+
+  const refreshMessages = async (recipientId) => {
+    try {
+      const response = await api.get(`chat/messages/${recipientId}`);
+      if (!response.data || !Array.isArray(response.data)) return;
+
+      const serverMessages = response.data.map(msg => ({
+        id: msg.id,
+        sender: msg.senderId === userId ? 'Me' : 'Recipient',
+        text: msg.message || '',
+        timestamp: new Date(msg.timestamp),
+        status: msg.status || 'sent'
+      }));
+
+      setMessages(prev => {
+        if (serverMessages.length >= prev.length) {
+          return serverMessages;
+        }
+        return prev;
+      });
+    } catch {
+      // Silently fail on poll refresh
+    }
   };
 
   const loadMessages = async (recipientId) => {
     try {
       const response = await api.get(`chat/messages/${recipientId}`);
-      
       if (!response.data || !Array.isArray(response.data)) {
         setMessages([]);
         return;
       }
-      
       const formattedMessages = response.data.map(msg => ({
         id: msg.id,
         sender: msg.senderId === userId ? 'Me' : 'Recipient',
@@ -117,7 +129,6 @@ const Chats = () => {
         timestamp: new Date(msg.timestamp),
         status: msg.status || 'sent'
       }));
-      
       setMessages(formattedMessages);
     } catch (error) {
       console.error('Failed to load messages:', error);
@@ -125,40 +136,66 @@ const Chats = () => {
     }
   };
 
+  const handleConversationClick = async (conversation) => {
+    setSelectedChat(conversation);
+    if (!conversation.otherUserId) return;
+
+    await loadMessages(conversation.otherUserId);
+    setShowChatView(true);
+
+    // Mark all messages from this user as read on the server
+    await markAllRead(conversation.otherUserId);
+    setActiveConversation(conversation.otherUserId);
+
+    // Refresh conversations + nav badge to reflect the read state
+    await fetchConversations(false);
+    fetchUnreadCount();
+  };
+
   const handleBackToList = () => {
     setShowChatView(false);
     setSelectedChat(null);
+    setMessages([]);
+    clearActiveConversation();
+    fetchConversations(false).then(() => fetchUnreadCount());
   };
 
   const sendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedChat) return;
-    
+    if (!newMessage.trim() || !selectedChat || sending) return;
+
+    const content = newMessage.trim();
+    setNewMessage('');
+    setSending(true);
+
+    setMessages(prev => [...prev, {
+      id: 'temp-' + Date.now(),
+      sender: 'Me',
+      text: content,
+      timestamp: new Date(),
+      status: 'Sending...'
+    }]);
+
     try {
-      setSending(true);
-      const content = newMessage;
-      setNewMessage('');
-      
-      setMessages(prev => [...prev, {
-        id: Date.now(),
-        sender: 'Me',
-        text: content,
-        timestamp: new Date(),
-        status: 'Sent'
-      }]);
-      
-      // Use API instead of SignalR
-      const response = await api.post('chat/send', {
+      await api.post('chat/send', {
         recipientId: selectedChat.otherUserId,
         message: content
       });
-      
-      // Refresh conversations to update last message
-      fetchConversations();
+      await refreshMessages(selectedChat.otherUserId);
+      fetchConversations(false);
     } catch (error) {
       console.error('Failed to send message:', error);
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleProfileClick = async (profileUserId) => {
+    try {
+      const profileRes = await api.post('user/public-profile', { userId: profileUserId });
+      setSelectedProfile(profileRes.data);
+    } catch (error) {
+      console.error('Failed to fetch profile:', error);
     }
   };
 
@@ -167,7 +204,6 @@ const Chats = () => {
     const now = new Date();
     const diff = now - date;
     const hours = Math.floor(diff / (1000 * 60 * 60));
-    
     if (hours < 24) {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
@@ -176,7 +212,6 @@ const Chats = () => {
 
   return (
     <div className="chats-container">
-      {/* Conversations Sidebar */}
       <div className={`conversations-sidebar ${showChatView ? 'mobile-hidden' : ''}`}>
         <div className="sidebar-header">
           <h3>💬 Messages</h3>
@@ -236,7 +271,6 @@ const Chats = () => {
         </div>
       </div>
 
-      {/* Chat Window */}
       <div className={`chat-window ${showChatView ? 'mobile-visible' : ''}`}>
         {selectedChat ? (
           <>
@@ -294,7 +328,6 @@ const Chats = () => {
         )}
       </div>
       
-      {/* Profile Modal */}
       {selectedProfile && (
         <div className="modal-overlay" onClick={() => setSelectedProfile(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>

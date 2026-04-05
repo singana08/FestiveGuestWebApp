@@ -494,7 +494,7 @@ const Posts = () => {
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {user && (user.userType === 'Guest' || showMyPosts) && post.userId === user.userId && (
+                {user && showMyPosts && post.userId === user.userId && (
                   <div style={{ position: 'relative' }}>
                     <button
                       onClick={(e) => {
@@ -756,15 +756,28 @@ const Posts = () => {
       )}
 
       {showEditModal && editingPost && (
-        <CreatePostModal 
-          onClose={() => {
-            setShowEditModal(false);
-            setEditingPost(null);
-          }}
-          onSubmit={handleUpdatePost}
-          initialData={editingPost}
-          isEditing={true}
-        />
+        editingPost.userType === 'Host' ? (
+          <CreateHostPostModal 
+            onClose={() => {
+              setShowEditModal(false);
+              setEditingPost(null);
+            }}
+            onSubmit={handleUpdatePost}
+            user={user}
+            initialData={editingPost}
+            isEditing={true}
+          />
+        ) : (
+          <CreatePostModal 
+            onClose={() => {
+              setShowEditModal(false);
+              setEditingPost(null);
+            }}
+            onSubmit={handleUpdatePost}
+            initialData={editingPost}
+            isEditing={true}
+          />
+        )
       )}
 
       {showDeleteModal && deletingPost && (
@@ -1481,18 +1494,22 @@ const CreateHostPostModal = ({ onClose, onSubmit, user, initialData = null, isEd
                   <span className="label-text">Price/Night (₹)</span>
                 </label>
                 <input
-                  type="number"
-                  min="0"
-                  step="100"
+                  type="text"
+                  inputMode="numeric"
                   value={formData.pricePerNight}
-                  onChange={(e) => setFormData(prev => ({ ...prev, pricePerNight: parseFloat(e.target.value) || 0 }))}
+                  onFocus={(e) => {
+                    if (formData.pricePerNight === 0) e.target.select();
+                  }}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^0-9]/g, '');
+                    setFormData(prev => ({ ...prev, pricePerNight: raw === '' ? 0 : parseInt(raw, 10) }));
+                  }}
                   style={{
                     width: '100%',
                     padding: '0.5rem',
                     border: '1px solid var(--border)',
                     borderRadius: '0.375rem'
                   }}
-                  placeholder="0"
                 />
               </div>
             </div>

@@ -26,7 +26,7 @@ function Profile() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccessCountdown, setPasswordSuccessCountdown] = useState(0);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [editFormData, setEditFormData] = useState({ bio: '', hostingAreas: [] });
+  const [editFormData, setEditFormData] = useState({ name: '', phone: '', state: '', city: '', bio: '', hostingAreas: [] });
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [updateError, setUpdateError] = useState('');
   const [locationData, setLocationData] = useState(null);
@@ -71,7 +71,13 @@ function Profile() {
       localStorage.setItem('user', JSON.stringify(updatedUser));
       
       // Initialize edit form data
+      const loc = updatedUser.location || '';
+      const locParts = loc.split(', ');
       setEditFormData({
+        name: updatedUser.name || '',
+        phone: updatedUser.phone || '',
+        state: locParts[1] || '',
+        city: locParts[0] || '',
         bio: updatedUser.bio || '',
         hostingAreas: updatedUser.hostingAreas || []
       });
@@ -188,6 +194,11 @@ function Profile() {
   };
 
   const updateProfile = async () => {
+    if (!editFormData.name || editFormData.name.trim().length < 2) {
+      setUpdateError('Name must be at least 2 characters');
+      setTimeout(() => errorMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+      return;
+    }
     if (!editFormData.bio || editFormData.bio.trim().length < 10) {
       setUpdateError('Bio must be at least 10 characters');
       setTimeout(() => errorMessageRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
@@ -197,14 +208,20 @@ function Profile() {
     setUpdatingProfile(true);
     setUpdateError('');
     try {
-      const payload = user.userType === 'Host' 
-        ? { 
-            bio: editFormData.bio, 
-            hostingAreas: editFormData.hostingAreas.length > 0 
-              ? JSON.stringify(editFormData.hostingAreas.filter(area => area.cities.length > 0)) 
-              : ''
-          }
-        : { bio: editFormData.bio };
+      const location = editFormData.city && editFormData.state 
+        ? `${editFormData.city}, ${editFormData.state}` 
+        : user.location;
+      const payload = {
+        name: editFormData.name.trim(),
+        phone: editFormData.phone,
+        location,
+        bio: editFormData.bio,
+        ...(user.userType === 'Host' && {
+          hostingAreas: editFormData.hostingAreas.length > 0 
+            ? JSON.stringify(editFormData.hostingAreas.filter(area => area.cities.length > 0)) 
+            : ''
+        })
+      };
       const res = await api.put('user/profile', payload);
       if (res.data.success) {
         setUpdateError('✅ Profile updated successfully!');
@@ -773,6 +790,77 @@ function Profile() {
                 }}>
                   {updateError.includes('✅') ? updateError : `⚠️ ${updateError}`}
                 </div>
+              )}
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>📝 {t('name')}</label>
+                <input
+                  type="text"
+                  value={editFormData.name}
+                  onChange={(e) => { setEditFormData({ ...editFormData, name: e.target.value }); setUpdateError(''); }}
+                  style={{ fontSize: '1rem', padding: '0.75rem', width: '100%' }}
+                />
+              </div>
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>📱 {t('phone')}</label>
+                <input
+                  type="tel"
+                  value={editFormData.phone}
+                  onChange={(e) => { setEditFormData({ ...editFormData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) }); setUpdateError(''); }}
+                  maxLength={10}
+                  style={{ fontSize: '1rem', padding: '0.75rem', width: '100%' }}
+                />
+              </div>
+              {locationData && (
+                <>
+                  <div className="form-group">
+                    <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>📍 State</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                      {Object.keys(locationData).map(state => (
+                        <button
+                          key={state}
+                          type="button"
+                          onClick={() => setEditFormData({ ...editFormData, state, city: '' })}
+                          style={{
+                            padding: '0.4rem 0.8rem',
+                            border: editFormData.state === state ? '2px solid var(--primary)' : '1px solid #cbd5e1',
+                            background: editFormData.state === state ? 'var(--primary)' : 'white',
+                            color: editFormData.state === state ? 'white' : 'var(--text)',
+                            borderRadius: '0.375rem',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem'
+                          }}
+                        >
+                          {state}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {editFormData.state && locationData[editFormData.state] && (
+                    <div className="form-group">
+                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>📍 City</label>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                        {locationData[editFormData.state].map(city => (
+                          <button
+                            key={city}
+                            type="button"
+                            onClick={() => setEditFormData({ ...editFormData, city })}
+                            style={{
+                              padding: '0.4rem 0.6rem',
+                              border: editFormData.city === city ? '2px solid var(--primary)' : '1px solid #cbd5e1',
+                              background: editFormData.city === city ? 'var(--primary)' : 'white',
+                              color: editFormData.city === city ? 'white' : 'var(--text)',
+                              borderRadius: '0.375rem',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem'
+                            }}
+                          >
+                            {city}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
               <div className="form-group">
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>

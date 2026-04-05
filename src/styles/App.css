@@ -313,6 +313,7 @@ body {
 }
 
 .hero-title {
+  font-family: 'Dancing Script', cursive;
   font-size: 3.5rem;
   font-weight: bold;
   margin-bottom: 20px;

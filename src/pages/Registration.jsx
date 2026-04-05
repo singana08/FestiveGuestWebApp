@@ -94,12 +94,11 @@ const Registration = ({ setUser }) => {
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
-    if (type === 'success') {
-      setTimeout(() => {
-        setToast(prev => prev ? { ...prev, hiding: true } : null);
-        setTimeout(() => setToast(null), 300);
-      }, 5000);
-    }
+    const duration = type === 'success' ? 5000 : 4000;
+    setTimeout(() => {
+      setToast(prev => prev ? { ...prev, hiding: true } : null);
+      setTimeout(() => setToast(null), 300);
+    }, duration);
   };
 
   const testAndSeedLocations = async () => {
@@ -618,7 +617,7 @@ const Registration = ({ setUser }) => {
               style={{ 
                 fontSize: '1rem', 
                 padding: '1rem',
-                border: validationErrors.name ? '2px solid #dc2626 !important' : '2px solid #cbd5e1'
+                border: validationErrors.name ? '2px solid #dc2626' : '2px solid #cbd5e1'
               }}
             />
             {validationErrors.name && (
@@ -645,7 +644,7 @@ const Registration = ({ setUser }) => {
               style={{ 
                 fontSize: '1rem', 
                 padding: '1rem', 
-                border: (emailError || validationErrors.email) ? '2px solid #dc2626 !important' : '2px solid #cbd5e1',
+                border: (emailError || validationErrors.email) ? '2px solid #dc2626' : '2px solid #cbd5e1',
                 backgroundColor: emailVerified ? '#f3f4f6' : 'white',
                 cursor: emailVerified ? 'not-allowed' : 'text'
               }}
@@ -740,7 +739,7 @@ const Registration = ({ setUser }) => {
                   paddingRight: '2.5rem', 
                   width: '100%', 
                   boxSizing: 'border-box',
-                  border: validationErrors.password ? '2px solid #dc2626 !important' : '2px solid #cbd5e1'
+                  border: validationErrors.password ? '2px solid #dc2626' : '2px solid #cbd5e1'
                 }}
               />
               <button
@@ -807,7 +806,7 @@ const Registration = ({ setUser }) => {
               style={{ 
                 fontSize: '1rem', 
                 padding: '1rem', 
-                border: (phoneError || validationErrors.phone) ? '2px solid #dc2626 !important' : '2px solid #cbd5e1'
+                border: (phoneError || validationErrors.phone) ? '2px solid #dc2626' : '2px solid #cbd5e1'
               }}
             />
             {(phoneError || validationErrors.phone) && (
@@ -866,7 +865,15 @@ const Registration = ({ setUser }) => {
             <button 
               type="button"
               onClick={() => {
-                if (!formData.name || !formData.email || !emailVerified || !formData.phone || !ageConfirmed) {
+                const errors = {};
+                if (!formData.name.trim()) errors.name = 'Name is required';
+                if (!formData.email.trim()) errors.email = 'Email is required';
+                if (!emailVerified) errors.email = 'Please verify your email';
+                if (!formData.password.trim()) errors.password = 'Password is required';
+                if (!formData.phone.trim()) errors.phone = 'Phone number is required';
+                if (!ageConfirmed) errors.ageConfirmed = 'You must confirm that you are at least 18 years old';
+                setValidationErrors(prev => ({ ...prev, ...errors }));
+                if (Object.keys(errors).length > 0) {
                   showToast('Please complete all required fields in this step', 'error');
                   return;
                 }
@@ -973,7 +980,7 @@ const Registration = ({ setUser }) => {
                 padding: '1rem', 
                 width: '100%', 
                 borderRadius: '0.5rem', 
-                border: validationErrors.bio ? '2px solid #dc2626 !important' : '2px solid #cbd5e1'
+                border: validationErrors.bio ? '2px solid #dc2626' : '2px solid #cbd5e1'
               }}
             />
             {validationErrors.bio && (
@@ -1062,12 +1069,16 @@ const Registration = ({ setUser }) => {
             <button 
               type="button"
               onClick={() => {
-                if (!formData.state || !formData.city || !formData.bio) {
-                  showToast('Please complete all required fields in this step', 'error');
-                  return;
-                }
+                const errors = {};
+                if (!formData.state) errors.state = 'State is required';
+                if (!formData.city) errors.city = 'City is required';
+                if (!formData.bio.trim()) errors.bio = 'Description is required';
                 if (formData.role === 'Host' && !formData.hostingAreas.some(area => area.cities && area.cities.length > 0)) {
-                  showToast('Hosts must select at least one hosting area', 'error');
+                  errors.hostingAreas = 'Please select at least one hosting area';
+                }
+                setValidationErrors(prev => ({ ...prev, ...errors }));
+                if (Object.keys(errors).length > 0) {
+                  showToast('Please complete all required fields in this step', 'error');
                   return;
                 }
                 setCurrentStep(3);
