@@ -26,7 +26,7 @@ function Profile() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccessCountdown, setPasswordSuccessCountdown] = useState(0);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [editFormData, setEditFormData] = useState({ name: '', phone: '', state: '', city: '', bio: '', hostingAreas: [] });
+  const [editFormData, setEditFormData] = useState({ name: '', phone: '', state: '', city: '', bio: '', hostingAreas: [], notificationPreferences: { email: true, push: false } });
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [updateError, setUpdateError] = useState('');
   const [locationData, setLocationData] = useState(null);
@@ -79,7 +79,8 @@ function Profile() {
         state: locParts[1] || '',
         city: locParts[0] || '',
         bio: updatedUser.bio || '',
-        hostingAreas: updatedUser.hostingAreas || []
+        hostingAreas: updatedUser.hostingAreas || [],
+        notificationPreferences: updatedUser.notificationPreferences || { email: true, push: false }
       });
       
       // Use referral code from API response
@@ -216,6 +217,7 @@ function Profile() {
         phone: editFormData.phone,
         location,
         bio: editFormData.bio,
+        notificationPreferences: editFormData.notificationPreferences,
         ...(user.userType === 'Host' && {
           hostingAreas: editFormData.hostingAreas.length > 0 
             ? JSON.stringify(editFormData.hostingAreas.filter(area => area.cities.length > 0)) 
@@ -489,6 +491,23 @@ function Profile() {
                   color: user.status === 'Active' ? '#166534' : '#92400e'
                 }}>
                   {user.status}
+                </span>
+              </p>
+            </div>
+
+            <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #8b5cf6' }}>
+              <p style={{ margin: '0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <strong>🔔 Email Notifications:</strong>
+                </span>
+                <span style={{ 
+                  padding: '0.25rem 0.75rem', 
+                  borderRadius: '1rem', 
+                  fontSize: '0.875rem',
+                  background: (user.notificationPreferences?.email !== false) ? '#dcfce7' : '#fee2e2',
+                  color: (user.notificationPreferences?.email !== false) ? '#166534' : '#991b1b'
+                }}>
+                  {(user.notificationPreferences?.email !== false) ? '✓ On' : '✗ Off'}
                 </span>
               </p>
             </div>
@@ -950,6 +969,50 @@ function Profile() {
                   </div>
                 </div>
               )}
+              <div className="form-group" style={{ 
+                padding: '1rem', 
+                background: '#f8fafc', 
+                borderRadius: '0.75rem', 
+                border: '1px solid #e2e8f0'
+              }}>
+                <label style={{ display: 'block', marginBottom: '0.75rem', fontWeight: '600' }}>🔔 Notifications</label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.9rem', color: '#475569' }}>Email notifications for new messages</span>
+                  <button
+                    type="button"
+                    onClick={() => setEditFormData(prev => ({
+                      ...prev,
+                      notificationPreferences: {
+                        ...prev.notificationPreferences,
+                        email: !prev.notificationPreferences.email
+                      }
+                    }))}
+                    style={{
+                      width: '48px',
+                      height: '26px',
+                      borderRadius: '13px',
+                      border: 'none',
+                      cursor: 'pointer',
+                      position: 'relative',
+                      transition: 'background 0.3s',
+                      background: editFormData.notificationPreferences.email ? '#10b981' : '#cbd5e1',
+                      flexShrink: 0
+                    }}
+                  >
+                    <span style={{
+                      position: 'absolute',
+                      top: '3px',
+                      left: editFormData.notificationPreferences.email ? '25px' : '3px',
+                      width: '20px',
+                      height: '20px',
+                      borderRadius: '50%',
+                      background: 'white',
+                      transition: 'left 0.3s',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                    }} />
+                  </button>
+                </div>
+              </div>
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
                 <button 
                   onClick={() => {
