@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
 import { ChevronDown, ChevronRight, MapPin, Plus, Minus, MessageCircle, Home, Users, Search, Filter, Star, CheckCircle, Eye, MessageSquare, Edit3, Trash2 } from 'lucide-react';
@@ -204,15 +205,10 @@ const GuestDashboard = ({ user }) => {
   };
 
   const handleSubmitReview = async () => {
-    console.log('Submit clicked, reviewError before:', reviewError);
-    console.log('Rating:', reviewForm.rating, 'Comment:', reviewForm.comment);
-    
     setReviewError('');
-    
+
     if (!reviewForm.comment.trim() || reviewForm.rating === 0) {
-      console.log('Setting error message');
       setReviewError('Please provide both rating and comment');
-      console.log('reviewError after setting:', 'Please provide both rating and comment');
       return;
     }
     
@@ -365,11 +361,13 @@ const GuestDashboard = ({ user }) => {
   };
 
   if (loading) return (
-    <div className="container">
-      <div className="loading" style={{ padding: '4rem', textAlign: 'center' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎉</div>
-        <h3>Finding amazing hosts for you...</h3>
-      </div>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', flexDirection: 'column', gap: '1rem' }}>
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+        style={{ width: 44, height: 44, borderRadius: '50%', border: '4px solid rgba(255,107,53,0.15)', borderTop: '4px solid var(--primary)' }}
+      />
+      <p style={{ color: 'var(--text-light)', fontSize: '0.95rem' }}>Finding amazing hosts for you...</p>
     </div>
   );
 
@@ -448,21 +446,36 @@ const GuestDashboard = ({ user }) => {
 
       {/* Main Content */}
       <div className="browse-main">
-        <div className="browse-header">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Home size={24} style={{ color: 'var(--primary)' }} />
-            Available Hosts
-          </h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <div className="results-count" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {!loading && (
-                <>
-                  <Users size={16} style={{ color: 'var(--text-light)' }} />
-                  <span>{filteredHosts.length} host{filteredHosts.length !== 1 ? 's' : ''} found</span>
-                </>
-              )}
-            </div>
+        {/* Page header */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+          <div>
+            <h2 style={{ margin: '0 0 0.15rem 0', fontSize: '1.3rem', fontWeight: 700, color: 'var(--text)' }}>
+              Available Hosts
+            </h2>
+            {!loading && (
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-light)' }}>
+                {filteredHosts.length} host{filteredHosts.length !== 1 ? 's' : ''} found
+                {selectedLocations.length > 0 && ` · ${selectedLocations.length} filter${selectedLocations.length !== 1 ? 's' : ''} active`}
+              </p>
+            )}
           </div>
+          {selectedLocations.length > 0 && (
+            <button
+              onClick={clearFilters}
+              style={{
+                background: 'none',
+                border: '1.5px solid var(--primary)',
+                color: 'var(--primary)',
+                padding: '0.35rem 0.85rem',
+                borderRadius: '0.5rem',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              Clear filters ({selectedLocations.length})
+            </button>
+          )}
         </div>
         
         {loading ? (
@@ -487,8 +500,16 @@ const GuestDashboard = ({ user }) => {
               </div>
             ) : (
               <div className="compact-grid">
-                {filteredHosts.map(host => (
-                  <div key={host.userId} className={`host-card-horizontal ${selectedHostId === host.userId ? 'selected' : ''}`} onClick={() => handleViewProfile(host)}>
+                {filteredHosts.map((host, idx) => (
+                  <motion.div
+                    key={host.userId}
+                    initial={{ opacity: 0, scale: 0.94 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.25, delay: idx * 0.03 }}
+                    whileHover={{ y: -3, boxShadow: '0 8px 20px rgba(255,107,53,0.18)' }}
+                    className={`host-card-horizontal ${selectedHostId === host.userId ? 'selected' : ''}`}
+                    onClick={() => handleViewProfile(host)}
+                  >
                     <div className="host-image-section">
                       <ImageWithSas 
                         src={host.profileImageUrl}
@@ -517,7 +538,7 @@ const GuestDashboard = ({ user }) => {
                       <h3 className="host-name">{host.name}</h3>
                       <div className="host-location">{host.location.split(',')[0]}</div>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             )}

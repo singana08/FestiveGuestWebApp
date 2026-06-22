@@ -1,315 +1,471 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import { User, Search, ShieldCheck, Menu, X, LayoutDashboard, HelpCircle, LogOut, Crown, Globe } from 'lucide-react';
+import { User, ShieldCheck, Menu, X, HelpCircle, LogOut, Globe, MessageSquare, FileText, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { LanguageProvider, useLanguage } from './i18n/LanguageContext';
-import api from './utils/api';
 import Logo from './components/Logo';
 import Loader from './components/Loader';
-import ApiTest from './components/ApiTest';
-import ChatDebug from './components/ChatDebug';
-import LandingPage from './pages/LandingPage';
-import Login from './pages/Login';
-import Registration from './pages/Registration';
-import GuestDashboard from './pages/GuestDashboard';
-import HostDashboard from './pages/HostDashboard';
-import Chat from './pages/Chat';
-import Chats from './pages/Chats';
-import Admin from './pages/Admin';
-import Profile from './pages/Profile';
-import PublicProfile from './pages/PublicProfile';
-import Help from './pages/Help';
-import Posts from './pages/Posts';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import Subscription from './pages/Subscription';
-import Referrals from './pages/Referrals';
-import ReferralRedirect from './pages/ReferralRedirect';
-import TermsOfService from './pages/TermsOfService';
-import SafetyGuidelines from './pages/SafetyGuidelines';
 import './styles/App.css';
 
+// ── Lazy-loaded pages (code splitting for faster initial load) ──
+const LandingPage     = lazy(() => import('./pages/LandingPage'));
+const Login           = lazy(() => import('./pages/Login'));
+const Registration    = lazy(() => import('./pages/Registration'));
+const GuestDashboard  = lazy(() => import('./pages/GuestDashboard'));
+const HostDashboard   = lazy(() => import('./pages/HostDashboard'));
+const Chat            = lazy(() => import('./pages/Chat'));
+const Chats           = lazy(() => import('./pages/Chats'));
+const Admin           = lazy(() => import('./pages/Admin'));
+const Profile         = lazy(() => import('./pages/Profile'));
+const PublicProfile   = lazy(() => import('./pages/PublicProfile'));
+const Help            = lazy(() => import('./pages/Help'));
+const Posts           = lazy(() => import('./pages/Posts'));
+const PrivacyPolicy   = lazy(() => import('./pages/PrivacyPolicy'));
+const Subscription    = lazy(() => import('./pages/Subscription'));
+const Referrals       = lazy(() => import('./pages/Referrals'));
+const ReferralRedirect = lazy(() => import('./pages/ReferralRedirect'));
+const TermsOfService  = lazy(() => import('./pages/TermsOfService'));
+const SafetyGuidelines = lazy(() => import('./pages/SafetyGuidelines'));
+const ApiTest         = lazy(() => import('./components/ApiTest'));
+const ChatDebug       = lazy(() => import('./components/ChatDebug'));
+
+// ── Page-transition wrapper ──
+const PageTransition = ({ children }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 8 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -8 }}
+    transition={{ duration: 0.22, ease: 'easeInOut' }}
+    style={{ width: '100%' }}
+  >
+    {children}
+  </motion.div>
+);
+
+// ── Inline page-level suspense fallback ──
+const PageLoader = () => (
+  <div style={{
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    minHeight: 'calc(100vh - 68px)', background: 'var(--background)'
+  }}>
+    <div style={{ textAlign: 'center' }}>
+      <div style={{
+        width: 44, height: 44, border: '3px solid var(--border-strong)',
+        borderTopColor: 'var(--primary)', borderRadius: '50%',
+        animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem'
+      }} />
+      <p style={{ color: 'var(--text-light)', fontSize: '0.9rem', margin: 0 }}>Loading…</p>
+    </div>
+  </div>
+);
+
+// ── Navbar avatar (photo or initial fallback) ──
+const NavAvatar = ({ user }) => {
+  const [imgError, setImgError] = useState(false);
+  const initial = (user.name || user.email || 'U').charAt(0).toUpperCase();
+  if (user.profileImageUrl && !imgError) {
+    return (
+      <img src={user.profileImageUrl} alt={user.name} onError={() => setImgError(true)}
+        style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,107,53,0.25)', display: 'block' }} />
+    );
+  }
+  return (
+    <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--gradient-primary, linear-gradient(135deg,#FF6B35,#FFB347))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 700, color: 'white', flexShrink: 0 }}>
+      {initial}
+    </div>
+  );
+};
+
+// ── Main app content ──
 const AppContent = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [avatarOpen, setAvatarOpen] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [referralPoints, setReferralPoints] = useState(0);
+  const [promoDismissed, setPromoDismissed] = useState(false);
+  const avatarRef = useRef(null);
 
-  // Initialize user from localStorage immediately
+  // Read user from localStorage immediately
   useEffect(() => {
     try {
       const saved = localStorage.getItem('user');
       if (saved) {
         const userData = JSON.parse(saved);
-        if (userData && userData.token && userData.email && (userData.role || userData.userType)) {
+        if (userData?.token && userData?.email && (userData.role || userData.userType)) {
           setUser(userData);
-          // Set referral points from stored user data
-          setReferralPoints(userData.referralPoints || 0);
         }
       }
-    } catch (e) {
-      console.warn('Invalid user data in localStorage');
+    } catch {
       localStorage.removeItem('user');
     }
   }, []);
+
   const { unreadCount, fetchUnreadCount, toast: msgToast, dismissToast } = useNotifications();
   const { language, toggleLanguage, t } = useLanguage();
   const location = useLocation();
 
-  // Set lang attribute on body element
   useEffect(() => {
     document.body.setAttribute('lang', language);
   }, [language]);
 
-  // Sync with localStorage on mount and listen for changes
   useEffect(() => {
-    // Only show loader if no user is found, otherwise load immediately
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, user ? 0 : 3000);
-
-    const handleStorageChange = () => {
+    const timer = setTimeout(() => setLoading(false), user ? 0 : 2200);
+    const handleStorage = () => {
       try {
         const saved = localStorage.getItem('user');
         if (saved) {
           const userData = JSON.parse(saved);
-          // Validate user data structure - accept both role and userType
-          if (userData && userData.token && userData.email && (userData.role || userData.userType)) {
+          if (userData?.token && userData?.email && (userData.role || userData.userType)) {
             setUser(userData);
-            setReferralPoints(userData.referralPoints || 0);
-          } else {
-            setUser(null);
-          }
-        } else {
-          setUser(null);
-        }
-      } catch (e) {
-        console.warn('Invalid user data in localStorage');
+          } else setUser(null);
+        } else setUser(null);
+      } catch {
         localStorage.removeItem('user');
         setUser(null);
       }
     };
-
-    // Listen for storage changes from other tabs/windows
-    window.addEventListener('storage', handleStorageChange);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('storage', handleStorageChange);
-    };
+    window.addEventListener('storage', handleStorage);
+    return () => { clearTimeout(timer); window.removeEventListener('storage', handleStorage); };
   }, [user]);
 
+  // Close mobile menu and avatar dropdown on route change
+  useEffect(() => { setMenuOpen(false); setAvatarOpen(false); }, [location.pathname]);
+
+  // Close avatar dropdown on outside click
+  useEffect(() => {
+    if (!avatarOpen) return;
+    const handler = (e) => { if (avatarRef.current && !avatarRef.current.contains(e.target)) setAvatarOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [avatarOpen]);
+
   const getDashboardRoute = (u) => {
-    const role = u?.role || u?.userType || u?.partitionKey;
+    const role = u?.role || u?.userType;
     if (role === 'Host') return '/posts';
     if (role === 'Guest') return '/guest-dashboard';
     if (role === 'Admin') return '/admin';
     return '/login';
   };
 
-  const handleLogout = () => {
-    setShowLogoutModal(true);
-  };
+  const isAdmin = user?.role === 'Admin' || user?.userType === 'Admin';
+  const isActive = (path) => location.pathname === path;
 
   const confirmLogout = () => {
     localStorage.clear();
     setUser(null);
-    setMenuOpen(false);
     setShowLogoutModal(false);
     window.location.href = '/';
   };
 
-  const handleChatsClick = () => {
-    localStorage.removeItem('chatReadState');
-    fetchUnreadCount();
-    setMenuOpen(false);
-  };
-
-  const isActivePage = (path) => {
-    if (path === '/dashboard') {
-      return location.pathname === getDashboardRoute(user) || location.pathname === '/browse';
-    }
-    return location.pathname === path;
-  };
-
-  if (loading) {
-    return <Loader />;
-  }
+  if (loading) return <Loader />;
 
   return (
-    <div className="app-container" style={{ animation: 'fadeIn 0.8s ease-out' }}>
+    <div className="app-container">
+      {/* ── Navbar ── */}
       <nav className="navbar">
-        <Link to="/" className="nav-logo" onClick={() => setMenuOpen(false)}>
-          <Logo className="nav-logo-img" style={{ height: '65px' }} />
+        <Link to="/" className="nav-logo">
+          <Logo className="nav-logo-img" style={{ height: '52px' }} />
         </Link>
-        
-        <button 
-          className="menu-toggle" 
-          onClick={() => setMenuOpen(!menuOpen)}
+
+        <button
+          className="menu-toggle"
+          onClick={() => setMenuOpen(o => !o)}
           aria-label="Toggle menu"
         >
-          {menuOpen ? <X size={28} /> : <Menu size={28} />}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={menuOpen ? 'close' : 'open'}
+              initial={{ rotate: -90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: 90, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              style={{ display: 'flex' }}
+            >
+              {menuOpen ? <X size={26} /> : <Menu size={26} />}
+            </motion.span>
+          </AnimatePresence>
         </button>
 
         <div className={`nav-links ${menuOpen ? 'mobile-open' : ''}`} data-lang={language}>
           {!user ? (
             <>
-              <Link to="/help" className="nav-item" onClick={() => setMenuOpen(false)}><HelpCircle size={20} /> {t('help')}</Link>
-              <Link to="/login" className="nav-item" onClick={() => setMenuOpen(false)}>{t('login')}</Link>
-              <Link to="/?register=true" className="nav-item btn btn-primary" style={{ color: 'white', padding: '0.5rem 1rem' }} onClick={() => setMenuOpen(false)}>{t('register')}</Link>
-              <button onClick={toggleLanguage} className="nav-item" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Globe size={20} /> {language === 'en' ? 'తెలుగు' : 'English'}
+              <Link to="/help" className={`nav-item ${isActive('/help') ? 'active' : ''}`}>
+                <HelpCircle size={17} /> {t('help')}
+              </Link>
+              <Link to="/login" className={`nav-item ${isActive('/login') ? 'active' : ''}`}>
+                {t('login')}
+              </Link>
+              <Link
+                to="/?register=true"
+                className="nav-item btn-primary"
+                style={{ background: 'var(--gradient-primary)', color: 'white', borderRadius: '0.625rem', padding: '0.45rem 1rem', fontWeight: 600, fontSize: '0.875rem', boxShadow: '0 4px 12px rgba(255,107,53,0.3)' }}
+              >
+                {t('register')}
+              </Link>
+              <button onClick={toggleLanguage} className="nav-item">
+                <Globe size={17} /> {language === 'en' ? 'తెలుగు' : 'English'}
               </button>
             </>
           ) : (
             <>
-              <div className="user-badge">
-                <span className="user-badge-text">
-                  <strong>{user.name}</strong> <span className="user-badge-role">({user.role || user.userType || user.partitionKey})</span>
-                </span>
-              </div>
-              <Link to={getDashboardRoute(user)} className={`nav-item ${isActivePage('/dashboard') ? 'active' : ''}`} onClick={() => setMenuOpen(false)} style={{ display: 'none' }}><LayoutDashboard size={20} /> Dashboard</Link>
-              <Link to="/posts" className={`nav-item ${isActivePage('/posts') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}>📝 {t('posts')}</Link>
-              <Link to="/chats" className={`nav-item chat-nav-item ${isActivePage('/chats') ? 'active' : ''}`} onClick={handleChatsClick}>
-                💬 {t('chats')}
+              {/* Core nav items (desktop + mobile hamburger) */}
+              <Link to="/posts" className={`nav-item ${isActive('/posts') ? 'active' : ''}`}>
+                <FileText size={17} /> {t('posts')}
+              </Link>
+              <Link
+                to="/chats"
+                className={`nav-item chat-nav-item ${isActive('/chats') ? 'active' : ''}`}
+                onClick={() => { localStorage.removeItem('chatReadState'); fetchUnreadCount(); }}
+              >
+                <MessageSquare size={17} /> {t('chats')}
                 {unreadCount > 0 && (
                   <span className={`unread-badge ${unreadCount > 9 ? 'large-count' : ''}`}>
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </span>
                 )}
               </Link>
-              <Link to="/profile" className={`nav-item ${isActivePage('/profile') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><User size={20} /> {t('profile')}</Link>
-              <Link to="/referrals" className={`nav-item ${isActivePage('/referrals') ? 'active' : ''}`} onClick={() => setMenuOpen(false)} style={{ position: 'relative' }}>
-                🎁 {t('referEarnNav')}
-              </Link>
-              <Link to="/help" className={`nav-item ${isActivePage('/help') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><HelpCircle size={20} /> {t('help')}</Link>
-              {(user.role === 'Admin' || user.userType === 'Admin') && <Link to="/admin" className={`nav-item ${isActivePage('/admin') ? 'active' : ''}`} onClick={() => setMenuOpen(false)}><ShieldCheck size={20} /> Admin</Link>}
-              <button onClick={toggleLanguage} className="nav-item" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Globe size={20} /> {language === 'en' ? 'తెలుగు' : 'English'}
-              </button>
-              <button onClick={handleLogout} className="nav-item logout-btn" style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <LogOut size={20} /> {t('logout')}
-              </button>
+              {isAdmin && (
+                <Link to="/admin" className={`nav-item ${isActive('/admin') ? 'active' : ''}`}>
+                  <ShieldCheck size={17} /> Admin
+                </Link>
+              )}
+
+              {/* Desktop-only avatar dropdown */}
+              <div className="nav-avatar-wrapper" ref={avatarRef}>
+                <button
+                  className="nav-avatar-btn"
+                  onClick={() => setAvatarOpen(o => !o)}
+                  aria-label="Account menu"
+                >
+                  <NavAvatar user={user} />
+                  <ChevronDown size={14} style={{ transition: 'transform 0.2s', transform: avatarOpen ? 'rotate(180deg)' : 'rotate(0deg)', color: 'var(--text-light)' }} />
+                </button>
+                <AnimatePresence>
+                  {avatarOpen && (
+                    <motion.div
+                      className="nav-avatar-dropdown"
+                      initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      {/* User info */}
+                      <div className="nav-dropdown-user">
+                        <NavAvatar user={user} />
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)' }}>{user.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{user.role || user.userType}</div>
+                        </div>
+                      </div>
+                      <div className="nav-dropdown-items">
+                        <Link to="/profile" className="nav-dropdown-item" onClick={() => setAvatarOpen(false)}>
+                          <User size={15} /> My Profile
+                        </Link>
+                        <Link to="/help" className="nav-dropdown-item" onClick={() => setAvatarOpen(false)}>
+                          <HelpCircle size={15} /> {t('help')}
+                        </Link>
+                        <button className="nav-dropdown-item" onClick={() => { toggleLanguage(); setAvatarOpen(false); }}>
+                          <Globe size={15} /> {language === 'en' ? 'తెలుగు' : 'English'}
+                        </button>
+                      </div>
+                      <div className="nav-dropdown-footer">
+                        <button className="nav-dropdown-item danger" onClick={() => { setAvatarOpen(false); setShowLogoutModal(true); }}>
+                          <LogOut size={15} /> {t('logout')}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Mobile-only section (shown in hamburger menu) */}
+              <div className="nav-mobile-section">
+                <Link to="/profile" className={`nav-item ${isActive('/profile') ? 'active' : ''}`}>
+                  <User size={17} /> My Profile
+                </Link>
+                <Link to="/help" className={`nav-item ${isActive('/help') ? 'active' : ''}`}>
+                  <HelpCircle size={17} /> {t('help')}
+                </Link>
+                <button onClick={toggleLanguage} className="nav-item">
+                  <Globe size={17} /> {language === 'en' ? 'తెలుగు' : 'English'}
+                </button>
+                <button onClick={() => setShowLogoutModal(true)} className="nav-item logout-btn">
+                  <LogOut size={17} /> {t('logout')}
+                </button>
+              </div>
             </>
           )}
         </div>
       </nav>
 
-      {/* New Message Toast */}
-      {msgToast && (
-        <div
-          onClick={dismissToast}
-          style={{
-            position: 'fixed',
-            top: '80px',
-            right: '20px',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            padding: '0.75rem 1.25rem',
-            borderRadius: '12px',
-            boxShadow: '0 8px 25px rgba(102, 126, 234, 0.4)',
-            zIndex: 9999,
-            cursor: 'pointer',
-            animation: 'slideInRight 0.3s ease-out',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            maxWidth: '320px',
-            fontSize: '0.9rem'
-          }}
-        >
-          <span style={{ fontSize: '1.25rem' }}>💬</span>
-          <span><strong>{msgToast.senderName}</strong> sent you a message</span>
-          <span style={{ opacity: 0.7, fontSize: '1.1rem', marginLeft: 'auto' }}>✕</span>
-        </div>
-      )}
+      {/* ── New message toast ── */}
+      <AnimatePresence>
+        {msgToast && (
+          <motion.div
+            initial={{ x: 120, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 120, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            onClick={dismissToast}
+            style={{
+              position: 'fixed', top: '80px', right: '20px',
+              background: 'var(--gradient-primary)',
+              color: 'white', padding: '0.875rem 1.25rem',
+              borderRadius: '1rem',
+              boxShadow: '0 8px 30px rgba(255,107,53,0.4)',
+              zIndex: 9999, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '0.75rem',
+              maxWidth: '320px', fontSize: '0.875rem'
+            }}
+          >
+            <MessageSquare size={20} />
+            <span><strong>{msgToast.senderName}</strong> sent you a message</span>
+            <X size={16} style={{ opacity: 0.8, marginLeft: 'auto' }} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Promotional Banner */}
-      {user && (
-        <div style={{
-          background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-          color: 'white',
-          padding: '0.75rem 0.5rem',
-          textAlign: 'center',
-          fontSize: 'clamp(0.65rem, 2.5vw, 0.9rem)',
-          fontWeight: '600',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          lineHeight: '1.4'
-        }}>
-          🎉 <strong>Limited Time Offer!</strong> All users can now access premium features FREE during our promotional period! 🎁
-        </div>
-      )}
+      {/* ── Promo banner ── */}
+      <AnimatePresence>
+        {user && !promoDismissed && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div style={{
+              background: 'linear-gradient(90deg, #7C3AED 0%, #FF6B35 50%, #F59E0B 100%)',
+              padding: '0.55rem 1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.75rem',
+              position: 'relative'
+            }}>
+              {/* Subtle shimmer overlay */}
+              <motion.div
+                animate={{ x: ['−100%', '200%'] }}
+                transition={{ repeat: Infinity, duration: 3, ease: 'linear', repeatDelay: 2 }}
+                style={{
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%)',
+                  pointerEvents: 'none'
+                }}
+              />
+              <span style={{ fontSize: '1rem' }}>🎁</span>
+              <p style={{ margin: 0, color: 'white', fontSize: '0.85rem', fontWeight: 500, letterSpacing: '0.01em' }}>
+                <strong style={{ fontWeight: 700 }}>Limited-time offer</strong> — Premium features are free during our launch period!
+              </p>
+              <button
+                onClick={() => setPromoDismissed(true)}
+                style={{
+                  position: 'absolute', right: '1rem',
+                  background: 'rgba(255,255,255,0.2)',
+                  border: 'none', color: 'white',
+                  width: 24, height: 24, borderRadius: '50%',
+                  cursor: 'pointer', display: 'flex',
+                  alignItems: 'center', justifyContent: 'center',
+                  fontSize: '0.85rem', lineHeight: 1,
+                  flexShrink: 0
+                }}
+                aria-label="Dismiss"
+              >
+                ×
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
+      {/* ── Routes ── */}
       <main className="content full-width">
-        <Routes>
-          <Route path="/" element={<LandingPage user={user} />} />
-          <Route path="/r/:code" element={<ReferralRedirect />} />
-          <Route path="/home" element={<LandingPage user={user} />} />
-          <Route path="/login" element={!user ? <Login setUser={setUser} /> : <Navigate to="/posts" />} />
-          <Route path="/register" element={!user ? <Registration setUser={setUser} /> : <Navigate to="/home" />} />
-          <Route path="/browse" element={(user?.role === 'Guest' || user?.userType === 'Guest') ? <GuestDashboard user={user} /> : <Navigate to="/login" />} />
-          
-          <Route path="/guest-dashboard" element={(user?.role === 'Guest' || user?.userType === 'Guest') ? <GuestDashboard user={user} /> : <Navigate to="/login" />} />
-          <Route path="/host-dashboard" element={(user?.role === 'Host' || user?.userType === 'Host') ? <HostDashboard user={user} /> : <Navigate to="/login" />} />
-          <Route path="/chats" element={user ? <Chats /> : <Navigate to="/login" />} />
-          <Route path="/posts" element={user ? <Posts /> : <Navigate to="/login" />} />
-          
-          <Route path="/profile" element={user ? <Profile /> : <Navigate to="/login" />} />
-          <Route path="/referrals" element={user ? <Referrals /> : <Navigate to="/login" />} />
-          <Route path="/subscription" element={user ? <Subscription /> : <Navigate to="/login" />} />
-          <Route path="/profile/:userName" element={<PublicProfile />} />
-          <Route path="/admin" element={(user?.role === 'Admin' || user?.userType === 'Admin') ? <Admin /> : <Navigate to="/login" />} />
-          <Route path="/chat/:recipientId" element={user ? <Chat user={user} /> : <Navigate to="/login" />} />
-          <Route path="/help" element={<Help />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="/terms-of-service" element={<TermsOfService />} />
-          <Route path="/safety-guidelines" element={<SafetyGuidelines />} />
-          <Route path="/api-test" element={<ApiTest />} />
-          <Route path="/chat-debug" element={<ChatDebug />} />
-        </Routes>
+        <Suspense fallback={<PageLoader />}>
+          <AnimatePresence mode="wait">
+            <Routes location={location} key={location.pathname}>
+              <Route path="/" element={<PageTransition><LandingPage user={user} /></PageTransition>} />
+              <Route path="/home" element={<PageTransition><LandingPage user={user} /></PageTransition>} />
+              <Route path="/r/:code" element={<PageTransition><ReferralRedirect /></PageTransition>} />
+              <Route path="/login" element={!user ? <PageTransition><Login setUser={setUser} /></PageTransition> : <Navigate to="/posts" />} />
+              <Route path="/register" element={!user ? <PageTransition><Registration setUser={setUser} /></PageTransition> : <Navigate to="/home" />} />
+              <Route path="/browse" element={(user?.role === 'Guest' || user?.userType === 'Guest') ? <PageTransition><GuestDashboard user={user} /></PageTransition> : <Navigate to="/login" />} />
+              <Route path="/guest-dashboard" element={(user?.role === 'Guest' || user?.userType === 'Guest') ? <PageTransition><GuestDashboard user={user} /></PageTransition> : <Navigate to="/login" />} />
+              <Route path="/host-dashboard" element={(user?.role === 'Host' || user?.userType === 'Host') ? <PageTransition><HostDashboard user={user} /></PageTransition> : <Navigate to="/login" />} />
+              <Route path="/chats" element={user ? <PageTransition><Chats /></PageTransition> : <Navigate to="/login" />} />
+              <Route path="/posts" element={user ? <PageTransition><Posts /></PageTransition> : <Navigate to="/login" />} />
+              <Route path="/profile" element={user ? <PageTransition><Profile /></PageTransition> : <Navigate to="/login" />} />
+              <Route path="/referrals" element={user ? <PageTransition><Referrals /></PageTransition> : <Navigate to="/login" />} />
+              <Route path="/subscription" element={user ? <PageTransition><Subscription /></PageTransition> : <Navigate to="/login" />} />
+              <Route path="/profile/:userName" element={<PageTransition><PublicProfile /></PageTransition>} />
+              <Route path="/admin" element={isAdmin ? <PageTransition><Admin /></PageTransition> : <Navigate to="/login" />} />
+              <Route path="/chat/:recipientId" element={user ? <PageTransition><Chat user={user} /></PageTransition> : <Navigate to="/login" />} />
+              <Route path="/help" element={<PageTransition><Help /></PageTransition>} />
+              <Route path="/privacy-policy" element={<PageTransition><PrivacyPolicy /></PageTransition>} />
+              <Route path="/terms-of-service" element={<PageTransition><TermsOfService /></PageTransition>} />
+              <Route path="/safety-guidelines" element={<PageTransition><SafetyGuidelines /></PageTransition>} />
+              <Route path="/api-test" element={<PageTransition><ApiTest /></PageTransition>} />
+              <Route path="/chat-debug" element={<PageTransition><ChatDebug /></PageTransition>} />
+            </Routes>
+          </AnimatePresence>
+        </Suspense>
       </main>
 
-      {/* Logout Confirmation Modal */}
-      {showLogoutModal && (
-        <div className="modal-overlay" onClick={() => setShowLogoutModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
-            <div className="modal-header">
-              <h3 style={{ color: '#dc2626', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <LogOut size={20} />
-                Confirm Logout
-              </h3>
-            </div>
-            <div className="modal-body">
-              <p style={{ margin: '0 0 1rem 0', color: 'var(--text)' }}>
-                Are you sure you want to logout?
-              </p>
-              <p style={{ margin: '0', color: 'var(--text-light)', fontSize: '0.875rem' }}>
-                You will need to login again to access your account.
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', padding: '1rem' }}>
-              <button 
-                onClick={() => setShowLogoutModal(false)}
-                className="btn btn-outline"
-                style={{ minWidth: '80px' }}
-              >
-                {t('cancel')}
-              </button>
-              <button 
-                onClick={confirmLogout}
-                className="btn"
-                style={{ 
-                  minWidth: '80px',
-                  backgroundColor: '#dc2626',
-                  color: 'white',
-                  border: '1px solid #dc2626'
-                }}
-              >
-                {t('logout')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ── Logout modal ── */}
+      <AnimatePresence>
+        {showLogoutModal && (
+          <motion.div
+            className="modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowLogoutModal(false)}
+          >
+            <motion.div
+              className="modal-content"
+              initial={{ scale: 0.92, y: 16 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.92, y: 16 }}
+              transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+              onClick={e => e.stopPropagation()}
+              style={{ maxWidth: '380px' }}
+            >
+              <div className="modal-header">
+                <h3 style={{ color: 'var(--error)' }}>
+                  <LogOut size={20} /> Confirm Logout
+                </h3>
+                <button className="modal-close" onClick={() => setShowLogoutModal(false)}>×</button>
+              </div>
+              <div className="modal-body">
+                <p style={{ color: 'var(--text)', marginBottom: '0.5rem' }}>
+                  Are you sure you want to logout?
+                </p>
+                <p style={{ color: 'var(--text-light)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
+                  You'll need to sign in again to access your account.
+                </p>
+                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => setShowLogoutModal(false)}
+                    className="btn btn-outline"
+                    style={{ minWidth: '90px', padding: '0.6rem 1.25rem' }}
+                  >
+                    {t('cancel')}
+                  </button>
+                  <button
+                    onClick={confirmLogout}
+                    className="btn"
+                    style={{ minWidth: '90px', padding: '0.6rem 1.25rem', background: 'var(--error)', color: 'white' }}
+                  >
+                    {t('logout')}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -1,9 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Edit, X, Upload, Share, Copy, Users, Key, Eye, EyeOff, Crown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Edit, X, Upload, Key, Eye, EyeOff, Crown, MapPin, Mail, Phone, Bell } from 'lucide-react';
 import api from '../utils/api';
 import ImageWithSas from '../components/ImageWithSas';
 import { useLanguage } from '../i18n/LanguageContext';
 import locationService from '../utils/locationService';
+
+const InfoRow = ({ icon, label, value }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.5rem 0', borderBottom: '1px solid #f1f5f9', minWidth: 0 }}>
+    <span style={{ color: 'var(--primary)', display: 'flex', flexShrink: 0 }}>{icon}</span>
+    <span style={{ fontSize: '0.8rem', color: '#94a3b8', flexShrink: 0, whiteSpace: 'nowrap' }}>{label}</span>
+    <span title={value} style={{ fontSize: '0.875rem', color: 'var(--text)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{value}</span>
+  </div>
+);
+
+const StatBox = ({ value, label, color }) => (
+  <div style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '0.625rem', textAlign: 'center' }}>
+    <div style={{ fontSize: '1.5rem', fontWeight: 800, color }}>{value}</div>
+    <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '0.15rem' }}>{label}</div>
+  </div>
+);
 
 function Profile() {
   const { t } = useLanguage();
@@ -15,7 +31,7 @@ function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [referralCode, setReferralCode] = useState('');
   const [copied, setCopied] = useState(false);
-  const [showReferralLink, setShowReferralLink] = useState(false);
+  const [showReferralInfo, setShowReferralInfo] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -50,13 +66,20 @@ function Profile() {
       .catch(err => console.error('Failed to load locations:', err));
   }, []);
 
+  useEffect(() => {
+    const anyOpen = showReferralInfo || showChangePassword || isEditingProfile;
+    document.body.style.overflow = anyOpen ? 'hidden' : '';
+    document.documentElement.style.overflow = anyOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [showReferralInfo, showChangePassword, isEditingProfile]);
+
   const fetchUser = async () => {
     try {
       const res = await api.get('user/profile');
-      console.log('DEBUG: Full API response:', res);
       let fetchedUser = res.data;
-      console.log('DEBUG: Fetched user data:', fetchedUser);
-      console.log('DEBUG: HostingAreas:', fetchedUser.hostingAreas);
 
       const savedUser = JSON.parse(localStorage.getItem('user'));
       const updatedUser = { 
@@ -106,27 +129,19 @@ function Profile() {
       return;
     }
     try {
-      console.log('Step 1: Compressing image...');
       const compressedFile = await compressImage(selectedFile);
-      
-      console.log('Step 2: Getting SAS token from API...');
       const tokenRes = await api.get('user/upload-sas-token');
-      console.log('SAS token response:', tokenRes.data);
       const { sasUrl } = tokenRes.data;
-      
-      console.log('Step 3: Uploading to blob storage...', sasUrl);
       const uploadResponse = await fetch(sasUrl, {
         method: 'PUT',
         headers: { 'x-ms-blob-type': 'BlockBlob', 'Content-Type': 'image/jpeg' },
         body: compressedFile
       });
-      console.log('Upload response status:', uploadResponse.status);
-      
+
       if (!uploadResponse.ok) {
         throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
       }
-      
-      console.log('Step 4: Confirming upload with API...');
+
       const imageUrl = sasUrl.split('?')[0];
       await api.post('user/confirm-upload', { imageUrl });
 
@@ -136,8 +151,6 @@ function Profile() {
       setIsEditing(false);
       await fetchUser();
     } catch (err) {
-      console.error('Upload failed:', err);
-      console.error('Error details:', err.response?.data);
       alert('Image upload failed: ' + (err.response?.data?.error || err.message));
     }
   };
@@ -290,513 +303,365 @@ function Profile() {
 
 
   if (!user) return (
-    <div className="profile-container text-center" style={{ padding: '3rem' }}>
-      <div className="loading">{t('loadingProfile')}</div>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '1rem' }}>
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+        style={{ width: 44, height: 44, borderRadius: '50%', border: '4px solid rgba(255,107,53,0.15)', borderTop: '4px solid var(--primary)' }}
+      />
+      <p style={{ color: 'var(--text-light)', fontSize: '0.9rem' }}>{t('loadingProfile')}</p>
     </div>
   );
 
   return (
-    <div className="profile-container">
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
-          👤 {t('myProfile')}
-        </h2>
-        <p style={{ color: '#64748b', margin: '0 0 1rem 0' }}>{t('viewProfileInfo')}</p>
-        {(subscriptionStatus === 'paid' || successfulReferrals >= 3) && (
-          <button 
-            onClick={() => setIsEditingProfile(true)}
-            className="btn btn-primary"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
-          >
-            <Edit size={16} />
-            {t('editProfile')}
-          </button>
-        )}
-        {subscriptionStatus !== 'paid' && successfulReferrals < 3 && (
-          <p style={{ color: '#f59e0b', fontSize: '0.9rem', marginTop: '0.5rem' }}>
-            ⭐ {t('upgradeToPremium')} ({successfulReferrals}/3 {t('referrals')}) •{' '}
-            <a href="/referrals" style={{ color: '#3b82f6', textDecoration: 'underline', fontWeight: '600' }}>
-              {t('referEarnNav')}
-            </a>
-          </p>
-        )}
-      </div>
-      
-      <div className="profile-card">
-        <div className="profile-image-section">
-          <ImageWithSas 
-            src={previewUrl || user.profileImageUrl} 
-            alt="Profile" 
-            className="profile-img-preview"
-            fallbackText="Profile"
-          />
-          <div style={{ marginTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.4rem', alignItems: 'center' }}>
-            {!isEditing ? (
-              <button 
-                className="btn btn-secondary" 
-                onClick={() => setIsEditing(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}
-              >
-                <Edit size={14} /> {t('editPhoto')}
-              </button>
-            ) : (
-              <>
-                <label 
-                  htmlFor="file-input" 
-                  className="btn btn-secondary"
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer', padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}
-                >
-                  📁 {t('chooseFile')}
-                </label>
-                <input 
-                  id="file-input"
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleFileChange} 
-                  style={{ display: 'none' }}
-                />
-                <button 
-                  className="btn btn-primary" 
-                  onClick={uploadProfileImage} 
-                  disabled={!selectedFile}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}
-                >
-                  <Upload size={14} /> {t('upload')}
-                </button>
-                <button 
-                  className="btn btn-secondary" 
-                  onClick={() => {
-                    setIsEditing(false);
-                    setSelectedFile(null);
-                    setPreviewUrl('');
-                  }}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.4rem 0.8rem', fontSize: '0.875rem' }}
-                >
-                  <X size={14} /> {t('cancel')}
-                </button>
-              </>
-            )}
-          </div>
-          <p style={{ color: '#64748b', fontSize: '0.875rem', textAlign: 'center' }}>{t('uploadProfilePhoto')}</p>
-        </div>
-        
-        <div className="profile-details">
-          <div style={{ display: 'grid', gap: '1rem' }}>
-            <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #3b82f6' }}>
-              <p style={{ margin: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <strong>📧 {t('email')}:</strong> {user.email}
-              </p>
-            </div>
+    <div style={{ maxWidth: '860px', margin: '0 auto', padding: '0 1rem 3rem' }}>
 
-            <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #ef4444' }}>
-              <p style={{ margin: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <strong>📱 {t('phone')}:</strong> {user.phone}
-              </p>
-            </div>
-
-            <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #6366f1' }}>
-              <p style={{ margin: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <strong>📝 {t('name')}:</strong> {user.name}
-              </p>
-            </div>
-            
-            <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #10b981' }}>
-              <p style={{ margin: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <strong>🎭 {t('role')}:</strong> {user.userType === 'Host' ? `🏠 ${t('host')}` : `🎉 ${t('guest')}`}
-              </p>
-            </div>
-            
-            <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #f59e0b' }}>
-              <p style={{ margin: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <strong>📍 {t('location')}:</strong> {user.location}
-              </p>
-            </div>
-
-            <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #ec4899' }}>
-              <p style={{ margin: '0', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <strong>{user.userType === 'Host' ? `🏠 ${t('myOfferings')}:` : `✨ ${t('myFestivalWishes')}:`}</strong>
-                <span style={{ color: '#475569', fontSize: '0.95rem', lineHeight: '1.5' }}>{user.bio || t('notSpecified')}</span>
-              </p>
-            </div>
-
-            {console.log('DEBUG: Checking hosting areas display:', { userType: user.userType, hostingAreas: user.hostingAreas, hasAreas: user.hostingAreas && user.hostingAreas.length > 0 })}
-            {user.userType === 'Host' && (
-              <div style={{ 
-                padding: '1rem', 
-                background: '#f0fdf4', 
-                borderRadius: '0.75rem', 
-                borderLeft: '4px solid #16a34a'
-              }}>
-                <p style={{ 
-                  margin: '0 0 0.75rem 0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  fontWeight: 'bold'
-                }}>
-                  🗺️ {t('myHostingAreas')}:
-                </p>
-                {user.hostingAreas && user.hostingAreas.length > 0 ? (
-                  user.hostingAreas
-                    .filter(area => area.state && area.state.trim() !== '' && area.cities && area.cities.length > 0)
-                    .length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        {user.hostingAreas
-                          .filter(area => area.state && area.state.trim() !== '' && area.cities && area.cities.length > 0)
-                          .map((area, index) => (
-                            <div key={`${area.state}-${index}`} style={{ 
-                              color: '#15803d', 
-                              fontSize: '0.9rem',
-                              lineHeight: '1.4'
-                            }}>
-                              <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>{area.state}</div>
-                              <div style={{ paddingLeft: '1rem', fontSize: '0.85rem' }}>
-                                {area.cities.join(', ')}
-                              </div>
-                            </div>
-                          ))
-                        }
-                      </div>
-                    ) : (
-                      <div style={{ 
-                        color: '#64748b', 
-                        fontSize: '0.9rem', 
-                        fontStyle: 'italic',
-                        lineHeight: '1.4'
-                      }}>
-                        {t('noHostingAreas')}
-                      </div>
-                    )
-                ) : (
-                  <div style={{ 
-                    color: '#64748b', 
-                    fontSize: '0.9rem', 
-                    fontStyle: 'italic',
-                    lineHeight: '1.4'
-                  }}>
-                    {t('noHostingAreas')}
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #f59e0b' }}>
-              <p style={{ margin: '0', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <strong>🟢 {t('status')}:</strong> 
-                <span style={{ 
-                  padding: '0.25rem 0.75rem', 
-                  borderRadius: '1rem', 
-                  fontSize: '0.875rem',
-                  background: user.status === 'Active' ? '#dcfce7' : '#fef3c7',
-                  color: user.status === 'Active' ? '#166534' : '#92400e'
-                }}>
-                  {user.status}
-                </span>
-              </p>
-            </div>
-
-            <div style={{ padding: '1rem', background: '#f8fafc', borderRadius: '0.75rem', borderLeft: '4px solid #8b5cf6' }}>
-              <p style={{ margin: '0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <strong>🔔 Email Notifications:</strong>
-                </span>
-                <span style={{ 
-                  padding: '0.25rem 0.75rem', 
-                  borderRadius: '1rem', 
-                  fontSize: '0.875rem',
-                  background: (user.notificationPreferences?.email !== false) ? '#dcfce7' : '#fee2e2',
-                  color: (user.notificationPreferences?.email !== false) ? '#166534' : '#991b1b'
-                }}>
-                  {(user.notificationPreferences?.email !== false) ? '✓ On' : '✗ Off'}
-                </span>
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Change Password Section */}
-      <div style={{ marginTop: '2rem', background: 'var(--surface)', padding: '2rem', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)', border: '1px solid var(--border)', textAlign: 'center' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
-          <Key size={24} style={{ color: 'var(--primary)' }} />
-          {t('security')}
-        </h3>
-        <p style={{ color: '#64748b', margin: '0 0 1rem 0' }}>{t('manageAccountSecurity')}</p>
-        <button 
-          onClick={() => setShowChangePassword(true)}
-          className="btn btn-secondary"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+      {/* Cover + Avatar hero */}
+      <div style={{ position: 'relative', marginBottom: isEditing ? '6rem' : '4rem' }}>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          style={{ height: 140, borderRadius: '1rem', background: 'var(--gradient-primary, linear-gradient(135deg, #FF6B35 0%, #FF8C5E 50%, #FFB347 100%))', position: 'relative', overflow: 'hidden' }}
         >
-          <Key size={16} />
-          {t('changePassword')}
-        </button>
-      </div>
+          <div style={{ position: 'absolute', right: '-2rem', top: '-2rem', width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
+          <div style={{ position: 'absolute', right: '5rem', bottom: '-3rem', width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+          <div style={{ position: 'absolute', left: '10rem', top: '-1rem', width: 80, height: 80, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
+        </motion.div>
 
-      {/* Subscription Section */}
-      <div style={{ marginTop: '2rem', background: 'var(--surface)', padding: '2rem', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)', border: '1px solid var(--border)' }}>
-        <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 1rem 0' }}>
-          <Crown size={24} style={{ color: subscriptionStatus === 'paid' ? '#f59e0b' : '#64748b' }} />
-          {t('subscription')}
-        </h3>
-        <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '1.5rem' }}>
-          {t('currentStatus')}: 
-          <span style={{ 
-            fontWeight: 'bold', 
-            color: subscriptionStatus === 'paid' ? '#10b981' : subscriptionStatus === 'pending' ? '#f59e0b' : '#64748b',
-            padding: '0.25rem 0.75rem',
-            borderRadius: '1rem',
-            background: subscriptionStatus === 'paid' ? '#dcfce7' : subscriptionStatus === 'pending' ? '#fef3c7' : '#f1f5f9',
-            marginLeft: '0.5rem'
-          }}>
-            {subscriptionStatus === 'paid' ? `✓ ${t('premium')}` : subscriptionStatus === 'pending' ? t('pendingApproval') : t('free')}
-          </span>
-        </p>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
-          {/* Free Plan */}
-          <div style={{
-            background: 'white',
-            border: '2px solid #e2e8f0',
-            borderRadius: '0.75rem',
-            padding: '1.5rem'
-          }}>
-            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem' }}>{t('freePlan')}</h4>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>₹0</div>
-            <div style={{ color: '#64748b', fontSize: '0.85rem', marginBottom: '1rem' }}>{t('foreverFree')}</div>
-            {subscriptionStatus === 'free' && (
-              <div style={{ padding: '0.5rem', background: '#f1f5f9', borderRadius: '0.375rem', textAlign: 'center', color: '#64748b', fontWeight: '600', fontSize: '0.9rem' }}>
-                {t('currentPlan')}
-              </div>
-            )}
-          </div>
-
-          {/* Premium Plan */}
-          <div style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            border: '2px solid #667eea',
-            borderRadius: '0.75rem',
-            padding: '1.5rem',
-            color: 'white',
-            position: 'relative'
-          }}>
-            {subscriptionStatus === 'paid' && (
-              <div style={{
-                position: 'absolute',
-                top: '-10px',
-                right: '15px',
-                background: '#f59e0b',
-                color: 'white',
-                padding: '0.25rem 0.75rem',
-                borderRadius: '1rem',
-                fontSize: '0.75rem',
-                fontWeight: 'bold'
-              }}>
-                ACTIVE
-              </div>
-            )}
-            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Crown size={20} style={{ color: '#f59e0b' }} />
-              {t('premium')}
-            </h4>
-            <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '0.25rem' }}>₹{user.userType === 'Host' ? 299 : 199}</div>
-            <div style={{ opacity: 0.8, fontSize: '0.85rem', marginBottom: '1rem' }}>3 {t('months')} • {t('nonRefundable')}</div>
-            {subscriptionStatus !== 'paid' && subscriptionStatus !== 'pending' && (
-              <button
-                onClick={() => window.open(`https://wa.me/919966888484?text=${encodeURIComponent('I want to upgrade my subscription.')}`, '_blank')}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  background: 'white',
-                  color: '#667eea',
-                  border: 'none',
-                  borderRadius: '0.375rem',
-                  fontSize: '0.95rem',
-                  fontWeight: 'bold',
-                  cursor: 'pointer'
-                }}
-              >
-                {t('upgradeViaWhatsApp')}
-              </button>
-            )}
-            {subscriptionStatus === 'pending' && (
-              <div style={{ padding: '0.75rem', background: 'rgba(251, 191, 36, 0.2)', borderRadius: '0.375rem', textAlign: 'center', fontWeight: '600', fontSize: '0.9rem' }}>
-                ⏳ {t('pendingApproval')}
-              </div>
-            )}
-            {subscriptionStatus === 'paid' && (
-              <div style={{ padding: '0.75rem', background: 'rgba(255, 255, 255, 0.2)', borderRadius: '0.375rem', textAlign: 'center', fontWeight: '600', fontSize: '0.9rem' }}>
-                ✓ {t('youArePremium')}
-              </div>
-            )}
+        {/* Avatar overlapping the banner */}
+        <div style={{ position: 'absolute', bottom: '-40px', left: '2rem' }}>
+          <div style={{ position: 'relative', display: 'inline-block' }}>
+            <ImageWithSas
+              src={previewUrl || user.profileImageUrl}
+              alt="Profile"
+              fallbackText={user.name?.charAt(0) || 'U'}
+              style={{ width: 88, height: 88, borderRadius: '50%', border: '4px solid white', objectFit: 'cover', background: '#e2e8f0', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', display: 'block' }}
+            />
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              title="Change photo"
+              style={{ position: 'absolute', bottom: 2, right: 2, background: 'var(--primary)', color: 'white', border: '2px solid white', borderRadius: '50%', width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }}
+            >
+              <Edit size={12} />
+            </button>
           </div>
         </div>
+
+        {/* Photo editor controls */}
+        <AnimatePresence>
+          {isEditing && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              style={{ position: 'absolute', bottom: '-76px', left: '2rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}
+            >
+              <label htmlFor="profile-file-input" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.9rem', background: 'white', border: '1px solid var(--border)', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, boxShadow: '0 1px 3px rgba(0,0,0,0.08)' }}>
+                📁 {t('chooseFile')}
+              </label>
+              <input id="profile-file-input" type="file" accept="image/*" onChange={handleFileChange} style={{ display: 'none' }} />
+              {selectedFile && (
+                <motion.button initial={{ scale: 0.9 }} animate={{ scale: 1 }} onClick={uploadProfileImage} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.9rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>
+                  <Upload size={13} /> {t('upload')}
+                </motion.button>
+              )}
+              <button onClick={() => { setIsEditing(false); setSelectedFile(null); setPreviewUrl(''); }} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 0.9rem', background: 'none', border: '1px solid var(--border)', borderRadius: '0.5rem', cursor: 'pointer', fontSize: '0.8rem', color: 'var(--text-light)' }}>
+                <X size={13} /> {t('cancel')}
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-      {/* Change Password Modal */}
-      {showChangePassword && (
-        <div className="modal-overlay" onClick={() => setShowChangePassword(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
-            <div className="modal-header">
-              <h3><Key size={20} /> {t('changePassword')}</h3>
-              <button onClick={() => setShowChangePassword(false)} className="modal-close">×</button>
+
+      {/* Name + badges */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+        style={{ paddingLeft: '2rem', marginBottom: '1.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}
+      >
+        <div>
+          <h2 style={{ margin: '0 0 0.25rem', fontSize: '1.5rem', fontWeight: 800 }}>{user.name}</h2>
+          <p style={{ margin: 0, color: 'var(--text-light)', fontSize: '0.875rem' }}>
+            {user.userType === 'Host' ? '🏠 Host' : '🎉 Guest'}{user.location ? ` · ${user.location}` : ''}
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={{ padding: '0.35rem 0.85rem', borderRadius: '2rem', fontSize: '0.8rem', fontWeight: 700, background: subscriptionStatus === 'paid' ? 'linear-gradient(135deg, #f59e0b, #fbbf24)' : '#f1f5f9', color: subscriptionStatus === 'paid' ? 'white' : '#64748b' }}>
+            {subscriptionStatus === 'paid' ? '👑 Premium' : subscriptionStatus === 'pending' ? '⏳ Pending' : '✦ Free'}
+          </span>
+          <span style={{ padding: '0.35rem 0.85rem', borderRadius: '2rem', fontSize: '0.8rem', fontWeight: 600, background: user.status === 'Active' ? '#dcfce7' : '#fef3c7', color: user.status === 'Active' ? '#166534' : '#92400e' }}>
+            {user.status === 'Active' ? '● Active' : user.status}
+          </span>
+        </div>
+      </motion.div>
+
+      {/* Two-column grid */}
+      <div className="profile-grid-two-col" style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: '1.25rem', alignItems: 'start' }}>
+      
+        {/* LEFT sidebar */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+          {/* Contact info */}
+          <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }} style={{ background: 'white', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+            <h4 style={{ margin: '0 0 0.875rem', fontSize: '0.78rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Contact</h4>
+            <InfoRow icon={<Mail size={14} />} label="Email" value={user.email} />
+            <InfoRow icon={<Phone size={14} />} label="Phone" value={user.phone || '—'} />
+            <InfoRow icon={<MapPin size={14} />} label="Location" value={user.location || '—'} />
+            <InfoRow icon={<Bell size={14} />} label="Email alerts" value={user.notificationPreferences?.email !== false ? 'On' : 'Off'} />
+          </motion.div>
+
+          {/* Stats */}
+          <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} style={{ background: 'white', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+            <h4 style={{ margin: '0 0 0.875rem', fontSize: '0.78rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Activity</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
+              <StatBox value={successfulReferrals} label="Referrals" color="var(--primary)" />
+              <StatBox value={user.referralPoints || 0} label="Points" color="#10b981" />
             </div>
-            <div className="modal-body">
-              {passwordError && (
-                <div style={{ 
-                  color: passwordError.includes('✅') ? '#16a34a' : '#dc2626', 
-                  background: passwordError.includes('✅') ? '#dcfce7' : '#fee2e2', 
-                  padding: '0.75rem', 
-                  borderRadius: '0.375rem', 
-                  marginBottom: '1rem',
-                  fontSize: '0.875rem'
-                }}>
-                  {passwordError.includes('✅') ? (
-                    <div style={{ textAlign: 'center' }}>
-                      {passwordError}
-                      {passwordSuccessCountdown > 0 && (
-                        <div style={{ fontSize: '2rem', fontWeight: 'bold', marginTop: '0.5rem' }}>
-                          {passwordSuccessCountdown}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    `⚠️ ${passwordError}`
-                  )}
+          </motion.div>
+
+          {/* Account actions */}
+          <motion.div initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 }} style={{ background: 'white', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '1.25rem', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+            <h4 style={{ margin: '0 0 0.875rem', fontSize: '0.78rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Account</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {(subscriptionStatus === 'paid' || successfulReferrals >= 3) ? (
+                <button onClick={() => setIsEditingProfile(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.6rem 0.75rem', background: 'rgba(255,107,53,0.08)', border: 'none', borderRadius: '0.5rem', color: 'var(--primary)', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', textAlign: 'left' }}>
+                  <Edit size={14} /> {t('editProfile')}
+                </button>
+              ) : (
+                <div style={{ padding: '0.6rem 0.75rem', background: '#fef9c3', borderRadius: '0.5rem', fontSize: '0.78rem', color: '#854d0e', lineHeight: 1.5 }}>
+                  ⭐ {successfulReferrals}/3 referrals to unlock editing ·{' '}
+                  <a href="/referrals" style={{ color: 'var(--primary)', fontWeight: 600, textDecoration: 'none' }}>{t('referEarnNav')}</a>
                 </div>
               )}
-              <div className="form-group">
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>{t('currentPasswordLabel')}</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type={showCurrentPassword ? 'text' : 'password'}
-                    value={currentPassword}
-                    onChange={(e) => {
-                      setCurrentPassword(e.target.value);
-                      setPasswordError('');
-                    }}
-                    placeholder={t('enterCurrentPassword')}
-                    disabled={passwordSuccessCountdown > 0}
-                    style={{ fontSize: '1rem', padding: '0.75rem', width: '100%', paddingRight: '2.5rem', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    style={{
-                      position: 'absolute',
-                      right: '0.75rem',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: '#64748b'
-                    }}
-                  >
-                    {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-              <div className="form-group">
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>{t('newPasswordLabel')}</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type={showNewPassword ? 'text' : 'password'}
-                    value={newPassword}
-                    onChange={(e) => {
-                      setNewPassword(e.target.value);
-                      setPasswordError('');
-                    }}
-                    placeholder={t('enterNewPassword')}
-                    disabled={passwordSuccessCountdown > 0}
-                    style={{ fontSize: '1rem', padding: '0.75rem', width: '100%', paddingRight: '2.5rem', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    style={{
-                      position: 'absolute',
-                      right: '0.75rem',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: '#64748b'
-                    }}
-                  >
-                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-                <div style={{ marginTop: '0.75rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
-                  {passwordRequirements.map((req, index) => {
-                    const isMet = req.test(newPassword);
-                    return (
-                      <div key={index} style={{ 
-                        fontSize: '0.75rem', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '0.25rem',
-                        color: isMet ? '#16a34a' : '#dc2626',
-                        transition: 'color 0.2s'
-                      }}>
-                        <span style={{ fontSize: '0.9rem' }}>{isMet ? '✓' : '○'}</span>
-                        {req.label}
+              <button onClick={() => setShowChangePassword(true)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', padding: '0.6rem 0.75rem', background: 'rgba(100,116,139,0.08)', border: 'none', borderRadius: '0.5rem', color: '#475569', fontWeight: 600, fontSize: '0.85rem', cursor: 'pointer', textAlign: 'left' }}>
+                <Key size={14} /> {t('changePassword')}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+
+        {/* RIGHT main content */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+
+          {/* Bio */}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} style={{ background: 'white', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+            <h4 style={{ margin: '0 0 0.75rem', fontSize: '0.78rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              {user.userType === 'Host' ? t('myOfferings') : t('myFestivalWishes')}
+            </h4>
+            <p style={{ margin: 0, color: user.bio ? 'var(--text)' : '#94a3b8', lineHeight: 1.65, fontSize: '0.925rem', fontStyle: user.bio ? 'normal' : 'italic' }}>
+              {user.bio || (user.userType === 'Host' ? t('describeOfferings') : t('describeFestivalWishes'))}
+            </p>
+          </motion.div>
+
+          {/* Hosting areas (hosts only) */}
+          {user.userType === 'Host' && (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} style={{ background: 'white', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+              <h4 style={{ margin: '0 0 0.875rem', fontSize: '0.78rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>🗺️ {t('myHostingAreas')}</h4>
+              {user.hostingAreas && user.hostingAreas.filter(a => a.state && a.cities?.length > 0).length > 0 ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
+                  {user.hostingAreas.filter(a => a.state && a.cities?.length > 0).map((area, i) => (
+                    <div key={i}>
+                      <div style={{ fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.4rem' }}>{area.state}</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
+                        {area.cities.map(city => (
+                          <span key={city} style={{ padding: '0.2rem 0.65rem', background: '#f0fdf4', color: '#166534', borderRadius: '2rem', fontSize: '0.78rem', fontWeight: 500, border: '1px solid #86efac' }}>{city}</span>
+                        ))}
                       </div>
-                    );
-                  })}
+                    </div>
+                  ))}
                 </div>
+              ) : (
+                <p style={{ margin: 0, color: '#94a3b8', fontStyle: 'italic', fontSize: '0.9rem' }}>{t('noHostingAreas')}</p>
+              )}
+            </motion.div>
+          )}
+
+          {/* Subscription */}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} style={{ background: 'white', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+            <h4 style={{ margin: '0 0 1rem', fontSize: '0.78rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t('subscription')}</h4>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              {/* Free plan */}
+              <div style={{ padding: '1rem', border: (subscriptionStatus === 'free' || !subscriptionStatus) ? '2px solid var(--primary)' : '1px solid var(--border)', borderRadius: '0.75rem', background: (subscriptionStatus === 'free' || !subscriptionStatus) ? 'rgba(255,107,53,0.03)' : 'white' }}>
+                <div style={{ fontWeight: 700, marginBottom: '0.25rem' }}>{t('freePlan')}</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0.3rem 0' }}>₹0</div>
+                <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginBottom: '0.75rem' }}>{t('foreverFree')}</div>
+                {(subscriptionStatus === 'free' || !subscriptionStatus) && <div style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--primary)' }}>✓ {t('currentPlan')}</div>}
               </div>
-              <div className="form-group">
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>{t('confirmNewPassword')}</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => {
-                    setConfirmPassword(e.target.value);
-                    setPasswordError('');
-                  }}
-                  placeholder={t('confirmNewPasswordPlaceholder')}
-                  disabled={passwordSuccessCountdown > 0}
-                  style={{ fontSize: '1rem', padding: '0.75rem', width: '100%', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }}
-                />
-              </div>
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                <button 
-                  onClick={() => {
-                    setShowChangePassword(false);
-                    setCurrentPassword('');
-                    setNewPassword('');
-                    setConfirmPassword('');
-                    setPasswordError('');
-                  }}
-                  className="btn btn-secondary"
-                  disabled={passwordSuccessCountdown > 0}
-                  style={{ flex: 1, padding: '0.75rem', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }}
-                >
-                  {t('cancel')}
-                </button>
-                <button 
-                  onClick={changePassword}
-                  disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword || passwordSuccessCountdown > 0}
-                  className="btn btn-primary"
-                  style={{ flex: 1, padding: '0.75rem', opacity: (changingPassword || passwordSuccessCountdown > 0) ? 0.5 : 1 }}
-                >
-                  {changingPassword ? t('changingPassword') : t('changePassword')}
-                </button>
+              {/* Premium plan */}
+              <div style={{ padding: '1rem', borderRadius: '0.75rem', background: 'var(--gradient-primary, linear-gradient(135deg,#FF6B35,#FFB347))', color: 'white', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', right: '-1rem', top: '-1rem', width: 60, height: 60, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
+                {subscriptionStatus === 'paid' && <div style={{ position: 'absolute', top: '-8px', right: '12px', background: '#f59e0b', color: 'white', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.7rem', fontWeight: 700 }}>ACTIVE</div>}
+                <div style={{ fontWeight: 700, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}><Crown size={14} /> {t('premium')}</div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, margin: '0.3rem 0' }}>₹{user.userType === 'Host' ? 299 : 199}</div>
+                <div style={{ fontSize: '0.78rem', opacity: 0.85, marginBottom: '0.75rem' }}>3 {t('months')} · {t('nonRefundable')}</div>
+                {subscriptionStatus !== 'paid' && subscriptionStatus !== 'pending' && (
+                  <button onClick={() => window.open(`https://wa.me/919966888484?text=${encodeURIComponent('I want to upgrade my subscription.')}`, '_blank')} style={{ width: '100%', padding: '0.45rem', background: 'white', color: 'var(--primary)', border: 'none', borderRadius: '0.375rem', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>
+                    {t('upgradeViaWhatsApp')}
+                  </button>
+                )}
+                {subscriptionStatus === 'pending' && <div style={{ padding: '0.45rem', background: 'rgba(255,255,255,0.2)', borderRadius: '0.375rem', textAlign: 'center', fontWeight: 600, fontSize: '0.82rem' }}>⏳ {t('pendingApproval')}</div>}
+                {subscriptionStatus === 'paid' && <div style={{ padding: '0.45rem', background: 'rgba(255,255,255,0.2)', borderRadius: '0.375rem', textAlign: 'center', fontWeight: 600, fontSize: '0.82rem' }}>✓ {t('youArePremium')}</div>}
               </div>
             </div>
-          </div>
+          </motion.div>
+
+          {/* Referral card */}
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} style={{ background: 'white', borderRadius: '0.875rem', border: '1px solid var(--border)', padding: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.875rem' }}>
+              <h4 style={{ margin: 0, fontSize: '0.78rem', fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Refer &amp; Earn</h4>
+              <button onClick={() => setShowReferralInfo(true)} style={{ background: 'none', border: 'none', color: 'var(--primary)', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', padding: '0.2rem 0.5rem', borderRadius: '0.375rem', textDecoration: 'underline', textUnderlineOffset: '2px' }}>
+                How it works
+              </button>
+            </div>
+            <p style={{ margin: '0 0 1rem', fontSize: '0.875rem', color: 'var(--text-light)', lineHeight: 1.5 }}>
+              Share your code to earn profile-editing access · {successfulReferrals}/3 successful referrals
+            </p>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'stretch' }}>
+              <div style={{ flex: 1, padding: '0.7rem 1rem', background: '#f8fafc', borderRadius: '0.5rem', fontFamily: 'monospace', fontWeight: 700, fontSize: '1rem', letterSpacing: '0.1em', border: '1px dashed var(--border)', textAlign: 'center' }}>
+                {referralCode || '—'}
+              </div>
+              <button onClick={copyReferralCode} style={{ padding: '0.7rem 1rem', background: copied ? '#dcfce7' : 'rgba(255,107,53,0.08)', color: copied ? '#166534' : 'var(--primary)', border: 'none', borderRadius: '0.5rem', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s' }}>
+                {copied ? '✓ Copied!' : 'Copy'}
+              </button>
+              <button onClick={shareReferral} style={{ padding: '0.7rem 1rem', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '0.5rem', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                Share
+              </button>
+            </div>
+          </motion.div>
         </div>
-      )}
+      </div>
+
+      {/* How Referrals Work popup */}
+      <AnimatePresence>
+        {showReferralInfo && (
+          <motion.div
+            className="modal-overlay"
+            onClick={() => setShowReferralInfo(false)}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+          >
+            <motion.div
+              onClick={e => e.stopPropagation()}
+              initial={{ opacity: 0, y: 24, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 14, scale: 0.97 }}
+              transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+              style={{ background: 'white', borderRadius: '1rem', boxShadow: '0 20px 50px rgba(0,0,0,0.15)', maxWidth: 380, width: '100%', overflow: 'hidden' }}
+            >
+              {/* Header */}
+              <div style={{ background: 'var(--gradient-primary, linear-gradient(135deg,#FF6B35,#FFB347))', padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontSize: '1.25rem', marginBottom: '0.15rem' }}>🎁</div>
+                  <h3 style={{ margin: 0, color: 'white', fontSize: '1rem', fontWeight: 700 }}>How Referrals Work</h3>
+                </div>
+                <button onClick={() => setShowReferralInfo(false)} style={{ background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white', width: 32, height: 32, borderRadius: '50%', cursor: 'pointer', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+              </div>
+
+              {/* Steps */}
+              <div style={{ padding: '1.5rem' }}>
+                {[
+                  { step: '1', icon: '📤', title: 'Share your code', desc: 'Copy your unique referral code and share it with friends or family.' },
+                  { step: '2', icon: '📝', title: 'Friend registers', desc: 'They sign up on FestiveGuest using your referral code.' },
+                  { step: '3', icon: '🔓', title: 'Unlock editing', desc: '3 successful referrals unlocks profile editing — no subscription needed.' },
+                ].map(({ step, icon, title, desc }) => (
+                  <div key={step} style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem' }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(255,107,53,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>{icon}</div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.2rem' }}>{title}</div>
+                      <div style={{ fontSize: '0.82rem', color: 'var(--text-light)', lineHeight: 1.5 }}>{desc}</div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Progress */}
+                <div style={{ background: '#f8fafc', borderRadius: '0.75rem', padding: '0.875rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--text-light)', fontWeight: 500 }}>Your progress</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', gap: '0.3rem' }}>
+                      {[0, 1, 2].map(i => (
+                        <div key={i} style={{ width: 10, height: 10, borderRadius: '50%', background: i < successfulReferrals ? 'var(--primary)' : '#e2e8f0', transition: 'background 0.3s' }} />
+                      ))}
+                    </div>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: successfulReferrals >= 3 ? '#10b981' : 'var(--text)' }}>
+                      {successfulReferrals >= 3 ? '✓ Unlocked!' : `${successfulReferrals}/3`}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setShowReferralInfo(false)}
+                  style={{ width: '100%', marginTop: '1rem', padding: '0.7rem', background: 'var(--gradient-primary, linear-gradient(135deg,#FF6B35,#FFB347))', color: 'white', border: 'none', borderRadius: '0.625rem', fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer' }}
+                >
+                  Got it!
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Change Password Modal */}
+      <AnimatePresence>
+        {showChangePassword && (
+          <motion.div className="modal-overlay" onClick={() => setShowChangePassword(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+            <motion.div className="modal-content" onClick={(e) => e.stopPropagation()} initial={{ opacity: 0, y: 24, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 14, scale: 0.97 }} transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }} style={{ maxWidth: '400px' }}>
+              <div className="modal-header">
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Key size={18} /> {t('changePassword')}</h3>
+                <button onClick={() => setShowChangePassword(false)} className="modal-close">×</button>
+              </div>
+              <div className="modal-body">
+                {passwordError && (
+                  <div style={{ color: passwordError.includes('✅') ? '#16a34a' : '#dc2626', background: passwordError.includes('✅') ? '#dcfce7' : '#fee2e2', padding: '0.75rem', borderRadius: '0.375rem', marginBottom: '1rem', fontSize: '0.875rem', textAlign: passwordError.includes('✅') ? 'center' : 'left' }}>
+                    {passwordError.includes('✅') ? (<>{passwordError}{passwordSuccessCountdown > 0 && <div style={{ fontSize: '2rem', fontWeight: 'bold', marginTop: '0.5rem' }}>{passwordSuccessCountdown}</div>}</>) : `⚠️ ${passwordError}`}
+                  </div>
+                )}
+                <div className="form-group">
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>{t('currentPasswordLabel')}</label>
+                  <div style={{ position: 'relative' }}>
+                    <input type={showCurrentPassword ? 'text' : 'password'} value={currentPassword} onChange={(e) => { setCurrentPassword(e.target.value); setPasswordError(''); }} placeholder={t('enterCurrentPassword')} disabled={passwordSuccessCountdown > 0} style={{ fontSize: '1rem', padding: '0.75rem', width: '100%', paddingRight: '2.5rem', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }} />
+                    <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>{showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>{t('newPasswordLabel')}</label>
+                  <div style={{ position: 'relative' }}>
+                    <input type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => { setNewPassword(e.target.value); setPasswordError(''); }} placeholder={t('enterNewPassword')} disabled={passwordSuccessCountdown > 0} style={{ fontSize: '1rem', padding: '0.75rem', width: '100%', paddingRight: '2.5rem', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }} />
+                    <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>{showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                  </div>
+                  <div style={{ marginTop: '0.75rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                    {passwordRequirements.map((req, index) => {
+                      const isMet = req.test(newPassword);
+                      return (
+                        <div key={index} style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', color: isMet ? '#16a34a' : '#dc2626', transition: 'color 0.2s' }}>
+                          <span>{isMet ? '✓' : '○'}</span> {req.label}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="form-group">
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>{t('confirmNewPassword')}</label>
+                  <input type="password" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError(''); }} placeholder={t('confirmNewPasswordPlaceholder')} disabled={passwordSuccessCountdown > 0} style={{ fontSize: '1rem', padding: '0.75rem', width: '100%', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }} />
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                  <button onClick={() => { setShowChangePassword(false); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); setPasswordError(''); }} className="btn btn-secondary" disabled={passwordSuccessCountdown > 0} style={{ flex: 1, padding: '0.75rem', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }}>{t('cancel')}</button>
+                  <button onClick={changePassword} disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword || passwordSuccessCountdown > 0} className="btn btn-primary" style={{ flex: 1, padding: '0.75rem', opacity: (changingPassword || passwordSuccessCountdown > 0) ? 0.5 : 1 }}>
+                    {changingPassword ? t('changingPassword') : t('changePassword')}
+                </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Edit Profile Modal */}
-      {isEditingProfile && (
-        <div className="modal-overlay" onClick={() => setIsEditingProfile(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
-            <div className="modal-header">
-              <h3><Edit size={20} /> {t('editProfile')}</h3>
-              <button onClick={() => setIsEditingProfile(false)} className="modal-close">×</button>
-            </div>
-            <div className="modal-body">
+      <AnimatePresence>
+        {isEditingProfile && (
+          <motion.div className="modal-overlay" onClick={() => setIsEditingProfile(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+            <motion.div className="modal-content" onClick={(e) => e.stopPropagation()} initial={{ opacity: 0, y: 24, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 14, scale: 0.97 }} transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }} style={{ maxWidth: '500px' }}>
+              <div className="modal-header">
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Edit size={18} /> {t('editProfile')}</h3>
+                <button onClick={() => setIsEditingProfile(false)} className="modal-close">×</button>
+              </div>
+              <div className="modal-body">
               {updateError && (
                 <div ref={errorMessageRef} style={{ 
                   color: updateError.includes('✅') ? '#16a34a' : '#dc2626', 
@@ -912,7 +777,6 @@ function Profile() {
                   }}>
                     {locationData && Object.entries(locationData).map(([state, cities]) => {
                       const selectedCities = editFormData.hostingAreas.find(area => area.state === state)?.cities || [];
-                      const hasState = selectedCities.length > 0;
                       return (
                         <div key={state} style={{ marginBottom: '1rem' }}>
                           <div style={{ fontWeight: '600', fontSize: '0.95rem', marginBottom: '0.5rem', color: 'var(--primary)' }}>{state}</div>
@@ -1014,30 +878,16 @@ function Profile() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                <button 
-                  onClick={() => {
-                    setIsEditingProfile(false);
-                    setUpdateError('');
-                  }}
-                  className="btn btn-secondary"
-                  disabled={updatingProfile}
-                  style={{ flex: 1, padding: '0.75rem' }}
-                >
-                  {t('cancel')}
-                </button>
-                <button 
-                  onClick={updateProfile}
-                  disabled={updatingProfile}
-                  className="btn btn-primary"
-                  style={{ flex: 1, padding: '0.75rem', opacity: updatingProfile ? 0.5 : 1 }}
-                >
+                <button onClick={() => { setIsEditingProfile(false); setUpdateError(''); }} className="btn btn-secondary" disabled={updatingProfile} style={{ flex: 1, padding: '0.75rem' }}>{t('cancel')}</button>
+                <button onClick={updateProfile} disabled={updatingProfile} className="btn btn-primary" style={{ flex: 1, padding: '0.75rem', opacity: updatingProfile ? 0.5 : 1 }}>
                   {updatingProfile ? t('updating') : t('saveChanges')}
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

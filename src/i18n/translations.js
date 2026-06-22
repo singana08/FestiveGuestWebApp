@@ -315,6 +315,7 @@ export const translations = {
     travelConnect: 'Village ↔ City Support',
     stayWithLocals: 'Purpose-based stays • Trusted hosts • Mutual respect',
     alreadyHaveAccount: 'Already have an account?',
+    dontHaveAccount: "Don't have an account?",
     createAccount: 'Create Account',
     
     // Landing Page - New Purpose-Driven Content
@@ -745,6 +746,7 @@ export const translations = {
     travelConnect: 'ప్రయాణం & కనెక్ట్',
     stayWithLocals: 'స్థానికులతో ఉండండి, సంస్కృతిని అనుభవించండి, శాశ్వత జ్ఞాపకాలను సృష్టించండి',
     alreadyHaveAccount: 'ఇప్పటికే ఖాతా ఉందా?',
+    dontHaveAccount: 'ఖాతా లేదా?',
     createAccount: 'ఖాతా సృష్టించండి',
     
     whyChooseTitle: 'ఆందోళనను తగ్గించే మరియు నమ్మకాన్ని పెంపొందించే లక్షణాలు',

@@ -32,6 +32,11 @@
   max-width: 120px;
 }
 
+.host-card-horizontal.selected {
+  border-color: var(--primary);
+  box-shadow: 0 4px 16px rgba(255, 107, 53, 0.25);
+}
+
 @media (min-width: 481px) {
   .host-card-horizontal {
     width: 120px !important;
@@ -88,7 +93,7 @@
   top: 8px;
   right: 8px;
   background: none;
-  color: rgba(99, 102, 241, 0.9);
+  color: rgba(255, 107, 53, 0.9);
   border: none;
   padding: 6px;
   border-radius: 50%;
@@ -206,13 +211,13 @@
 }
 
 .city-btn:hover {
-  border-color: #667eea;
-  color: #667eea;
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .city-btn.selected {
-  background: #667eea;
-  border-color: #667eea;
+  background: var(--primary);
+  border-color: var(--primary);
   color: white;
 }
 
@@ -237,14 +242,14 @@
 }
 
 .state-filter-btn:hover {
-  border-color: #667eea;
+  border-color: var(--primary);
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(102, 126, 234, 0.15);
 }
 
 .state-filter-btn.selected {
-  background: #667eea;
-  border-color: #667eea;
+  background: var(--primary);
+  border-color: var(--primary);
   color: white;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
@@ -272,13 +277,13 @@
 }
 
 .city-filter-btn:hover {
-  border-color: #667eea;
-  color: #667eea;
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .city-filter-btn.selected {
-  background: #667eea;
-  border-color: #667eea;
+  background: var(--primary);
+  border-color: var(--primary);
   color: white;
 }
 

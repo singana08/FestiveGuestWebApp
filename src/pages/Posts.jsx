@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, MapPin, Users, Calendar, Wifi, Car, Utensils, MessageCircle, MoreVertical, Edit, Trash2, Filter, Minus } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Plus, MapPin, Users, Calendar, MessageCircle, MoreVertical, Edit, Trash2, Filter, Minus, Wifi } from 'lucide-react';
 import postsService from '../utils/postsService';
 import locationService from '../utils/locationService';
 import ChatWidget from '../components/ChatWidget';
@@ -35,15 +36,9 @@ const Posts = () => {
   const [profileLoading, setProfileLoading] = useState(false);
 
   useEffect(() => {
-    console.log('Posts: activeChat state changed:', activeChat);
-  }, [activeChat]);
-
-  useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
       const parsedUser = JSON.parse(userData);
-      console.log('DEBUG Posts: User data:', parsedUser);
-      console.log('DEBUG Posts: HostingAreas:', parsedUser.hostingAreas);
       setUser(parsedUser);
     }
     fetchPosts();
@@ -93,6 +88,16 @@ const Posts = () => {
       return () => document.removeEventListener('click', handleClickOutside);
     }
   }, [activeDropdown]);
+
+  useEffect(() => {
+    const anyOpen = showCreateModal || showEditModal || showDeleteModal || showHowItWorks || showProfileModal;
+    document.body.style.overflow = anyOpen ? 'hidden' : '';
+    document.documentElement.style.overflow = anyOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [showCreateModal, showEditModal, showDeleteModal, showHowItWorks, showProfileModal]);
 
   const fetchLocations = async () => {
     try {
@@ -216,9 +221,14 @@ const Posts = () => {
   };
 
   const facilityIcons = {
-    'WiFi': <Wifi size={16} />,
-    'Parking': <Car size={16} />,
-    'Meals': <Utensils size={16} />
+    'WiFi': <Wifi size={14} />,
+    'Parking': '🚗',
+    'Meals': '🍽️',
+    'AC': '❄️',
+    'Kitchen': '👨‍🍳',
+    'Laundry': '👕',
+    'TV': '📺',
+    'Hot Water': '🚿'
   };
 
   const handleCreatePost = async (postData) => {
@@ -402,47 +412,88 @@ const Posts = () => {
       {/* Main Content */}
       <div className="browse-main">
     <div className="container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
-        <div style={{ flex: '1 1 auto', minWidth: '200px' }}>
-          <h1 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>
-            {showMyPosts ? t('myPosts') : (user?.userType === 'Host' ? t('guestPosts') : t('allPosts'))}
+      {/* Page header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div>
+          <h1 style={{ margin: '0 0 0.2rem 0', fontSize: '1.4rem', fontWeight: 700, color: 'var(--text)' }}>
+            {showMyPosts
+              ? (user?.userType === 'Host' ? t('myPosts') : t('myPosts'))
+              : (user?.userType === 'Host' ? t('guestPosts') : t('allPosts'))}
           </h1>
-          <p style={{ margin: 0, color: 'var(--text-light)' }}>
-            {showMyPosts 
-              ? `${t('manageYourPosts').replace('{userType}', user?.userType === 'Host' ? t('host') : t('guest'))} (${filteredPosts.length} ${t('found')})`
-              : (user?.userType === 'Host' 
-                ? `${t('browseAccommodationRequests')} (${filteredPosts.length} ${t('found')})` 
-                : `${t('browseAllAccommodation')} (${filteredPosts.length} ${t('found')})`)
-            }
-            {' • '}
-            <a 
-              href="#" 
+          <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-light)' }}>
+            {filteredPosts.length} {t('found')}
+            {' · '}
+            <a
+              href="#"
               onClick={(e) => { e.preventDefault(); setShowHowItWorks(true); }}
-              style={{ color: 'var(--primary)', textDecoration: 'underline', cursor: 'pointer' }}
+              style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500 }}
             >
               {t('howItWorks')}
             </a>
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-          <button 
-            onClick={() => setShowMyPosts(!showMyPosts)}
-            className={showMyPosts ? 'btn btn-outline' : 'btn btn-secondary'}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}
+        {showMyPosts && (
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setShowCreateModal(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.55rem 1.1rem',
+              background: 'var(--gradient-primary, linear-gradient(135deg,#FF6B35,#FFB347))',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.5rem',
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(255,107,53,0.3)'
+            }}
           >
-            {showMyPosts ? t('allPosts') : t('myPosts')}
-          </button>
-          {showMyPosts && (
-            <button 
-              onClick={() => setShowCreateModal(true)}
-              className="btn btn-primary"
-              style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: 'nowrap' }}
-            >
-              <Plus size={20} />
-              {t('createPost')}
-            </button>
-          )}
-        </div>
+            <Plus size={16} />
+            {t('createPost')}
+          </motion.button>
+        )}
+      </div>
+
+      {/* Tab switcher */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: '1.25rem', borderBottom: '2px solid var(--border)' }}>
+        <button
+          onClick={() => setShowMyPosts(false)}
+          style={{
+            padding: '0.55rem 1.25rem',
+            background: 'none',
+            border: 'none',
+            borderBottom: !showMyPosts ? '2px solid var(--primary)' : '2px solid transparent',
+            marginBottom: '-2px',
+            color: !showMyPosts ? 'var(--primary)' : 'var(--text-light)',
+            fontWeight: !showMyPosts ? 700 : 400,
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
+          {user?.userType === 'Host' ? t('guestPosts') : t('allPosts')}
+        </button>
+        <button
+          onClick={() => setShowMyPosts(true)}
+          style={{
+            padding: '0.55rem 1.25rem',
+            background: 'none',
+            border: 'none',
+            borderBottom: showMyPosts ? '2px solid var(--primary)' : '2px solid transparent',
+            marginBottom: '-2px',
+            color: showMyPosts ? 'var(--primary)' : 'var(--text-light)',
+            fontWeight: showMyPosts ? 700 : 400,
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            transition: 'all 0.2s'
+          }}
+        >
+          {t('myPosts')}
+        </button>
       </div>
 
       <div className="posts-grid" style={{ display: 'grid', gap: '1.5rem' }}>
@@ -465,15 +516,15 @@ const Posts = () => {
             )}
           </div>
         ) : (
-          filteredPosts.map(post => (
-          <div key={post.id} className="post-card" style={{
-            background: 'white',
-            borderRadius: 'var(--radius)',
-            border: '1px solid var(--border)',
-            padding: '1.5rem',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            transition: 'all 0.3s ease'
-          }}>
+          filteredPosts.map((post, idx) => (
+          <motion.div
+            key={post.id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, delay: idx * 0.04 }}
+            whileHover={{ y: -1, boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}
+            className="post-card"
+          >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
               <div>
                 <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)', fontSize: '1.25rem' }}>
@@ -629,7 +680,7 @@ const Posts = () => {
                     <span key={facility} style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.25rem',
+                      gap: '0.3rem',
                       background: '#f1f5f9',
                       color: 'var(--primary)',
                       padding: '0.25rem 0.75rem',
@@ -637,7 +688,7 @@ const Posts = () => {
                       fontSize: '0.75rem',
                       fontWeight: '500'
                     }}>
-                      {facilityIcons[facility]}
+                      {facilityIcons[facility] && <span>{facilityIcons[facility]}</span>}
                       {facility}
                     </span>
                   ))}
@@ -653,7 +704,7 @@ const Posts = () => {
                     <span key={amenity} style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '0.25rem',
+                      gap: '0.3rem',
                       background: '#f1f5f9',
                       color: 'var(--primary)',
                       padding: '0.25rem 0.75rem',
@@ -661,6 +712,7 @@ const Posts = () => {
                       fontSize: '0.75rem',
                       fontWeight: '500'
                     }}>
+                      {facilityIcons[amenity] && <span>{facilityIcons[amenity]}</span>}
                       {amenity}
                     </span>
                   ))}
@@ -673,22 +725,21 @@ const Posts = () => {
                 <button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log('Opening chat with:', { id: post.userId, name: post.userName });
                     setActiveChat(null);
                     setTimeout(() => {
-                      setActiveChat({ 
-                        id: post.userId, 
+                      setActiveChat({
+                        id: post.userId,
                         name: post.userName,
                         imageUrl: null
                       });
                     }, 50);
                   }}
-                  className="btn btn-primary" 
-                  style={{ 
-                    flex: 1, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
+                  className="btn btn-primary"
+                  style={{
+                    flex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     gap: '0.5rem',
                     padding: '0.75rem 1rem',
                     fontSize: '0.9rem',
@@ -703,14 +754,13 @@ const Posts = () => {
 
             {user && post.userId !== user.userId && (
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                <button 
+                <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log('Opening chat with:', { id: post.userId, name: post.userName });
                     setActiveChat(null);
                     setTimeout(() => {
-                      setActiveChat({ 
-                        id: post.userId, 
+                      setActiveChat({
+                        id: post.userId,
                         name: post.userName,
                         imageUrl: null
                       });
@@ -733,94 +783,101 @@ const Posts = () => {
                 </button>
               </div>
             )}
-          </div>
+          </motion.div>
           ))
         )}
       </div>
       </div>
     </div>
 
-      {showCreateModal && (
-        user?.userType === 'Host' ? (
-          <CreateHostPostModal 
-            onClose={() => setShowCreateModal(false)}
-            onSubmit={handleCreatePost}
-            user={user}
-          />
-        ) : (
-          <CreatePostModal 
-            onClose={() => setShowCreateModal(false)}
-            onSubmit={handleCreatePost}
-          />
-        )
-      )}
+      <AnimatePresence>
+        {showCreateModal && (
+          user?.userType === 'Host' ? (
+            <CreateHostPostModal
+              key="create-host"
+              onClose={() => setShowCreateModal(false)}
+              onSubmit={handleCreatePost}
+              user={user}
+            />
+          ) : (
+            <CreatePostModal
+              key="create-guest"
+              onClose={() => setShowCreateModal(false)}
+              onSubmit={handleCreatePost}
+            />
+          )
+        )}
+      </AnimatePresence>
 
-      {showEditModal && editingPost && (
-        editingPost.userType === 'Host' ? (
-          <CreateHostPostModal 
-            onClose={() => {
-              setShowEditModal(false);
-              setEditingPost(null);
-            }}
-            onSubmit={handleUpdatePost}
-            user={user}
-            initialData={editingPost}
-            isEditing={true}
-          />
-        ) : (
-          <CreatePostModal 
-            onClose={() => {
-              setShowEditModal(false);
-              setEditingPost(null);
-            }}
-            onSubmit={handleUpdatePost}
-            initialData={editingPost}
-            isEditing={true}
-          />
-        )
-      )}
+      <AnimatePresence>
+        {showEditModal && editingPost && (
+          editingPost.userType === 'Host' ? (
+            <CreateHostPostModal
+              key="edit-host"
+              onClose={() => { setShowEditModal(false); setEditingPost(null); }}
+              onSubmit={handleUpdatePost}
+              user={user}
+              initialData={editingPost}
+              isEditing={true}
+            />
+          ) : (
+            <CreatePostModal
+              key="edit-guest"
+              onClose={() => { setShowEditModal(false); setEditingPost(null); }}
+              onSubmit={handleUpdatePost}
+              initialData={editingPost}
+              isEditing={true}
+            />
+          )
+        )}
+      </AnimatePresence>
 
-      {showDeleteModal && deletingPost && (
-        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px' }}>
-            <div className="modal-header">
-              <h3 style={{ color: '#dc2626', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Trash2 size={20} />
-                {t('deletePost')}
-              </h3>
-            </div>
-            <div className="modal-body">
-              <p style={{ margin: '0 0 1rem 0', color: 'var(--text)' }}>
-                {t('areYouSureDelete')} <strong>"{deletingPost.title}"</strong>?
-              </p>
-              <p style={{ margin: '0', color: 'var(--text-light)', fontSize: '0.875rem' }}>
-                {t('thisActionCannotBeUndone')}
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', padding: '1rem' }}>
-              <button 
-                onClick={() => setShowDeleteModal(false)}
-                className="btn btn-outline"
-                style={{ minWidth: '80px' }}
-              >
-                {t('cancel')}
-              </button>
-              <button 
-                onClick={confirmDeletePost}
-                className="btn"
-                style={{ 
-                  minWidth: '80px',
-                  backgroundColor: '#dc2626',
-                  color: 'white',
-                  border: '1px solid #dc2626'
-                }}
-              >
-                {t('delete')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {showDeleteModal && deletingPost && (
+          <motion.div
+            key="delete-modal"
+            className="modal-overlay"
+            onClick={() => setShowDeleteModal(false)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+          >
+            <motion.div
+              className="modal-content"
+              onClick={(e) => e.stopPropagation()}
+              style={{ maxWidth: '400px' }}
+              initial={{ opacity: 0, y: 20, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.97 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <div className="modal-header">
+                <h3 style={{ color: '#dc2626', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Trash2 size={20} />
+                  {t('deletePost')}
+                </h3>
+              </div>
+              <div className="modal-body">
+                <p style={{ margin: '0 0 1rem 0', color: 'var(--text)' }}>
+                  {t('areYouSureDelete')} <strong>"{deletingPost.title}"</strong>?
+                </p>
+                <p style={{ margin: '0', color: 'var(--text-light)', fontSize: '0.875rem' }}>
+                  {t('thisActionCannotBeUndone')}
+                </p>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', padding: '1rem' }}>
+                <button onClick={() => setShowDeleteModal(false)} className="btn btn-outline" style={{ minWidth: '80px' }}>
+                  {t('cancel')}
+                </button>
+                <button onClick={confirmDeletePost} className="btn" style={{ minWidth: '80px', backgroundColor: '#dc2626', color: 'white', border: '1px solid #dc2626' }}>
+                  {t('delete')}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {activeChat && (
         <div style={{
@@ -839,16 +896,22 @@ const Posts = () => {
             recipientId={activeChat.id}
             recipientName={activeChat.name}
             recipientImageUrl={activeChat.imageUrl}
-            onClose={() => {
-              console.log('Closing chat widget');
-              setActiveChat(null);
-            }}
+            onClose={() => setActiveChat(null)}
           />
         </div>
       )}
 
+      <AnimatePresence>
       {showHowItWorks && (
-        <div className="modal-overlay" onClick={() => setShowHowItWorks(false)}>
+        <motion.div
+          key="how-it-works"
+          className="modal-overlay"
+          onClick={() => setShowHowItWorks(false)}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
+        >
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
             <div className="modal-header">
               <h3>{t('howItWorks')}</h3>
@@ -920,19 +983,23 @@ const Posts = () => {
               )}
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
-      {showProfileModal && selectedProfile && (
-        <ProfileModal 
-          userName={selectedProfile.userName}
-          userId={selectedProfile.userId}
-          onClose={() => {
-            setShowProfileModal(false);
-            setSelectedProfile(null);
-          }}
-        />
-      )}
+      <AnimatePresence>
+        {showProfileModal && selectedProfile && (
+          <ProfileModal
+            key="profile-modal"
+            userName={selectedProfile.userName}
+            userId={selectedProfile.userId}
+            onClose={() => {
+              setShowProfileModal(false);
+              setSelectedProfile(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
@@ -1347,8 +1414,22 @@ const CreateHostPostModal = ({ onClose, onSubmit, user, initialData = null, isEd
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="create-post-modal" onClick={(e) => e.stopPropagation()}>
+    <motion.div
+      className="modal-overlay"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+    >
+      <motion.div
+        className="create-post-modal"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, y: 28, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 14, scale: 0.97 }}
+        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+      >
         <div className="modal-header-modern">
           <div className="modal-title-section">
             <div className="modal-icon">🏠</div>
@@ -1577,8 +1658,8 @@ const CreateHostPostModal = ({ onClose, onSubmit, user, initialData = null, isEd
             </div>
           </form>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 
@@ -1708,8 +1789,22 @@ const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = fa
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="create-post-modal" onClick={(e) => e.stopPropagation()}>
+    <motion.div
+      className="modal-overlay"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+    >
+      <motion.div
+        className="create-post-modal"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, y: 28, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 14, scale: 0.97 }}
+        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+      >
         <div className="modal-header-modern">
           <div className="modal-title-section">
             <div className="modal-icon">✨</div>
@@ -2027,8 +2122,8 @@ const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = fa
             </div>
           </form>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 

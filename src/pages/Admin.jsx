@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import axios from 'axios';
 import locationService from '../utils/locationService';
 import api from '../utils/api';
 import SubscriptionBadge from '../components/SubscriptionBadge';
-import { Check, X, Ban } from 'lucide-react';
+import { Check, X, Ban, Users, CreditCard, MapPin as MapPinIcon, TrendingUp } from 'lucide-react';
 
 const API_BASE = 'https://api.festiveguest.com/api';
 const ADMIN_EMAILS = ['admin@festiveguest.com', 'kalyanimatrimony@gmail.com'];
@@ -160,57 +161,95 @@ function Admin() {
     }
   };
 
+  const paidUsers = users.filter(u => u.subscriptionStatus === 'paid').length;
+  const pendingUsers = users.filter(u => u.subscriptionStatus === 'pending').length;
+  const freeUsers = users.filter(u => !u.subscriptionStatus || u.subscriptionStatus === 'free').length;
+
+  const statCards = [
+    { label: 'Total Users', value: users.length, icon: <Users size={20} />, color: 'var(--primary)', bg: 'rgba(255,107,53,0.08)' },
+    { label: 'Active (Paid)', value: paidUsers, icon: <TrendingUp size={20} />, color: '#10b981', bg: 'rgba(16,185,129,0.08)' },
+    { label: 'Pending', value: pendingUsers, icon: <CreditCard size={20} />, color: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
+    { label: 'Free Tier', value: freeUsers, icon: <Users size={20} />, color: '#64748b', bg: 'rgba(100,116,139,0.08)' },
+  ];
+
   return (
-    <div className="admin-container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
-      <h2 style={{ marginBottom: '2rem' }}>Admin Dashboard</h2>
-      
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '2px solid #e2e8f0' }}>
-        <button
-          onClick={() => setActiveTab('subscriptions')}
-          style={{
-            padding: '0.75rem 1.5rem',
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'subscriptions' ? '3px solid #667eea' : 'none',
-            color: activeTab === 'subscriptions' ? '#667eea' : '#64748b',
-            fontWeight: activeTab === 'subscriptions' ? 'bold' : 'normal',
-            cursor: 'pointer',
-            fontSize: '1rem'
-          }}
-        >
-          Subscription Management
-        </button>
-        <button
-          onClick={() => setActiveTab('payments')}
-          style={{
-            padding: '0.75rem 1.5rem',
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'payments' ? '3px solid #667eea' : 'none',
-            color: activeTab === 'payments' ? '#667eea' : '#64748b',
-            fontWeight: activeTab === 'payments' ? 'bold' : 'normal',
-            cursor: 'pointer',
-            fontSize: '1rem'
-          }}
-        >
-          Payment Verification
-        </button>
-        <button
-          onClick={() => setActiveTab('locations')}
-          style={{
-            padding: '0.75rem 1.5rem',
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'locations' ? '3px solid #667eea' : 'none',
-            color: activeTab === 'locations' ? '#667eea' : '#64748b',
-            fontWeight: activeTab === 'locations' ? 'bold' : 'normal',
-            cursor: 'pointer',
-            fontSize: '1rem'
-          }}
-        >
-          Location Management
-        </button>
+    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
+      {/* Gradient header */}
+      <motion.div
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        style={{
+          background: 'var(--gradient-primary, linear-gradient(135deg,#FF6B35,#FFB347))',
+          borderRadius: '1rem',
+          padding: '1.5rem 2rem',
+          marginBottom: '1.5rem',
+          color: 'white'
+        }}
+      >
+        <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700 }}>⚡ Admin Dashboard</h2>
+        <p style={{ margin: '0.25rem 0 0', opacity: 0.85, fontSize: '0.875rem' }}>Manage users, payments, and locations</p>
+      </motion.div>
+
+      {/* Stat cards */}
+      {users.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+          {statCards.map((card, i) => (
+            <motion.div
+              key={card.label}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.06 }}
+              style={{
+                background: 'white',
+                borderRadius: '0.75rem',
+                padding: '1rem 1.25rem',
+                border: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.75rem',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+              }}
+            >
+              <div style={{ background: card.bg, color: card.color, padding: '0.6rem', borderRadius: '0.5rem', display: 'flex' }}>
+                {card.icon}
+              </div>
+              <div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', lineHeight: 1 }}>{card.value}</div>
+                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.2rem' }}>{card.label}</div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {/* Modern tab bar */}
+      <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1.5rem', background: '#f1f5f9', borderRadius: '0.75rem', padding: '0.3rem' }}>
+        {[
+          { key: 'subscriptions', label: 'Subscriptions' },
+          { key: 'payments', label: 'Payments' },
+          { key: 'locations', label: 'Locations' }
+        ].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            style={{
+              flex: 1,
+              padding: '0.6rem 1rem',
+              background: activeTab === tab.key ? 'white' : 'transparent',
+              border: 'none',
+              borderRadius: '0.5rem',
+              color: activeTab === tab.key ? 'var(--primary)' : '#64748b',
+              fontWeight: activeTab === tab.key ? 700 : 500,
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+              boxShadow: activeTab === tab.key ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
+              transition: 'all 0.2s'
+            }}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Subscription Management Tab */}
@@ -275,7 +314,7 @@ function Admin() {
               <tbody>
                 {loading ? (
                   <tr><td colSpan="8" style={{ textAlign: 'center', padding: '3rem' }}>
-                    <div style={{ display: 'inline-block', width: '40px', height: '40px', border: '4px solid #f3f4f6', borderTop: '4px solid #667eea', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                    <div style={{ display: 'inline-block', width: '40px', height: '40px', border: '4px solid rgba(255,107,53,0.15)', borderTop: '4px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
                     <p style={{ marginTop: '1rem', color: '#64748b' }}>Loading users...</p>
                   </td></tr>
                 ) : users.filter(user => {
@@ -309,11 +348,11 @@ function Admin() {
                   if (sortOrder === 'asc') return aVal > bVal ? 1 : -1;
                   return aVal < bVal ? 1 : -1;
                 }).map(user => (
-                    <tr key={user.userId} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <tr key={user.userId} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background 0.15s' }} onMouseEnter={e => e.currentTarget.style.background='#fef7f4'} onMouseLeave={e => e.currentTarget.style.background=''}>
                       <td style={{ padding: '1rem' }}>{user.name}</td>
                       <td style={{ padding: '1rem' }}>{user.email}</td>
                       <td style={{ padding: '1rem' }}>{user.userType}</td>
-                      <td style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', color: '#667eea' }}>{user.successfulReferrals || 0}</td>
+                      <td style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', color: 'var(--primary)' }}>{user.successfulReferrals || 0}</td>
                       <td style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', color: '#10b981' }}>{user.referralPoints || 0}</td>
                       <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#64748b' }}>{user.createdDate ? new Date(user.createdDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</td>
                       <td style={{ padding: '1rem', textAlign: 'center' }}>
@@ -357,7 +396,7 @@ function Admin() {
           <p style={{ marginBottom: '1.5rem', color: '#64748b' }}>Review and verify user payment submissions for subscription upgrades.</p>
           {loading ? (
             <div style={{ textAlign: 'center', padding: '3rem' }}>
-              <div style={{ display: 'inline-block', width: '40px', height: '40px', border: '4px solid #f3f4f6', borderTop: '4px solid #667eea', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+              <div style={{ display: 'inline-block', width: '40px', height: '40px', border: '4px solid rgba(255,107,53,0.15)', borderTop: '4px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
               <p style={{ marginTop: '1rem', color: '#64748b' }}>Loading payments...</p>
             </div>
           ) : payments.length === 0 ? (
@@ -419,7 +458,7 @@ function Admin() {
           
           {loadingLocations ? (
             <div style={{ textAlign: 'center', padding: '3rem' }}>
-              <div style={{ display: 'inline-block', width: '40px', height: '40px', border: '4px solid #f3f4f6', borderTop: '4px solid #667eea', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+              <div style={{ display: 'inline-block', width: '40px', height: '40px', border: '4px solid rgba(255,107,53,0.15)', borderTop: '4px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
               <p style={{ marginTop: '1rem', color: '#64748b' }}>Loading locations...</p>
             </div>
           ) : Object.keys(locationsData).length === 0 ? (
