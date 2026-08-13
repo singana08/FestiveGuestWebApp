@@ -289,7 +289,7 @@ const LandingPage = ({ user }) => {
               marginBottom: '1.5rem', fontWeight: 600
             }}
           >
-            <Sparkles size={14} /> India's Festive Stay Platform
+            <Sparkles size={14} /> {t('heroBadge')}
           </motion.div>
 
           <motion.h1
@@ -361,7 +361,7 @@ const LandingPage = ({ user }) => {
             transition={{ delay: 0.7 }}
             style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', flexWrap: 'wrap', marginTop: '2rem' }}
           >
-            {['✅ Verified Hosts', '🔒 Safe & Secure', '🤝 100% Free to Join'].map((item, i) => (
+            {[t('trustVerifiedHosts'), t('trustSafeSecure'), t('trustFreeJoin')].map((item, i) => (
               <span key={i} style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>{item}</span>
             ))}
           </motion.div>
@@ -384,10 +384,10 @@ const LandingPage = ({ user }) => {
             <h3>🌟 {t('travelConnect')}</h3>
             <p>{t('stayWithLocals')}</p>
             <br />
-            <p>✈️ Safely explore new places</p>
-            <p>🤝 Connect with trusted hosts</p>
-            <p>🗺️ Discover hidden gems</p>
-            <p>🎉 Celebrate festivals together</p>
+            <p>{t('heroCardPoint1')}</p>
+            <p>{t('heroCardPoint2')}</p>
+            <p>{t('heroCardPoint3')}</p>
+            <p>{t('heroCardPoint4')}</p>
           </TiltCard3D>
         </motion.div>
       </section>
@@ -395,10 +395,10 @@ const LandingPage = ({ user }) => {
       {/* ══════════════ STATS ══════════════ */}
       <div className="stats-bar">
         <div className="stats-bar-inner">
-          <StatCard num="20+ States" label="Covered Across India" delay={0} />
-          <StatCard num="500+" label="Verified Hosts" delay={0.1} />
-          <StatCard num="1000+" label="Happy Guests" delay={0.2} />
-          <StatCard num="4.8 ★" label="Average Rating" delay={0.3} />
+          <StatCard num={t('statStatesNum')} label={t('statStatesLabel')} delay={0} />
+          <StatCard num={t('statHostsNum')} label={t('statHostsLabel')} delay={0.1} />
+          <StatCard num={t('statGuestsNum')} label={t('statGuestsLabel')} delay={0.2} />
+          <StatCard num={t('statRatingNum')} label={t('statRatingLabel')} delay={0.3} />
         </div>
       </div>
 
@@ -436,26 +436,26 @@ const LandingPage = ({ user }) => {
               letterSpacing: '0.04em',
               textTransform: 'uppercase',
             }}>
-              ✦ Why Choose Us
+              {t('whyChoosePill')}
             </span>
           </div>
 
           {/* split headline — accent word on separate line */}
           <h2 style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)', lineHeight: 1.15, marginBottom: '0.75rem' }}>
-            Built for{' '}
+            {t('whyChooseHeadlinePre')}
             <span style={{
               background: 'var(--gradient-primary)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
             }}>
-              Trust
-            </span>{' '}
-            &amp; Peace of Mind
+              {t('whyChooseHeadlineHighlight')}
+            </span>
+            {t('whyChooseHeadlinePost')}
           </h2>
 
           <p className="section-subtitle">
-            Every feature is designed to reduce anxiety and help you connect with confidence.
+            {t('whyChooseSubtitle')}
           </p>
         </AnimSection>
         <div style={{ margin: '0 -2rem' }}>
@@ -474,7 +474,7 @@ const LandingPage = ({ user }) => {
       <section className="testimonials">
         <AnimSection>
           <h2>{t('perfectForTitle')}</h2>
-          <p className="section-subtitle">Ideal for every kind of traveller</p>
+          <p className="section-subtitle">{t('perfectForSubtitle')}</p>
         </AnimSection>
         <div className="travel-types-grid">
           {[
@@ -541,7 +541,7 @@ const LandingPage = ({ user }) => {
       <section className="how-it-works">
         <AnimSection>
           <h2>{t('howItWorksTitle')}</h2>
-          <p style={{ color: 'rgba(255,255,255,0.75)', marginBottom: 0 }}>Three simple steps to your perfect stay</p>
+          <p style={{ color: 'rgba(255,255,255,0.75)', marginBottom: 0 }}>{t('howItWorksSubtitle')}</p>
         </AnimSection>
         <div className="steps">
           {[
@@ -576,7 +576,7 @@ const LandingPage = ({ user }) => {
         }} animate={{ y: [0, -30, 0] }} transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }} />
         <AnimSection>
           <h2>{t('testimonialsTitle')}</h2>
-          <p className="section-subtitle">What our community says</p>
+          <p className="section-subtitle">{t('testimonialsSubtitle')}</p>
         </AnimSection>
         <div className="testimonials-compact-grid">
           {[1, 2, 3, 4].map((n, i) => {
@@ -634,7 +634,7 @@ const LandingPage = ({ user }) => {
         }} animate={{ y: [0, 40, 0], x: [0, -20, 0] }} transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut', delay: 1 }} />
         <AnimSection>
           <h2>{t('safetyTrustTitle')}</h2>
-          <p className="section-subtitle">Your safety is our top priority</p>
+          <p className="section-subtitle">{t('safetyTrustSubtitle')}</p>
         </AnimSection>
         <div className="safety-grid">
           {[
@@ -797,24 +797,24 @@ const LandingPage = ({ user }) => {
       {/* ══════════════ MOBILE APPS ══════════════ */}
       <section className="features">
         <AnimSection>
-          <h2>📱 Mobile Apps</h2>
-          <p className="section-subtitle">Available on all your devices — coming soon!</p>
+          <h2>{t('mobileAppsTitle')}</h2>
+          <p className="section-subtitle">{t('mobileAppsSubtitle')}</p>
         </AnimSection>
         <div className="mobile-apps-grid">
           <div className="mobile-app-card">
             <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>🍎</div>
-            <h3>iOS App</h3>
-            <p style={{ color: 'var(--text-light)', fontSize: '0.875rem' }}>App Store — Coming Soon!</p>
+            <h3>{t('iosAppTitle')}</h3>
+            <p style={{ color: 'var(--text-light)', fontSize: '0.875rem' }}>{t('iosAppDesc')}</p>
             <button className="btn btn-outline" disabled style={{ opacity: 0.5, cursor: 'not-allowed', marginTop: '0.75rem', padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
-              App Store
+              {t('appStoreBtn')}
             </button>
           </div>
           <div className="mobile-app-card">
             <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>🤖</div>
-            <h3>Android App</h3>
-            <p style={{ color: 'var(--text-light)', fontSize: '0.875rem' }}>Google Play — Coming Soon!</p>
+            <h3>{t('androidAppTitle')}</h3>
+            <p style={{ color: 'var(--text-light)', fontSize: '0.875rem' }}>{t('androidAppDesc')}</p>
             <button className="btn btn-outline" disabled style={{ opacity: 0.5, cursor: 'not-allowed', marginTop: '0.75rem', padding: '0.5rem 1rem', fontSize: '0.875rem' }}>
-              Google Play
+              {t('googlePlayBtn')}
             </button>
           </div>
         </div>
@@ -825,15 +825,15 @@ const LandingPage = ({ user }) => {
         <div className="container">
           <div style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>🎉</div>
           <p style={{ fontWeight: 600, fontSize: '1.1rem', color: 'white', margin: '0 0 0.25rem' }}>Festive Guest</p>
-          <p style={{ fontSize: '0.875rem', margin: '0 0 1.5rem' }}>Connecting travellers with local experiences across India.</p>
+          <p style={{ fontSize: '0.875rem', margin: '0 0 1.5rem' }}>{t('footerTagline')}</p>
           <div className="footer-links">
-            <Link to="/privacy-policy">Privacy Policy</Link>
-            <Link to="/terms-of-service">Terms of Service</Link>
-            <Link to="/help">Help & Support</Link>
-            <Link to="/safety-guidelines">Safety</Link>
+            <Link to="/privacy-policy">{t('privacyPolicy')}</Link>
+            <Link to="/terms-of-service">{t('termsOfService')}</Link>
+            <Link to="/help">{t('helpSupport')}</Link>
+            <Link to="/safety-guidelines">{t('safetyGuidelines')}</Link>
           </div>
           <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center', gap: '1.25rem', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>Follow Us:</span>
+            <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)' }}>{t('footerFollowUs')}</span>
             <a href="https://twitter.com/festiveguest" target="_blank" rel="noopener noreferrer" title="X (Twitter)" style={{ display: 'flex' }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
             </a>
@@ -844,7 +844,7 @@ const LandingPage = ({ user }) => {
               <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
             </a>
           </div>
-          <p style={{ marginTop: '2rem', fontSize: '0.8rem', opacity: 0.5 }}>© 2024 Festive Guest. All rights reserved.</p>
+          <p style={{ marginTop: '2rem', fontSize: '0.8rem', opacity: 0.5 }}>{t('footerCopyright')}</p>
         </div>
       </footer>
 

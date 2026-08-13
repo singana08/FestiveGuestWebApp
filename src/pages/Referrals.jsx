@@ -333,7 +333,7 @@ function Referrals() {
           borderRadius: '0.5rem',
           padding: '1rem'
         }}>
-          <h3 style={{ margin: '0 0 0.75rem 0', color: '#15803d', fontSize: '0.95rem' }}>{t('howItWorksTitle')}</h3>
+          <h3 style={{ margin: '0 0 0.75rem 0', color: '#15803d', fontSize: '0.95rem' }}>{t('referralHowItWorksTitle')}</h3>
           <div style={{ color: '#15803d', lineHeight: '1.8', fontSize: '0.85rem' }}>
             <div style={{ marginBottom: '0.75rem', paddingLeft: '1rem', borderLeft: '3px solid #16a34a' }}>
               <strong>{t('step1Title')}</strong>

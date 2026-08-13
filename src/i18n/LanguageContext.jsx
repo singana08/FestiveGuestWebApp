@@ -13,7 +13,13 @@ export const LanguageProvider = ({ children }) => {
   }, [language]);
 
   const t = (key) => {
-    return translations[language][key] || key;
+    // Fall back to English text (not the raw key) when a translation is missing.
+    // Uses `in` rather than `||` so a legitimately empty string ('') isn't
+    // treated as "missing" and overridden by the English fallback.
+    const dict = translations[language];
+    if (dict && key in dict) return dict[key];
+    if (key in translations.en) return translations.en[key];
+    return key;
   };
 
   const toggleLanguage = () => {
