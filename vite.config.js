@@ -20,6 +20,8 @@ export default defineConfig({
     chunkSizeWarningLimit: 600,
   },
   server: {
+    port: 5173,
+    strictPort: true, // fail fast if 5173 is occupied rather than silently using 5174
     proxy: {
       '/api': {
         target: 'http://localhost:7219',

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import { User, ShieldCheck, Menu, X, HelpCircle, LogOut, Globe, MessageSquare, FileText, ChevronDown } from 'lucide-react';
+import { User, ShieldCheck, Menu, X, HelpCircle, LogOut, Globe, MessageSquare, FileText, ChevronDown, UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { LanguageProvider, useLanguage } from './i18n/LanguageContext';
 import Logo from './components/Logo';
 import Loader from './components/Loader';
+import InviteFriendsModal from './components/InviteFriendsModal';
 import './styles/App.css';
 
 // ── Lazy-loaded pages (code splitting for faster initial load) ──
@@ -30,13 +31,17 @@ const SafetyGuidelines = lazy(() => import('./pages/SafetyGuidelines'));
 const ApiTest         = lazy(() => import('./components/ApiTest'));
 const ChatDebug       = lazy(() => import('./components/ChatDebug'));
 
-// ── Page-transition wrapper ──
+// ── Static ambient background (CSS-only — no scroll-time repaint cost) ──
+const AppBackground = () => (
+  <div className="app-background" aria-hidden="true" />
+);
+
+// ── Fast enter-only page fade (no exit wait blocking navigation) ──
 const PageTransition = ({ children }) => (
   <motion.div
-    initial={{ opacity: 0, y: 8 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -8 }}
-    transition={{ duration: 0.22, ease: 'easeInOut' }}
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    transition={{ duration: 0.12, ease: 'easeOut' }}
     style={{ width: '100%' }}
   >
     {children}
@@ -81,6 +86,7 @@ const NavAvatar = ({ user }) => {
 const AppContent = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -111,7 +117,7 @@ const AppContent = () => {
   }, [language]);
 
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), user ? 0 : 2200);
+    const timer = setTimeout(() => setLoading(false), user ? 0 : 600);
     const handleStorage = () => {
       try {
         const saved = localStorage.getItem('user');
@@ -131,7 +137,11 @@ const AppContent = () => {
   }, [user]);
 
   // Close mobile menu and avatar dropdown on route change
-  useEffect(() => { setMenuOpen(false); setAvatarOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    setMenuOpen(false);
+    setAvatarOpen(false);
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   // Close avatar dropdown on outside click
   useEffect(() => {
@@ -163,6 +173,7 @@ const AppContent = () => {
 
   return (
     <div className="app-container">
+      <AppBackground />
       {/* ── Navbar ── */}
       <nav className="navbar">
         <Link to="/" className="nav-logo">
@@ -263,6 +274,9 @@ const AppContent = () => {
                         <Link to="/profile" className="nav-dropdown-item" onClick={() => setAvatarOpen(false)}>
                           <User size={15} /> My Profile
                         </Link>
+                        <button className="nav-dropdown-item" onClick={() => { setAvatarOpen(false); setShowInviteModal(true); }}>
+                          <UserPlus size={15} /> Invite Friends
+                        </button>
                         <Link to="/help" className="nav-dropdown-item" onClick={() => setAvatarOpen(false)}>
                           <HelpCircle size={15} /> {t('help')}
                         </Link>
@@ -384,8 +398,7 @@ const AppContent = () => {
       {/* ── Routes ── */}
       <main className="content full-width">
         <Suspense fallback={<PageLoader />}>
-          <AnimatePresence mode="wait">
-            <Routes location={location} key={location.pathname}>
+            <Routes location={location}>
               <Route path="/" element={<PageTransition><LandingPage user={user} /></PageTransition>} />
               <Route path="/home" element={<PageTransition><LandingPage user={user} /></PageTransition>} />
               <Route path="/r/:code" element={<PageTransition><ReferralRedirect /></PageTransition>} />
@@ -409,7 +422,6 @@ const AppContent = () => {
               <Route path="/api-test" element={<PageTransition><ApiTest /></PageTransition>} />
               <Route path="/chat-debug" element={<PageTransition><ChatDebug /></PageTransition>} />
             </Routes>
-          </AnimatePresence>
         </Suspense>
       </main>
 
@@ -464,6 +476,13 @@ const AppContent = () => {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Invite Friends Modal ── */}
+      <AnimatePresence>
+        {showInviteModal && (
+          <InviteFriendsModal user={user} onClose={() => setShowInviteModal(false)} />
         )}
       </AnimatePresence>
     </div>

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, Key, ArrowRight, CheckCircle, Circle } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
 import api from '../utils/api';
 import { useLanguage } from '../i18n/LanguageContext';
 
@@ -72,6 +73,33 @@ const Login = ({ setUser }) => {
       } else {
         showToast('Login failed: ' + (err.response?.data?.message || err.message), 'error');
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async (idToken) => {
+    setLoading(true);
+    try {
+      const res = await api.post('auth/google-login', { idToken });
+      if (res?.data?.success && res?.data?.token) {
+        const { token, user, isNewGoogleUser } = res.data;
+        const userWithToken = { ...user, token };
+        localStorage.setItem('user', JSON.stringify(userWithToken));
+        localStorage.setItem('userId', user.userId);
+        localStorage.setItem('token', token);
+        setUser(userWithToken);
+        if (isNewGoogleUser) {
+          showToast('Welcome! Please complete your profile in Settings.', 'success');
+        } else {
+          showToast('Signed in with Google!', 'success');
+        }
+        navigate('/posts');
+      } else {
+        showToast('Google sign-in failed', 'error');
+      }
+    } catch (err) {
+      showToast('Google sign-in failed: ' + (err.response?.data?.message || err.message), 'error');
     } finally {
       setLoading(false);
     }
@@ -347,10 +375,24 @@ const Login = ({ setUser }) => {
           </form>
 
           {/* Divider */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: '1.5rem 0' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: '1.5rem 0 1rem' }}>
             <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>or</span>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>or continue with</span>
             <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+          </div>
+
+          {/* Google Sign-In — OpenID Connect (id_token) */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.25rem' }}>
+            <GoogleLogin
+              onSuccess={credentialResponse => handleGoogleLogin(credentialResponse.credential)}
+              onError={() => showToast('Google sign-in failed', 'error')}
+              useOneTap={false}
+              text="continue_with"
+              shape="rectangular"
+              theme="outline"
+              size="large"
+              width="320"
+            />
           </div>
 
           {/* Register link */}

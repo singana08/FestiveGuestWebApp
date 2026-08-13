@@ -1,13 +1,78 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { motion, useInView } from 'framer-motion';
+import { motion, useInView, useMotionValue, useSpring } from 'framer-motion';
 import { useRef } from 'react';
 import DisclaimerModal from '../components/DisclaimerModal';
 import { useLanguage } from '../i18n/LanguageContext';
+const HeroScene3D = lazy(() => import('../components/HeroScene3D'));
 import {
   MapPin, Users, Home, Star, Shield, MessageCircle,
   ArrowRight, Sparkles, Globe, Heart, Zap, CheckCircle
 } from 'lucide-react';
+
+// ── 3D card tilt (mouse-following, desktop only) ──
+const useMotionEffectsEnabled = () => {
+  const [enabled, setEnabled] = useState(false);
+  useEffect(() => {
+    const coarse = window.matchMedia('(pointer: coarse)').matches;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setEnabled(!coarse && !reduced);
+  }, []);
+  return enabled;
+};
+
+const TiltCard3D = ({ children, className, style, intensity = 11, ...rest }) => {
+  const motionEnabled = useMotionEffectsEnabled();
+  const ref = useRef(null);
+  const rotX = useMotionValue(0);
+  const rotY = useMotionValue(0);
+  const sX = useSpring(rotX, { stiffness: 280, damping: 24 });
+  const sY = useSpring(rotY, { stiffness: 280, damping: 24 });
+  const [glarePos, setGlarePos] = useState({ x: 50, y: 0 });
+  const [hovered, setHovered] = useState(false);
+
+  if (!motionEnabled) {
+    return (
+      <div ref={ref} className={className} style={style} {...rest}>
+        {children}
+      </div>
+    );
+  }
+
+  const onMove = (e) => {
+    if (!ref.current) return;
+    const r = ref.current.getBoundingClientRect();
+    const cx = (e.clientX - r.left) / r.width - 0.5;
+    const cy = (e.clientY - r.top)  / r.height - 0.5;
+    rotY.set(cx * intensity * 2);
+    rotX.set(-cy * intensity);
+    setGlarePos({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 });
+  };
+  const onLeave = () => { rotX.set(0); rotY.set(0); setHovered(false); };
+  const onEnter = () => setHovered(true);
+
+  return (
+    <motion.div
+      ref={ref}
+      className={className}
+      style={{ ...style, rotateX: sX, rotateY: sY, transformStyle: 'preserve-3d', position: 'relative' }}
+      onMouseMove={onMove}
+      onMouseLeave={onLeave}
+      onMouseEnter={onEnter}
+      {...rest}
+    >
+      {children}
+      {/* Light glare */}
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 'inherit', pointerEvents: 'none', zIndex: 10,
+        background: hovered
+          ? `radial-gradient(circle at ${glarePos.x}% ${glarePos.y}%, rgba(255,255,255,0.13) 0%, transparent 60%)`
+          : 'none',
+        transition: 'opacity 0.2s',
+      }} />
+    </motion.div>
+  );
+};
 
 // ── Animation helpers ──
 const fadeUp = {
@@ -25,13 +90,13 @@ const scaleIn = {
 
 const AnimSection = ({ children, className = '', style = {} }) => {
   const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: '-80px' });
+  const inView = useInView(ref, { once: true, margin: '-40px', amount: 0.12 });
   return (
     <motion.div
       ref={ref}
-      initial="hidden"
-      animate={inView ? 'show' : 'hidden'}
-      variants={fadeUp}
+      initial={{ opacity: 0, y: 20 }}
+      animate={inView ? { opacity: 1, y: 0 } : false}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
       className={className}
       style={style}
     >
@@ -129,10 +194,10 @@ const FeaturesCarousel = ({ features }) => {
                 width: CARD_W, height: 'fit-content',
                 zIndex: z, transformPerspective: 1200,
                 background: isCenter
-                  ? '#fff'
-                  : 'linear-gradient(145deg,#fff 0%,#fafafa 100%)',
+                  ? '#FFFAF6'
+                  : 'linear-gradient(145deg,#FFFAF6 0%,#FFF3E8 100%)',
                 borderRadius: '1.375rem', padding: '1.75rem',
-                border: `1.5px solid ${isCenter ? 'rgba(255,107,53,0.4)' : 'rgba(0,0,0,0.07)'}`,
+                border: `1.5px solid ${isCenter ? 'rgba(255,107,53,0.4)' : 'rgba(200,120,60,0.12)'}`,
                 boxShadow: isCenter
                   ? '0 28px 64px rgba(255,107,53,0.24), 0 6px 20px rgba(0,0,0,0.1)'
                   : '0 4px 16px rgba(0,0,0,0.07)',
@@ -200,6 +265,11 @@ const LandingPage = ({ user }) => {
 
       {/* ══════════════ HERO ══════════════ */}
       <section className="hero">
+        {/* 3D WebGL background — lazy loaded, transparent over CSS gradient */}
+        <Suspense fallback={null}>
+          <HeroScene3D />
+        </Suspense>
+
         <motion.div
           className="hero-content"
           initial={{ opacity: 0, y: 40 }}
@@ -305,8 +375,9 @@ const LandingPage = ({ user }) => {
           transition={{ delay: 0.4, duration: 0.7, ease: 'easeOut' }}
           style={{ marginTop: '3rem' }}
         >
-          <motion.div
+          <TiltCard3D
             className="festival-card"
+            intensity={8}
             animate={{ y: [0, -10, 0] }}
             transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
           >
@@ -317,13 +388,13 @@ const LandingPage = ({ user }) => {
             <p>🤝 Connect with trusted hosts</p>
             <p>🗺️ Discover hidden gems</p>
             <p>🎉 Celebrate festivals together</p>
-          </motion.div>
+          </TiltCard3D>
         </motion.div>
       </section>
 
       {/* ══════════════ STATS ══════════════ */}
-      <div style={{ background: 'white', padding: '2rem', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '3rem', flexWrap: 'wrap', maxWidth: 900, margin: '0 auto' }}>
+      <div className="stats-bar">
+        <div className="stats-bar-inner">
           <StatCard num="20+ States" label="Covered Across India" delay={0} />
           <StatCard num="500+" label="Verified Hosts" delay={0.1} />
           <StatCard num="1000+" label="Happy Guests" delay={0.2} />
@@ -332,7 +403,24 @@ const LandingPage = ({ user }) => {
       </div>
 
       {/* ══════════════ FEATURES ══════════════ */}
-      <section className="features">
+      <section className="features" style={{ position: 'relative', overflow: 'hidden' }}>
+        {/* Floating depth blobs — visible on white background */}
+        <motion.div aria-hidden="true" style={{
+          position: 'absolute', width: 650, height: 650, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,107,53,0.07) 0%, transparent 70%)',
+          top: -180, right: -120, pointerEvents: 'none', zIndex: 0, filter: 'blur(70px)',
+        }} animate={{ y: [0, -45, 0], x: [0, 20, 0] }} transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut' }} />
+        <motion.div aria-hidden="true" style={{
+          position: 'absolute', width: 450, height: 450, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,179,71,0.08) 0%, transparent 70%)',
+          bottom: 60, left: -100, pointerEvents: 'none', zIndex: 0, filter: 'blur(55px)',
+        }} animate={{ y: [0, 35, 0] }} transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut', delay: 2.5 }} />
+        <motion.div aria-hidden="true" style={{
+          position: 'absolute', width: 300, height: 300, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,140,94,0.06) 0%, transparent 70%)',
+          top: '40%', left: '50%', pointerEvents: 'none', zIndex: 0, filter: 'blur(45px)',
+        }} animate={{ y: [0, -25, 0], x: [0, -20, 0] }} transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 1 }} />
+
         <AnimSection>
           {/* pill badge */}
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
@@ -406,9 +494,17 @@ const LandingPage = ({ user }) => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: i * 0.07, duration: 0.4 }}
-                whileHover={{ y: -5, transition: { duration: 0.18 } }}
+                whileHover={{
+                  y: -14,
+                  rotateX: 8,
+                  rotateY: i % 2 === 0 ? -12 : 12,
+                  scale: 1.04,
+                  boxShadow: '0 32px 56px rgba(0,0,0,0.16), 0 8px 20px rgba(255,107,53,0.14)',
+                  transition: { duration: 0.28 }
+                }}
+                style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
               >
-                <div className="feature-icon">{item.icon}</div>
+                <div className="feature-icon-wrap">{item.icon}</div>
                 <h3>{item.title}</h3>
                 <p>{item.desc}</p>
               </motion.div>
@@ -472,7 +568,12 @@ const LandingPage = ({ user }) => {
       </section>
 
       {/* ══════════════ TESTIMONIALS ══════════════ */}
-      <section className="testimonials">
+      <section className="testimonials" style={{ position: 'relative', overflow: 'hidden' }}>
+        <motion.div aria-hidden="true" style={{
+          position: 'absolute', width: 500, height: 500, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,107,53,0.08) 0%, transparent 70%)',
+          top: -100, left: -80, pointerEvents: 'none', zIndex: 0, filter: 'blur(60px)',
+        }} animate={{ y: [0, -30, 0] }} transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }} />
         <AnimSection>
           <h2>{t('testimonialsTitle')}</h2>
           <p className="section-subtitle">What our community says</p>
@@ -488,7 +589,15 @@ const LandingPage = ({ user }) => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: i * 0.1, duration: 0.45 }}
-                whileHover={{ y: -4, transition: { duration: 0.18 } }}
+                whileHover={{
+                  y: -14,
+                  rotateX: 8,
+                  rotateY: i % 2 === 0 ? -12 : 12,
+                  scale: 1.04,
+                  boxShadow: '0 32px 56px rgba(0,0,0,0.16), 0 8px 20px rgba(255,107,53,0.14)',
+                  transition: { duration: 0.28 }
+                }}
+                style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
               >
                 <div style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>{"⭐".repeat(5)}</div>
                 <p style={{ margin: 0, color: 'var(--text)' }}>{t(`testimonial${n}`)}</p>
@@ -517,7 +626,12 @@ const LandingPage = ({ user }) => {
       </section>
 
       {/* ══════════════ SAFETY & TRUST ══════════════ */}
-      <section className="features">
+      <section className="features" style={{ position: 'relative', overflow: 'hidden' }}>
+        <motion.div aria-hidden="true" style={{
+          position: 'absolute', width: 600, height: 600, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,179,71,0.07) 0%, transparent 70%)',
+          bottom: -100, right: -120, pointerEvents: 'none', zIndex: 0, filter: 'blur(65px)',
+        }} animate={{ y: [0, 40, 0], x: [0, -20, 0] }} transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut', delay: 1 }} />
         <AnimSection>
           <h2>{t('safetyTrustTitle')}</h2>
           <p className="section-subtitle">Your safety is our top priority</p>
@@ -539,9 +653,17 @@ const LandingPage = ({ user }) => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={inView ? { opacity: 1, y: 0 } : {}}
                 transition={{ delay: i * 0.07, duration: 0.4 }}
-                whileHover={{ y: -5, transition: { duration: 0.18 } }}
+                whileHover={{
+                  y: -14,
+                  rotateX: 8,
+                  rotateY: i % 2 === 0 ? -12 : 12,
+                  scale: 1.04,
+                  boxShadow: '0 32px 56px rgba(0,0,0,0.16), 0 8px 20px rgba(255,107,53,0.14)',
+                  transition: { duration: 0.28 }
+                }}
+                style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
               >
-                <div className="feature-icon">{item.icon}</div>
+                <div className="feature-icon-wrap">{item.icon}</div>
                 <h3>{item.title}</h3>
                 <p>{item.desc}</p>
               </motion.div>

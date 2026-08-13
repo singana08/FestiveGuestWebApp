@@ -15,7 +15,8 @@
 }
 
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
+  background: #FFF6EE; /* Base canvas — visible through transparent body */
 }
 
 a {
@@ -34,9 +35,21 @@ body {
   padding: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: #FFF9F5;
-  color: #1A1A2E;
+  background: transparent; /* Let html background show; allows z-index:-1 blobs to sit above it */
+  isolation: isolate;      /* Creates stacking context so AppBackground blobs at z-index:-1 are behind content but above html background */
+  color: #2C1810;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -44,7 +57,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
   line-height: 1.2;
   margin-bottom: 0.5rem;
-  color: #1A1A2E;
+  color: #2C1810;
 }
 
 h1 { font-size: clamp(2rem, 5vw, 3rem); }

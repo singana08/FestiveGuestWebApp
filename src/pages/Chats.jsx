@@ -31,9 +31,13 @@ const Chats = () => {
   const lastMessageCountRef = useRef(0);
   const { fetchUnreadCount, setActiveConversation, clearActiveConversation } = useNotifications();
 
-  // Clear active conversation when leaving the page
+  // Lock body scroll while chat is open — prevents page scroll interfering with message scroll
   useEffect(() => {
-    return () => clearActiveConversation();
+    document.body.classList.add('chat-active');
+    return () => {
+      document.body.classList.remove('chat-active');
+      clearActiveConversation();
+    };
   }, []);
 
   // Keep ref in sync
