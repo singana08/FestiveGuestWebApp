@@ -76,7 +76,12 @@
 
 .content.full-width {
   flex: 1;
-  contain: layout style;
+  /* No `contain: layout` here — it makes this element a containing block for
+     every position:fixed descendant (same trap as `transform`), which broke
+     every .modal-overlay in the app (register/host/guest disclaimer modal
+     included): instead of covering the viewport, the overlay was pinned to
+     this element's full scroll height, pushing the actual dialog thousands
+     of pixels below the fold while body-scroll stayed locked. */
 }
 
 /* ============================================
