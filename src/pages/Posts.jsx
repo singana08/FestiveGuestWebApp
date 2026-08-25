@@ -33,7 +33,21 @@ const Posts = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
   const [deletingPost, setDeletingPost] = useState(null);
-  const [user, setUser] = useState(null);
+  // Read synchronously (not in an effect) so `user` is already correct the
+  // very first time fetchPosts() runs. It used to be set via setUser() inside
+  // the mount effect below, but that update doesn't apply until after that
+  // same effect's fetchPosts() call already ran with user still null — for a
+  // Host, that made fetchPosts() take the "no user" branch (fetching host
+  // posts) instead of "Guest Posts", so the tab loaded empty until something
+  // else (e.g. switching tabs) re-ran fetchPosts() with user populated.
+  const [user, setUser] = useState(() => {
+    try {
+      const userData = localStorage.getItem('user');
+      return userData ? JSON.parse(userData) : null;
+    } catch {
+      return null;
+    }
+  });
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeChat, setActiveChat] = useState(null);
   const [selectedLocations, setSelectedLocations] = useState([]);
@@ -50,11 +64,6 @@ const Posts = () => {
   const [profileLoading, setProfileLoading] = useState(false);
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-    }
     fetchPosts();
   }, []);
 
@@ -314,8 +323,22 @@ const Posts = () => {
     }
   };
 
+  // ponytail: native mouse-wheel/keyboard scrolling is silently inert on this
+  // page specifically (confirmed via live production testing — programmatic
+  // scroll, other logged-in pages, and the public landing page all scroll
+  // fine; only Posts doesn't, and no JS listener or CSS overflow/overscroll
+  // rule explains it after an exhaustive check). Root cause not found;
+  // this restores the actual behavior via the confirmed-working
+  // programmatic path. Revisit if a real cause surfaces (e.g. a framer-
+  // motion/library upgrade) — then this handler can be deleted.
+  const handleWheelFallback = (e) => {
+    if (document.documentElement.scrollHeight > document.documentElement.clientHeight) {
+      window.scrollBy(0, e.deltaY);
+    }
+  };
+
   return (
-    <div className="browse-layout">
+    <div className="browse-layout" onWheel={handleWheelFallback}>
       {/* Mobile Filter Toggle Button */}
       <button 
         className="mobile-filter-toggle"
