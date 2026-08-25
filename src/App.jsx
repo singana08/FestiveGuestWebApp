@@ -90,7 +90,9 @@ const AppContent = () => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [promoDismissed, setPromoDismissed] = useState(false);
+  // Persisted so the "Limited-time offer" banner stays dismissed across
+  // reloads/navigations instead of nagging the user every single visit.
+  const [promoDismissed, setPromoDismissed] = useState(() => localStorage.getItem('promoDismissed') === 'true');
   const avatarRef = useRef(null);
 
   // Read user from localStorage immediately
@@ -375,7 +377,7 @@ const AppContent = () => {
                 <strong style={{ fontWeight: 700 }}>Limited-time offer</strong> — Premium features are free during our launch period!
               </p>
               <button
-                onClick={() => setPromoDismissed(true)}
+                onClick={() => { setPromoDismissed(true); localStorage.setItem('promoDismissed', 'true'); }}
                 style={{
                   position: 'absolute', right: '1rem',
                   background: 'rgba(255,255,255,0.2)',
