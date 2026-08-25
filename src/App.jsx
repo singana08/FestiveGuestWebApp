@@ -301,6 +301,9 @@ const AppContent = () => {
                 <Link to="/profile" className={`nav-item ${isActive('/profile') ? 'active' : ''}`}>
                   <User size={17} /> My Profile
                 </Link>
+                <button onClick={() => setShowInviteModal(true)} className="nav-item">
+                  <UserPlus size={17} /> Invite Friends
+                </button>
                 <Link to="/help" className={`nav-item ${isActive('/help') ? 'active' : ''}`}>
                   <HelpCircle size={17} /> {t('help')}
                 </Link>
