@@ -249,19 +249,6 @@
   .location-filters { display: block !important; }
   .mobile-filter-toggle { display: none !important; }
 }
-@media (max-width: 768px) {
-  .location-sidebar {
-    display: block !important;
-    position: static;
-    border-radius: 12px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-    width: 100%;
-  }
-  .location-filters { margin-top: 0; padding: 1rem 0.5rem 0 0.5rem; }
-  .state-group:first-child { margin-top: 0; padding-top: 0; }
-}
-
 /* ── Browse layout ── */
 .browse-layout {
   display: flex;
@@ -309,7 +296,7 @@
 
 @media (max-width: 768px) {
   .mobile-filter-toggle { display: flex; }
-  .location-sidebar { display: block !important; position: static; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; width: 100%; }
+  .location-sidebar { display: none; position: static; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; width: 100%; }
   .location-sidebar.mobile-visible { display: block !important; }
   .location-filters { margin-top: 0; padding: 1rem 0.5rem 0 0.5rem; }
   .state-group:first-child { margin-top: 0; padding-top: 0; }

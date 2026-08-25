@@ -9,6 +9,20 @@ import { useLanguage } from '../i18n/LanguageContext';
 import '../styles/Posts.css';
 import '../styles/Dashboard.css';
 
+// Shared amenity list for the create/edit host-post modals — was duplicated
+// verbatim in both, and the two copies had drifted (Kitchen was missing the
+// zero-width joiner that makes 👨‍🍳 render as one emoji instead of two).
+const AMENITY_OPTIONS = [
+  { name: 'WiFi', icon: '📶' },
+  { name: 'Parking', icon: '🚗' },
+  { name: 'Meals', icon: '🍽️' },
+  { name: 'AC', icon: '❄️' },
+  { name: 'Kitchen', icon: '👨‍🍳' },
+  { name: 'Laundry', icon: '👕' },
+  { name: 'TV', icon: '📺' },
+  { name: 'Hot Water', icon: '🚿' }
+];
+
 const Posts = () => {
   const { t } = useLanguage();
   const [posts, setPosts] = useState([]);
@@ -310,7 +324,7 @@ const Posts = () => {
           setShowFilters(!showFilters);
         }}
       >
-        <span>{t('filterByLocation')} {selectedLocations.length > 0 && `(${selectedLocations.length})`}</span>
+        <span>{user?.userType === 'Host' ? t('filterByHostingAreas') : t('filterByLocation')} {selectedLocations.length > 0 && `(${selectedLocations.length})`}</span>
         {showFilters ? <Minus size={16} /> : <Plus size={16} />}
       </button>
 
@@ -1339,16 +1353,7 @@ const CreateHostPostModal = ({ onClose, onSubmit, user, initialData = null, isEd
     .map(area => `${area.cities.join(', ')} (${area.state})`)
     .join(' | ');
 
-  const availableAmenities = [
-    { name: 'WiFi', icon: '📶' },
-    { name: 'Parking', icon: '🚗' },
-    { name: 'Meals', icon: '🍽️' },
-    { name: 'AC', icon: '❄️' },
-    { name: 'Kitchen', icon: '👨🍳' },
-    { name: 'Laundry', icon: '👕' },
-    { name: 'TV', icon: '📺' },
-    { name: 'Hot Water', icon: '🚿' }
-  ];
+  const availableAmenities = AMENITY_OPTIONS;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1698,16 +1703,7 @@ const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = fa
     fetchLocations();
   }, []);
 
-  const availableFacilities = [
-    { name: 'WiFi', icon: '📶' },
-    { name: 'Parking', icon: '🚗' },
-    { name: 'Meals', icon: '🍽️' },
-    { name: 'AC', icon: '❄️' },
-    { name: 'Kitchen', icon: '👨🍳' },
-    { name: 'Laundry', icon: '👕' },
-    { name: 'TV', icon: '📺' },
-    { name: 'Hot Water', icon: '🚿' }
-  ];
+  const availableFacilities = AMENITY_OPTIONS;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
