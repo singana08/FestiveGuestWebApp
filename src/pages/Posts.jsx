@@ -51,12 +51,17 @@ const Posts = () => {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeChat, setActiveChat] = useState(null);
   const [selectedLocations, setSelectedLocations] = useState([]);
+  // Single source of truth for the filter panel's mobile open/closed state.
+  // CSS (not JS) decides whether the panel is force-visible on wider
+  // screens, so there's no separate desktop-breakpoint state to keep in
+  // sync with the CSS media query anymore (that mismatch — JS at 1024px
+  // vs CSS at 768px — used to leave the panel's own header collapsed in
+  // the 769-1024px range while the outer toggle button showed alongside
+  // it, reading as a duplicated filter bar).
   const [showFilters, setShowFilters] = useState(false);
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [expandedStates, setExpandedStates] = useState({});
   const [locationData, setLocationData] = useState({});
   const [hostingAreasByState, setHostingAreasByState] = useState({});
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
   const [showMyPosts, setShowMyPosts] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -82,18 +87,6 @@ const Posts = () => {
       }
     }
   }, [user]);
-
-  // Handle window resize and set filter defaults
-  useEffect(() => {
-    const handleResize = () => {
-      const desktop = window.innerWidth > 1024;
-      setIsDesktop(desktop);
-      setShowMobileFilters(desktop);
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   useEffect(() => {
     filterPosts();
@@ -330,55 +323,60 @@ const Posts = () => {
   // rule explains it after an exhaustive check). Root cause not found;
   // this restores the actual behavior via the confirmed-working
   // programmatic path. Revisit if a real cause surfaces (e.g. a framer-
-  // motion/library upgrade) — then this handler can be deleted.
-  const handleWheelFallback = (e) => {
-    if (document.documentElement.scrollHeight > document.documentElement.clientHeight) {
-      window.scrollBy(0, e.deltaY);
-    }
-  };
+  // motion/library upgrade) — then this listener can be deleted.
+  // Attached at the window level (not as an onWheel prop on one div) so it
+  // also covers wheel events over the shared navbar, which sits outside
+  // this page's own DOM subtree — every other page scrolls fine there via
+  // native scroll, so this is the one page that needs the fallback to
+  // reach that far too.
+  useEffect(() => {
+    const handleWheelFallback = (e) => {
+      if (document.documentElement.scrollHeight > document.documentElement.clientHeight) {
+        window.scrollBy(0, e.deltaY);
+      }
+    };
+    window.addEventListener('wheel', handleWheelFallback, { passive: true });
+    return () => window.removeEventListener('wheel', handleWheelFallback);
+  }, []);
 
   return (
-    <div className="browse-layout" onWheel={handleWheelFallback}>
-      {/* Mobile Filter Toggle Button */}
-      <button 
-        className="mobile-filter-toggle"
-        onClick={(e) => {
-          e.stopPropagation();
-          setShowFilters(!showFilters);
-        }}
-      >
-        <span>{user?.userType === 'Host' ? t('filterByHostingAreas') : t('filterByLocation')} {selectedLocations.length > 0 && `(${selectedLocations.length})`}</span>
-        {showFilters ? <Minus size={16} /> : <Plus size={16} />}
-      </button>
-
-      {/* Hosting Areas Filters Sidebar */}
-      <div 
-        className={`location-sidebar ${showFilters ? 'mobile-visible' : ''}`}
+    <div className="browse-layout">
+      {/* Hosting Areas / Location filter — single toggle; CSS forces it
+          open on wider screens instead of a second JS breakpoint state */}
+      <div
+        className="posts-filter-panel"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="filter-header">
-          <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: isDesktop ? 'default' : 'pointer', width: '100%' }} onClick={() => !isDesktop && setShowMobileFilters(!showMobileFilters)}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Filter size={20} style={{ color: 'var(--primary)' }} />
-              {user?.userType === 'Host' ? t('filterByHostingAreas') : t('filterByLocation')}
-            </div>
-            {!isDesktop && (
-              <span style={{ color: 'var(--primary)', fontSize: '1.2rem' }}>
-                {showMobileFilters ? '−' : '+'}
-              </span>
-            )}
-          </h3>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div
+          className="filter-toggle"
+          role="button"
+          tabIndex={0}
+          onClick={() => setShowFilters(v => !v)}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setShowFilters(v => !v)}
+        >
+          <span className="filter-toggle-label">
+            <Filter size={16} />
+            <span className="filter-toggle-text">{user?.userType === 'Host' ? t('hostingAreas') : t('location')}</span>
             {selectedLocations.length > 0 && (
-              <button onClick={clearFilters} className="clear-filters-btn">
-                {t('clear')} ({selectedLocations.length})
+              <span className="filter-count-badge">{selectedLocations.length}</span>
+            )}
+          </span>
+          <span className="filter-toggle-actions">
+            {selectedLocations.length > 0 && (
+              <button
+                className="filter-clear-link"
+                onClick={(e) => { e.stopPropagation(); clearFilters(); }}
+              >
+                {t('clear')}
               </button>
             )}
-          </div>
+            <span className={`filter-chevron ${showFilters ? 'open' : ''}`}>
+              {showFilters ? <Minus size={15} /> : <Plus size={15} />}
+            </span>
+          </span>
         </div>
-        
-        {(isDesktop || showMobileFilters) && (
-        <div className="location-filters">
+
+        <div className={`location-filters ${showFilters ? 'open' : ''}`}>
           {user?.userType === 'Host' ? (
             Object.keys(hostingAreasByState).length > 0 ? (
               Object.entries(hostingAreasByState).map(([state, cities]) => (
@@ -443,7 +441,6 @@ const Posts = () => {
           ))
           )}
         </div>
-        )}
       </div>
 
       {/* Main Content */}
@@ -533,17 +530,17 @@ const Posts = () => {
         </button>
       </div>
 
-      <div className="posts-grid" style={{ display: 'grid', gap: '1.5rem' }}>
+      <div className="posts-grid">
         {loading ? (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <div className="posts-empty-state">
             <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔄</div>
             <p>{t('loadingPosts')}</p>
           </div>
         ) : filteredPosts.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <div className="posts-empty-state">
             <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📍</div>
-            <p>{selectedLocations.length > 0 
-              ? t('noPostsForLocation') 
+            <p>{selectedLocations.length > 0
+              ? t('noPostsForLocation')
               : t('noPostsAvailable')}
             </p>
             {selectedLocations.length > 0 && (
@@ -553,212 +550,108 @@ const Posts = () => {
             )}
           </div>
         ) : (
-          filteredPosts.map((post, idx) => (
+          filteredPosts.map((post, idx) => {
+            const tags = [...(post.facilities || []), ...(post.amenities || [])];
+            const visibleTags = tags.slice(0, 6);
+            const extraTagCount = tags.length - visibleTags.length;
+            return (
           <motion.div
             key={post.id}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.25, delay: idx * 0.04 }}
-            whileHover={{ y: -1, boxShadow: '0 4px 16px rgba(0,0,0,0.1)' }}
+            whileHover={{ y: -3 }}
             className="post-card"
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-              <div>
-                <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)', fontSize: '1.25rem' }}>
-                  {post.title}
-                </h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', color: 'var(--text-light)', fontSize: '0.875rem' }}>
-                  <span 
+            <div className="post-card-top">
+              <div className="post-card-avatar" aria-hidden="true">
+                {(post.userName || '?').charAt(0).toUpperCase()}
+              </div>
+              <div className="post-card-headline">
+                <h3 className="post-card-title" title={post.title}>{post.title}</h3>
+                <div className="post-card-meta">
+                  <span
+                    className="post-card-author"
                     onClick={() => {
                       setSelectedProfile({ userName: post.userName, userId: post.userId });
                       setShowProfileModal(true);
                     }}
-                    style={{ cursor: 'pointer', color: 'var(--primary)', textDecoration: 'underline' }}
                   >
                     {post.userName}
                   </span>
-                  <span>•</span>
+                  <span>·</span>
                   <span>{post.createdAt.toLocaleDateString()}</span>
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {user && showMyPosts && post.userId === user.userId && (
-                  <div style={{ position: 'relative' }}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveDropdown(activeDropdown === post.id ? null : post.id);
-                      }}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '0.25rem',
-                        borderRadius: '0.25rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      <MoreVertical size={16} color="var(--text-light)" />
-                    </button>
-                    {activeDropdown === post.id && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '100%',
-                        right: 0,
-                        background: 'white',
-                        border: '1px solid var(--border)',
-                        borderRadius: '0.5rem',
-                        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-                        zIndex: 10,
-                        minWidth: '120px'
-                      }}>
-                        <button
-                          onClick={() => handleEditPost(post)}
-                          style={{
-                            width: '100%',
-                            padding: '0.5rem 0.75rem',
-                            border: 'none',
-                            background: 'none',
-                            textAlign: 'left',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            fontSize: '0.875rem'
-                          }}
-                        >
-                          <Edit size={14} />
-                          {t('edit')}
-                        </button>
-                        <button
-                          onClick={() => handleDeletePost(post)}
-                          style={{
-                            width: '100%',
-                            padding: '0.5rem 0.75rem',
-                            border: 'none',
-                            background: 'none',
-                            textAlign: 'left',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            fontSize: '0.875rem',
-                            color: '#dc2626'
-                          }}
-                        >
-                          <Trash2 size={14} />
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              {post.userType === 'Host' && post.pricePerNight > 0 && (
+                <div className="post-card-price">₹{post.pricePerNight}/{t('night')}</div>
+              )}
+              {user && showMyPosts && post.userId === user.userId && (
+                <div className="post-card-menu-wrap">
+                  <button
+                    className="post-card-menu-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveDropdown(activeDropdown === post.id ? null : post.id);
+                    }}
+                  >
+                    <MoreVertical size={16} color="var(--text-light)" />
+                  </button>
+                  {activeDropdown === post.id && (
+                    <div className="post-card-dropdown">
+                      <button className="post-card-dropdown-item" onClick={() => handleEditPost(post)}>
+                        <Edit size={14} />
+                        {t('edit')}
+                      </button>
+                      <button className="post-card-dropdown-item danger" onClick={() => handleDeletePost(post)}>
+                        <Trash2 size={14} />
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            <p style={{ margin: '0 0 1rem 0', color: 'var(--text)', lineHeight: '1.6' }}>
-              {post.content}
-            </p>
+            <p className="post-card-desc">{post.content}</p>
 
-            <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b', margin: '0 0 0.5rem 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              {post.userType === 'Host' ? t('availableLocations') : t('visitingLocation')}
-            </p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem', fontSize: '0.875rem', color: 'var(--text-light)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <MapPin size={16} />
-                {post.location || t('locationNotSpecified')}
-              </div>
+            <div className="post-card-stats">
+              <span className="post-card-location"><MapPin size={13} /> {post.location || t('locationNotSpecified')}</span>
               {post.userType === 'Guest' && (
                 <>
                   {post.planningDate && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <Calendar size={16} />
-                      {new Date(post.planningDate).toLocaleDateString()}
-                    </div>
+                    <span><Calendar size={13} /> {new Date(post.planningDate).toLocaleDateString()}</span>
                   )}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <Users size={16} />
-                    {post.visitors} visitor{post.visitors !== 1 ? 's' : ''}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <Calendar size={16} />
-                    {post.days} day{post.days !== 1 ? 's' : ''}
-                  </div>
+                  <span><Users size={13} /> {post.visitors} visitor{post.visitors !== 1 ? 's' : ''}</span>
+                  <span><Calendar size={13} /> {post.days} day{post.days !== 1 ? 's' : ''}</span>
                 </>
               )}
               {post.userType === 'Host' && (
                 <>
                   {post.commenceDate && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <Calendar size={16} />
-                      {t('since')} {new Date(post.commenceDate).toLocaleDateString()}
-                    </div>
+                    <span><Calendar size={13} /> {t('since')} {new Date(post.commenceDate).toLocaleDateString()}</span>
                   )}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <Users size={16} />
-                    {t('upTo')} {post.maxGuests} {post.maxGuests !== 1 ? t('guests') : t('guest')}
-                  </div>
-                  {post.pricePerNight > 0 && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                      ₹{post.pricePerNight}/{t('night')}
-                    </div>
-                  )}
+                  <span><Users size={13} /> {t('upTo')} {post.maxGuests} {post.maxGuests !== 1 ? t('guests') : t('guest')}</span>
                 </>
               )}
             </div>
 
-            {post.facilities && post.facilities.length > 0 && (
-              <div style={{ marginBottom: '1rem' }}>
-                <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b', margin: '0 0 0.5rem 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('preferredFacilities')}</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  {post.facilities.map(facility => (
-                    <span key={facility} style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.3rem',
-                      background: '#f1f5f9',
-                      color: 'var(--primary)',
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: '1rem',
-                      fontSize: '0.75rem',
-                      fontWeight: '500'
-                    }}>
-                      {facilityIcons[facility] && <span>{facilityIcons[facility]}</span>}
-                      {facility}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {post.amenities && post.amenities.length > 0 && (
-              <div style={{ marginBottom: '1rem' }}>
-                <p style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b', margin: '0 0 0.5rem 0', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t('amenitiesServices')}</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  {post.amenities.map(amenity => (
-                    <span key={amenity} style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.3rem',
-                      background: '#f1f5f9',
-                      color: 'var(--primary)',
-                      padding: '0.25rem 0.75rem',
-                      borderRadius: '1rem',
-                      fontSize: '0.75rem',
-                      fontWeight: '500'
-                    }}>
-                      {facilityIcons[amenity] && <span>{facilityIcons[amenity]}</span>}
-                      {amenity}
-                    </span>
-                  ))}
-                </div>
+            {tags.length > 0 && (
+              <div className="post-card-tags">
+                {visibleTags.map(tag => (
+                  <span key={tag} className="post-card-tag">
+                    {facilityIcons[tag] && <span>{facilityIcons[tag]}</span>}
+                    {tag}
+                  </span>
+                ))}
+                {extraTagCount > 0 && (
+                  <span className="post-card-tag post-card-tag-more">+{extraTagCount}</span>
+                )}
               </div>
             )}
 
             {user && post.userId !== user.userId && (
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+              <div className="post-card-footer">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -771,25 +664,16 @@ const Posts = () => {
                       });
                     }, 50);
                   }}
-                  className="btn btn-primary" 
-                  style={{ 
-                    flex: 1, 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    gap: '0.5rem',
-                    padding: '0.75rem 1rem',
-                    fontSize: '0.9rem',
-                    fontWeight: '600'
-                  }}
+                  className="btn btn-primary post-card-contact-btn"
                 >
-                  <MessageCircle size={16} />
+                  <MessageCircle size={15} />
                   {post.userType === 'Host' ? t('contactHost') : t('contactGuest')}
                 </button>
               </div>
             )}
           </motion.div>
-          ))
+            );
+          })
         )}
       </div>
       </div>

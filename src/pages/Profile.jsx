@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Edit, X, Upload, Key, Eye, EyeOff, Crown, MapPin, Mail, Phone, Bell } from 'lucide-react';
+import { Edit, X, Upload, Key, Eye, EyeOff, Crown, MapPin, Mail, Phone, Bell, Lock, Check } from 'lucide-react';
 import api from '../utils/api';
 import ImageWithSas from '../components/ImageWithSas';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -55,7 +55,18 @@ function Profile() {
     { label: t('oneNumber'), test: (pw) => /\d/.test(pw) },
     { label: t('oneSpecialChar'), test: (pw) => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw) }
   ];
-  
+
+  // Shared styling for the Change Password modal's inputs, so the icon +
+  // focus-ring treatment stays consistent across all three fields.
+  const pwInputStyle = (disabled) => ({
+    fontSize: '0.95rem', padding: '0.75rem 2.5rem 0.75rem 2.5rem', width: '100%',
+    border: '1.5px solid var(--border-strong)', borderRadius: 'var(--radius-sm)',
+    background: 'var(--background)', color: 'var(--text)', outline: 'none',
+    transition: 'all 0.2s', boxSizing: 'border-box', opacity: disabled ? 0.5 : 1,
+  });
+  const pwInputFocus = (e) => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(255,107,53,0.1)'; };
+  const pwInputBlur = (e) => { e.target.style.borderColor = 'var(--border-strong)'; e.target.style.boxShadow = 'none'; };
+
   useEffect(() => {
     const userId = localStorage.getItem('userId');
     if (userId) {
@@ -250,6 +261,18 @@ function Profile() {
     } finally {
       setUpdatingProfile(false);
     }
+  };
+
+  // Single close path for the Change Password modal so every way of
+  // dismissing it (X button, clicking the overlay, Cancel) resets the
+  // form the same way — previously only Cancel did, so closing via X or
+  // the overlay left the old fields/error still showing next time it opened.
+  const closeChangePasswordModal = () => {
+    setShowChangePassword(false);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordError('');
   };
 
   const changePassword = async () => {
@@ -600,51 +623,86 @@ function Profile() {
       {/* Change Password Modal */}
       <AnimatePresence>
         {showChangePassword && (
-          <motion.div className="modal-overlay" onClick={() => setShowChangePassword(false)} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
-            <motion.div className="modal-content" onClick={(e) => e.stopPropagation()} initial={{ opacity: 0, y: 24, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 14, scale: 0.97 }} transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }} style={{ maxWidth: '400px' }}>
-              <div className="modal-header">
-                <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}><Key size={18} /> {t('changePassword')}</h3>
-                <button onClick={() => setShowChangePassword(false)} className="modal-close">×</button>
+          <motion.div className="modal-overlay" onClick={closeChangePasswordModal} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.18 }}>
+            <motion.div className="modal-content" onClick={(e) => e.stopPropagation()} initial={{ opacity: 0, y: 24, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 14, scale: 0.97 }} transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }} style={{ maxWidth: '420px' }}>
+              <div className="modal-header" style={{ alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ width: 40, height: 40, borderRadius: '0.75rem', background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 6px 16px rgba(255,107,53,0.3)', flexShrink: 0 }}>
+                    <Key size={18} color="white" />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.05rem' }}>{t('changePassword')}</h3>
+                    <p style={{ margin: '0.1rem 0 0', fontSize: '0.78rem', color: 'var(--text-light)', fontWeight: 400 }}>{t('manageAccountSecurity')}</p>
+                  </div>
+                </div>
+                <button onClick={closeChangePasswordModal} className="modal-close">×</button>
               </div>
               <div className="modal-body">
                 {passwordError && (
-                  <div style={{ color: passwordError.includes('✅') ? '#16a34a' : '#dc2626', background: passwordError.includes('✅') ? '#dcfce7' : '#fee2e2', padding: '0.75rem', borderRadius: '0.375rem', marginBottom: '1rem', fontSize: '0.875rem', textAlign: passwordError.includes('✅') ? 'center' : 'left' }}>
-                    {passwordError.includes('✅') ? (<>{passwordError}{passwordSuccessCountdown > 0 && <div style={{ fontSize: '2rem', fontWeight: 'bold', marginTop: '0.5rem' }}>{passwordSuccessCountdown}</div>}</>) : `⚠️ ${passwordError}`}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', color: passwordError.includes('✅') ? '#16a34a' : '#dc2626', background: passwordError.includes('✅') ? '#dcfce7' : '#fee2e2', border: `1px solid ${passwordError.includes('✅') ? 'rgba(22,163,74,0.25)' : 'rgba(220,38,38,0.25)'}`, padding: '0.75rem', borderRadius: 'var(--radius-sm)', marginBottom: '1.25rem', fontSize: '0.875rem', textAlign: passwordError.includes('✅') ? 'center' : 'left', justifyContent: passwordError.includes('✅') ? 'center' : 'flex-start' }}>
+                    {passwordError.includes('✅') ? (<div>{passwordError}{passwordSuccessCountdown > 0 && <div style={{ fontSize: '2rem', fontWeight: 'bold', marginTop: '0.5rem' }}>{passwordSuccessCountdown}</div>}</div>) : (<><span>⚠️</span><span>{passwordError}</span></>)}
                   </div>
                 )}
-                <div className="form-group">
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>{t('currentPasswordLabel')}</label>
+                <div className="form-group" style={{ marginBottom: '1.1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.85rem' }}>{t('currentPasswordLabel')}</label>
                   <div style={{ position: 'relative' }}>
-                    <input type={showCurrentPassword ? 'text' : 'password'} value={currentPassword} onChange={(e) => { setCurrentPassword(e.target.value); setPasswordError(''); }} placeholder={t('enterCurrentPassword')} disabled={passwordSuccessCountdown > 0} style={{ fontSize: '1rem', padding: '0.75rem', width: '100%', paddingRight: '2.5rem', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }} />
-                    <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>{showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                    <Lock size={15} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+                    <input type={showCurrentPassword ? 'text' : 'password'} value={currentPassword} onChange={(e) => { setCurrentPassword(e.target.value); setPasswordError(''); }} placeholder={t('enterCurrentPassword')} disabled={passwordSuccessCountdown > 0} onFocus={pwInputFocus} onBlur={pwInputBlur} style={pwInputStyle(passwordSuccessCountdown > 0)} />
+                    <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>{showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
                   </div>
                 </div>
-                <div className="form-group">
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>{t('newPasswordLabel')}</label>
+                <div className="form-group" style={{ marginBottom: '1.1rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.85rem' }}>{t('newPasswordLabel')}</label>
                   <div style={{ position: 'relative' }}>
-                    <input type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => { setNewPassword(e.target.value); setPasswordError(''); }} placeholder={t('enterNewPassword')} disabled={passwordSuccessCountdown > 0} style={{ fontSize: '1rem', padding: '0.75rem', width: '100%', paddingRight: '2.5rem', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }} />
-                    <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>{showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                    <Lock size={15} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+                    <input type={showNewPassword ? 'text' : 'password'} value={newPassword} onChange={(e) => { setNewPassword(e.target.value); setPasswordError(''); }} placeholder={t('enterNewPassword')} disabled={passwordSuccessCountdown > 0} onFocus={pwInputFocus} onBlur={pwInputBlur} style={pwInputStyle(passwordSuccessCountdown > 0)} />
+                    <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex' }}>{showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
                   </div>
-                  <div style={{ marginTop: '0.75rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                  <div style={{ marginTop: '0.6rem', display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                     {passwordRequirements.map((req, index) => {
                       const isMet = req.test(newPassword);
                       return (
-                        <div key={index} style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.25rem', color: isMet ? '#16a34a' : '#dc2626', transition: 'color 0.2s' }}>
-                          <span>{isMet ? '✓' : '○'}</span> {req.label}
-                        </div>
+                        <span key={index} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+                          padding: '0.22rem 0.55rem', borderRadius: '1rem', fontSize: '0.68rem', fontWeight: 600,
+                          background: isMet ? 'rgba(22,163,74,0.1)' : 'var(--surface-2)',
+                          color: isMet ? '#16a34a' : 'var(--text-muted)',
+                          border: `1px solid ${isMet ? 'rgba(22,163,74,0.25)' : 'var(--border)'}`,
+                          transition: 'all 0.2s',
+                        }}>
+                          {isMet && <Check size={10} />} {req.label}
+                        </span>
                       );
                     })}
                   </div>
                 </div>
-                <div className="form-group">
-                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>{t('confirmNewPassword')}</label>
-                  <input type="password" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError(''); }} placeholder={t('confirmNewPasswordPlaceholder')} disabled={passwordSuccessCountdown > 0} style={{ fontSize: '1rem', padding: '0.75rem', width: '100%', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }} />
+                <div className="form-group" style={{ marginBottom: '0.25rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.85rem' }}>{t('confirmNewPassword')}</label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock size={15} style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }} />
+                    <input type="password" value={confirmPassword} onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError(''); }} placeholder={t('confirmNewPasswordPlaceholder')} disabled={passwordSuccessCountdown > 0} onFocus={pwInputFocus} onBlur={pwInputBlur} style={{ ...pwInputStyle(passwordSuccessCountdown > 0), paddingRight: '1rem' }} />
+                  </div>
+                  {confirmPassword.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.75rem', marginTop: '0.5rem', fontWeight: 600, color: newPassword === confirmPassword ? '#16a34a' : '#dc2626' }}>
+                      {newPassword === confirmPassword ? <Check size={13} /> : <X size={13} />}
+                      {newPassword === confirmPassword ? t('passwordsMatch') : t('passwordsDoNotMatch')}
+                    </div>
+                  )}
                 </div>
-                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                  <button onClick={() => { setShowChangePassword(false); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); setPasswordError(''); }} className="btn btn-secondary" disabled={passwordSuccessCountdown > 0} style={{ flex: 1, padding: '0.75rem', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }}>{t('cancel')}</button>
-                  <button onClick={changePassword} disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword || passwordSuccessCountdown > 0} className="btn btn-primary" style={{ flex: 1, padding: '0.75rem', opacity: (changingPassword || passwordSuccessCountdown > 0) ? 0.5 : 1 }}>
-                    {changingPassword ? t('changingPassword') : t('changePassword')}
-                </button>
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem' }}>
+                  <button onClick={closeChangePasswordModal} className="btn btn-secondary" disabled={passwordSuccessCountdown > 0} style={{ flex: 1, padding: '0.75rem', borderRadius: 'var(--radius-sm)', fontSize: '0.9rem', whiteSpace: 'nowrap', opacity: passwordSuccessCountdown > 0 ? 0.5 : 1 }}>{t('cancel')}</button>
+                  {(() => {
+                    const formInvalid = !currentPassword || !newPassword || !confirmPassword
+                      || !passwordRequirements.every(req => req.test(newPassword))
+                      || newPassword !== confirmPassword;
+                    const isDisabled = changingPassword || formInvalid || passwordSuccessCountdown > 0;
+                    return (
+                      <button onClick={changePassword} disabled={isDisabled} className="btn btn-primary" style={{ flex: 1, padding: '0.75rem', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.35rem', fontSize: '0.9rem', whiteSpace: 'nowrap', opacity: isDisabled ? 0.5 : 1, cursor: isDisabled ? 'not-allowed' : 'pointer' }}>
+                        {!changingPassword && <Key size={15} />}
+                        {changingPassword ? t('changingPassword') : t('changePassword')}
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
             </motion.div>
