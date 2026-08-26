@@ -757,38 +757,6 @@ const Posts = () => {
               </div>
             )}
 
-            {user?.userType === 'Host' && post.userId !== user.userId && (
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveChat(null);
-                    setTimeout(() => {
-                      setActiveChat({
-                        id: post.userId,
-                        name: post.userName,
-                        imageUrl: null
-                      });
-                    }, 50);
-                  }}
-                  className="btn btn-primary"
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    padding: '0.75rem 1rem',
-                    fontSize: '0.9rem',
-                    fontWeight: '600'
-                  }}
-                >
-                  <MessageCircle size={16} />
-                  {t('contactGuest')}
-                </button>
-              </div>
-            )}
-
             {user && post.userId !== user.userId && (
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
                 <button
