@@ -17,7 +17,7 @@ const passwordRequirements = [
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const Login = ({ setUser }) => {
-  useSEO({ title: 'Login' });
+  useSEO({ title: 'Log In', description: 'Log in to FestiveGuest to connect with a trusted local host in India, or manage your host profile.' });
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

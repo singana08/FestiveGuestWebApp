@@ -14,7 +14,7 @@ function PublicProfile() {
 
   useSEO({
     title: `${userName}'s Profile`,
-    description: profile?.bio || `View ${userName}'s profile on FestiveGuest.`,
+    description: profile?.bio || `View ${userName}'s trusted host profile on FestiveGuest, India's local hosting community.`,
   });
 
   useEffect(() => {
@@ -101,9 +101,9 @@ function PublicProfile() {
         </button>
         
         <div style={{ textAlign: 'center' }}>
-          <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0' }}>
+          <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0', fontSize: '1.5rem' }}>
             {profile.userType === 'Host' ? '🏠' : '🎉'} {profile.name}
-          </h2>
+          </h1>
           <p style={{ color: '#64748b', margin: '0' }}>
             {profile.userType} • Joined {formatDate(profile.createdAt)}
           </p>

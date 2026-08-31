@@ -2,7 +2,7 @@ import React from 'react';
 import useSEO from '../hooks/useSEO';
 
 const SafetyGuidelines = () => {
-  useSEO({ title: 'Safety Guidelines', description: 'Safety tips and best practices for guests and hosts on FestiveGuest.' });
+  useSEO({ title: 'Safety Guidelines', description: 'Safety guidelines for staying with or becoming a trusted local host in India — verification, best practices, and guest safety tips.' });
   return (
     <div className="container" style={{ padding: '2rem 1rem', maxWidth: '1200px', margin: '0 auto' }}>
       <h1 style={{ textAlign: 'center', marginBottom: '1rem' }}>🛡️ Safety Guidelines</h1>

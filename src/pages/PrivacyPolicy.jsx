@@ -3,7 +3,7 @@ import useSEO from '../hooks/useSEO';
 import { Link } from 'react-router-dom';
 
 const PrivacyPolicy = () => {
-  useSEO({ title: 'Privacy Policy', description: 'How FestiveGuest collects, uses, and protects your data.' });
+  useSEO({ title: 'Privacy Policy', description: "How FestiveGuest, India's trusted local host platform, collects, uses, and protects your data." });
   return (
     <div className="legal-document">
       <div className="container">

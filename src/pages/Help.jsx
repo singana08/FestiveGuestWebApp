@@ -103,7 +103,7 @@ const SectionLabel = ({ emoji, label }) => (
 );
 
 const Help = () => {
-  useSEO({ title: 'Help & Support', description: 'Get help with FestiveGuest — registration, hosting, safety, payments, and more.' });
+  useSEO({ title: 'Help & Support', description: 'Get help using FestiveGuest to find or become a trusted local host in India — registration, safety, payments, and more.' });
   const { t } = useLanguage();
   const [feedback, setFeedback] = useState({ name: '', email: '', message: '' });
   const [sending, setSending] = useState(false);

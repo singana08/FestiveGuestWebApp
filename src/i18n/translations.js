@@ -309,7 +309,7 @@ export const translations = {
     premiumBadge: 'Premium',
     
     // LandingPage
-    connectWithLocalHosts: 'Find a Trusted Home When Life Takes You Away',
+    connectWithLocalHosts: 'Find a Trusted Local Host When Life Takes You Away',
     experienceAuthentic: 'A community network for interviews, hospital visits, job joining, exams, festivals, and life transitions — not tourism',
     joinAsGuest: 'Join as Guest',
     joinAsHost: 'Join as Host',

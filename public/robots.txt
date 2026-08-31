@@ -11,6 +11,11 @@ Allow: /safety-guidelines
 # /login rather than seeing the profile. Move it back to Allow once that's
 # fixed on the API side.
 Disallow: /posts
+# /register bounces straight back to / client-side unless it's reached via the
+# homepage's disclaimer modal (a sessionStorage flag + a time-boxed query-param
+# check) — a crawler visiting it cold just gets redirected, so there's nothing
+# there to index. Remove this once/if that page stops requiring that gate.
+Disallow: /register
 Disallow: /chats
 Disallow: /chat/
 Disallow: /profile

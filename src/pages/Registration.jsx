@@ -8,7 +8,7 @@ import api from '../utils/api';
 import locationService from '../utils/locationService';
 
 const Registration = ({ setUser }) => {
-  useSEO({ title: 'Join FestiveGuest', description: 'Create your FestiveGuest account as a traveller or local host.' });
+  useSEO({ title: 'Sign Up', description: 'Create your free FestiveGuest account to find a trusted local host in India, or register as a verified host yourself.' });
   const navigate = useNavigate();
   const location = useLocation();
 
