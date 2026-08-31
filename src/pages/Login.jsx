@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import useSEO from '../hooks/useSEO';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, Eye, EyeOff, Key, ArrowRight, CheckCircle, Circle } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
@@ -16,8 +17,11 @@ const passwordRequirements = [
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const Login = ({ setUser }) => {
+  useSEO({ title: 'Login' });
   const { t } = useLanguage();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/posts';
 
   const [email, setEmail]           = useState('');
   const [password, setPassword]     = useState('');
@@ -63,7 +67,7 @@ const Login = ({ setUser }) => {
         localStorage.setItem('token', token);
         setUser(userWithToken);
         showToast('Login successful! Redirecting…', 'success');
-        navigate('/posts');
+        navigate(redirectTo);
       } else {
         showToast('Login failed', 'error');
       }
@@ -94,7 +98,7 @@ const Login = ({ setUser }) => {
         } else {
           showToast('Signed in with Google!', 'success');
         }
-        navigate('/posts');
+        navigate(redirectTo);
       } else {
         showToast('Google sign-in failed', 'error');
       }

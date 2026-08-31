@@ -1,7 +1,9 @@
 import React from 'react';
+import useSEO from '../hooks/useSEO';
 import { Link } from 'react-router-dom';
 
 const TermsOfService = () => {
+  useSEO({ title: 'Terms of Service', description: 'The terms and conditions for using FestiveGuest.' });
   return (
     <div className="legal-document">
       <div className="container">

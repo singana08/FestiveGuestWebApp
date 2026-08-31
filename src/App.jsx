@@ -113,6 +113,34 @@ const AppContent = () => {
   const { unreadCount, fetchUnreadCount, toast: msgToast, dismissToast } = useNotifications();
   const { language, toggleLanguage, t } = useLanguage();
   const location = useLocation();
+  // Where /login sends an already-logged-in visitor (or Login itself
+  // navigates to, after signing in). Must be the SAME target both places
+  // read from a single query param — Login.jsx's own `navigate()` call and
+  // this route's declarative <Navigate> both fire off the same `setUser`
+  // update, so if they disagreed on the destination, whichever happened to
+  // win that race would silently drop the other's redirect (this is how a
+  // /login?redirect=/profile/x link used to land back on /posts instead).
+  const postLoginRedirect = new URLSearchParams(location.search).get('redirect') || '/posts';
+
+  // "Modal with a real URL behind it" (e.g. clicking a profile card pushes
+  // /profile/:userName over the current page). The pusher stashes the page
+  // it was on as location.state.backgroundLocation; as long as that's set,
+  // Routes below matches against the OLD location so the underlying page
+  // stays mounted (and its own popup keeps rendering on top of it) while
+  // the address bar shows the new URL.
+  //
+  // A hard reload/direct visit has no in-memory app state driving a popup,
+  // even though the browser preserves history.state (and so this same
+  // backgroundLocation) across reloads. We only want to honor it for
+  // location entries reached by an in-app navigate() *after* this app
+  // instance booted, not the one we happened to boot on — so capture the
+  // key of whichever entry was current at mount (lazy initializer, runs
+  // once) and ignore backgroundLocation until location.key moves past it.
+  // A ref flipped in a mount effect doesn't work here: the loading gate
+  // below delays the render that actually uses this by ~600ms, well after
+  // that effect already ran, so it was already un-guarding by then.
+  const [bootLocationKey] = useState(() => location.key);
+  const backgroundLocation = location.key === bootLocationKey ? undefined : location.state?.backgroundLocation;
 
   useEffect(() => {
     document.body.setAttribute('lang', language);
@@ -403,11 +431,11 @@ const AppContent = () => {
       {/* ── Routes ── */}
       <main className="content full-width">
         <Suspense fallback={<PageLoader />}>
-            <Routes location={location}>
+            <Routes location={backgroundLocation || location}>
               <Route path="/" element={<PageTransition><LandingPage user={user} /></PageTransition>} />
               <Route path="/home" element={<PageTransition><LandingPage user={user} /></PageTransition>} />
               <Route path="/r/:code" element={<PageTransition><ReferralRedirect /></PageTransition>} />
-              <Route path="/login" element={!user ? <PageTransition><Login setUser={setUser} /></PageTransition> : <Navigate to="/posts" />} />
+              <Route path="/login" element={!user ? <PageTransition><Login setUser={setUser} /></PageTransition> : <Navigate to={postLoginRedirect} />} />
               <Route path="/register" element={!user ? <PageTransition><Registration setUser={setUser} /></PageTransition> : <Navigate to="/home" />} />
               <Route path="/browse" element={(user?.role === 'Guest' || user?.userType === 'Guest') ? <PageTransition><GuestDashboard user={user} /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/guest-dashboard" element={(user?.role === 'Guest' || user?.userType === 'Guest') ? <PageTransition><GuestDashboard user={user} /></PageTransition> : <Navigate to="/login" />} />

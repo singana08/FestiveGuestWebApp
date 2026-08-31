@@ -8,6 +8,16 @@
       "allowedRoles": ["anonymous"]
     },
     {
+      "route": "/robots.txt",
+      "serve": "/robots.txt",
+      "statusCode": 200
+    },
+    {
+      "route": "/sitemap.xml",
+      "serve": "/sitemap.xml",
+      "statusCode": 200
+    },
+    {
       "route": "/*",
       "serve": "/index.html",
       "statusCode": 200
@@ -15,7 +25,7 @@
   ],
   "navigationFallback": {
     "rewrite": "/index.html",
-    "exclude": ["/images/*.{png,jpg,ico,svg}", "/css/*"]
+    "exclude": ["/images/*.{png,jpg,ico,svg}", "/css/*", "/robots.txt", "/sitemap.xml", "/assets/*"]
   },
   "mimeTypes": {
     ".json": "text/json"

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import useSEO from '../hooks/useSEO';
 import { Users, Copy, Share2, Gift, TrendingUp, Clock } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
 import api from '../utils/api';
 
 function Referrals() {
+  useSEO({ title: 'Refer & Earn', noindex: true });
   const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [referralPoints, setReferralPoints] = useState(0);

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, Calendar, MapPin, MessageCircle } from 'lucide-react';
 import api from '../utils/api';
 import ImageWithSas from '../components/ImageWithSas';
+import useSEO from '../hooks/useSEO';
 
 function PublicProfile() {
   const { userName } = useParams();
@@ -10,6 +11,11 @@ function PublicProfile() {
   const [profile, setProfile] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  useSEO({
+    title: `${userName}'s Profile`,
+    description: profile?.bio || `View ${userName}'s profile on FestiveGuest.`,
+  });
 
   useEffect(() => {
     fetchPublicProfile();
@@ -29,6 +35,14 @@ function PublicProfile() {
       console.error('Failed to fetch profile:', error);
       console.error('Error details:', error.response?.data);
       console.error('Requested userName:', userName);
+      // The backend requires auth for these endpoints, so a logged-out
+      // visitor gets a 401 here rather than actual profile data — send
+      // them to log in (and back to this profile afterward) instead of
+      // showing a misleading "Profile not found".
+      if (error.response?.status === 401) {
+        navigate(`/login?redirect=${encodeURIComponent(`/profile/${userName}`)}`);
+        return;
+      }
     } finally {
       setLoading(false);
     }

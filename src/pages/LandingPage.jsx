@@ -4,6 +4,7 @@ import { motion, useInView, useMotionValue, useSpring } from 'framer-motion';
 import { useRef } from 'react';
 import DisclaimerModal from '../components/DisclaimerModal';
 import { useLanguage } from '../i18n/LanguageContext';
+import useSEO from '../hooks/useSEO';
 const HeroScene3D = lazy(() => import('../components/HeroScene3D'));
 import {
   MapPin, Users, Home, Star, Shield, MessageCircle,
@@ -240,6 +241,10 @@ const FeaturesCarousel = ({ features }) => {
 };
 
 const LandingPage = ({ user }) => {
+  useSEO({
+    title: 'Find a Trusted Local Host Across India',
+    description: "A community network for interviews, hospital visits, job joining, exams, festivals, and life transitions — not tourism. Connect with a trusted local host anywhere in India.",
+  });
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();

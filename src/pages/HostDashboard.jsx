@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import useSEO from '../hooks/useSEO';
 import api from '../utils/api';
 import { ChevronDown, ChevronRight, MapPin, Plus, Minus, MessageCircle, Home, Users, Search, Filter, Star, CheckCircle, Eye } from 'lucide-react';
 import ChatWidget from '../components/ChatWidget';
@@ -7,6 +8,7 @@ import locationService from '../utils/locationService';
 import '../styles/Dashboard.css';
 
 const HostDashboard = ({ user }) => {
+  useSEO({ title: 'Host Dashboard', noindex: true });
   const [guests, setGuests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedStates, setExpandedStates] = useState({});
@@ -130,17 +132,17 @@ const HostDashboard = ({ user }) => {
       const profileRes = await api.post('user/public-profile', {
         userId: guest.userId
       });
-      
+
       // Sort reviews: user's own review first, then others by recent to old
       const currentUserId = user?.userId;
       const reviews = profileRes.data.reviews || [];
       const userReview = reviews.find(r => r.reviewerId === currentUserId);
       const otherReviews = reviews.filter(r => r.reviewerId !== currentUserId)
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      
+
       const sortedReviews = userReview ? [userReview, ...otherReviews] : otherReviews;
       const hasUserReview = !!userReview;
-      
+
       setSelectedProfile({
         ...profileRes.data,
         reviews: sortedReviews,

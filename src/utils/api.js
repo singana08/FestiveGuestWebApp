@@ -67,14 +67,22 @@ api.interceptors.response.use(
       message: error.message
     });
 
-    if (error.response?.status === 401 || error.response?.status === 403) {
+    // Only treat this as "your session expired" if the request actually sent
+    // a token that got rejected. A 401 on a request that never had a token
+    // (e.g. a logged-out visitor on a public page like /profile/:userName,
+    // whose backend endpoints happen to require auth) isn't an expired
+    // session — redirecting to /login there was breaking every public page
+    // for anyone not already logged in. Let those calls fail and let the
+    // calling component degrade gracefully instead.
+    const hadToken = !!error.config?.headers?.Authorization;
+    if (hadToken && (error.response?.status === 401 || error.response?.status === 403)) {
       // Token expired or invalid - clear all auth data
       localStorage.removeItem('user');
       localStorage.removeItem('userId');
-      
+
       // Dispatch storage event to notify other components
       window.dispatchEvent(new Event('storage'));
-      
+
       // Redirect to login only if not already there
       if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
         window.location.href = '/login';

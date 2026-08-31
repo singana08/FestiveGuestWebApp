@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import useSEO from '../hooks/useSEO';
 import {
   Mail, MessageCircle, HelpCircle, Users, CheckCircle,
   AlertCircle, Send, Shield, Lock, FileText, ChevronDown,
@@ -102,6 +103,7 @@ const SectionLabel = ({ emoji, label }) => (
 );
 
 const Help = () => {
+  useSEO({ title: 'Help & Support', description: 'Get help with FestiveGuest — registration, hosting, safety, payments, and more.' });
   const { t } = useLanguage();
   const [feedback, setFeedback] = useState({ name: '', email: '', message: '' });
   const [sending, setSending] = useState(false);

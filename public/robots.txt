@@ -1,0 +1,26 @@
+User-agent: *
+Allow: /
+Allow: /help
+Allow: /privacy-policy
+Allow: /terms-of-service
+Allow: /safety-guidelines
+
+# Behind login — a crawler can't reach real content here anyway, no point indexing the shell.
+# /profile/* is here too: the backend still requires auth for the public-profile
+# endpoints, so a logged-out visitor (crawlers included) gets redirected to
+# /login rather than seeing the profile. Move it back to Allow once that's
+# fixed on the API side.
+Disallow: /posts
+Disallow: /chats
+Disallow: /chat/
+Disallow: /profile
+Disallow: /referrals
+Disallow: /subscription
+Disallow: /admin
+Disallow: /host-dashboard
+Disallow: /guest-dashboard
+Disallow: /browse
+Disallow: /api-test
+Disallow: /chat-debug
+
+Sitemap: https://www.festiveguest.com/sitemap.xml

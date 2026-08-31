@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import useSEO from '../hooks/useSEO';
 import { Crown, Check, MessageCircle, RefreshCw, Users, Gift } from 'lucide-react';
 import api from '../utils/api';
 
 function Subscription() {
+  useSEO({ title: 'Subscription', noindex: true });
   const [subscriptionStatus, setSubscriptionStatus] = useState('free');
   const [loading, setLoading] = useState(true);
   const [referralPoints, setReferralPoints] = useState(0);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import useSEO from '../hooks/useSEO';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/api';
@@ -9,6 +10,7 @@ import locationService from '../utils/locationService';
 import '../styles/Dashboard.css';
 
 const GuestDashboard = ({ user }) => {
+  useSEO({ title: 'Guest Dashboard', noindex: true });
   const navigate = useNavigate();
   const [hosts, setHosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -175,17 +177,17 @@ const GuestDashboard = ({ user }) => {
       const profileRes = await api.post('user/public-profile', {
         userId: host.userId
       });
-      
+
       // Sort reviews: user's own review first, then others by recent to old
       const currentUserId = user?.userId;
       const reviews = profileRes.data.reviews || [];
       const userReview = reviews.find(r => r.reviewerId === currentUserId);
       const otherReviews = reviews.filter(r => r.reviewerId !== currentUserId)
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      
+
       const sortedReviews = userReview ? [userReview, ...otherReviews] : otherReviews;
       const hasUserReview = !!userReview;
-      
+
       setSelectedProfile({
         ...profileRes.data,
         reviews: sortedReviews,

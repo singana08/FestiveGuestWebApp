@@ -5,6 +5,7 @@ import api from '../utils/api';
 import ImageWithSas from '../components/ImageWithSas';
 import { useLanguage } from '../i18n/LanguageContext';
 import locationService from '../utils/locationService';
+import useSEO from '../hooks/useSEO';
 
 const InfoRow = ({ icon, label, value }) => (
   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', padding: '0.5rem 0', borderBottom: '1px solid #f1f5f9', minWidth: 0 }}>
@@ -22,6 +23,7 @@ const StatBox = ({ value, label, color }) => (
 );
 
 function Profile() {
+  useSEO({ title: 'My Profile', noindex: true });
   const { t } = useLanguage();
   const [user, setUser] = useState(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState('free');

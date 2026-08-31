@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import useSEO from '../hooks/useSEO';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import locationService from '../utils/locationService';
@@ -10,6 +11,7 @@ const API_BASE = 'https://api.festiveguest.com/api';
 const ADMIN_EMAILS = ['admin@festiveguest.com', 'kalyanimatrimony@gmail.com'];
 
 function Admin() {
+  useSEO({ title: 'Admin', noindex: true });
   const [payments, setPayments] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);

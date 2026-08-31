@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import useSEO from '../hooks/useSEO';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, ArrowRight, CheckCircle } from 'lucide-react';
@@ -7,6 +8,7 @@ import api from '../utils/api';
 import locationService from '../utils/locationService';
 
 const Registration = ({ setUser }) => {
+  useSEO({ title: 'Join FestiveGuest', description: 'Create your FestiveGuest account as a traveller or local host.' });
   const navigate = useNavigate();
   const location = useLocation();
 

@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import useSEO from '../hooks/useSEO';
 import { MessageCircle, Send, X, ArrowLeft } from 'lucide-react';
 import api from '../utils/api';
 import ImageWithSas from '../components/ImageWithSas';
 import { useNotifications } from '../contexts/NotificationContext';
 
 const Chats = () => {
+  useSEO({ title: 'Messages', noindex: true });
   const [conversations, setConversations] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [messages, setMessages] = useState([]);

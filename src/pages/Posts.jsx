@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, MapPin, Users, Calendar, MessageCircle, MoreVertical, Edit, Trash2, Filter, Minus, Wifi } from 'lucide-react';
 import postsService from '../utils/postsService';
@@ -8,6 +9,7 @@ import api from '../utils/api';
 import { useLanguage } from '../i18n/LanguageContext';
 import '../styles/Posts.css';
 import '../styles/Dashboard.css';
+import useSEO from '../hooks/useSEO';
 
 // Shared amenity list for the create/edit host-post modals — was duplicated
 // verbatim in both, and the two copies had drifted (Kitchen was missing the
@@ -24,7 +26,10 @@ const AMENITY_OPTIONS = [
 ];
 
 const Posts = () => {
+  useSEO({ title: 'Browse Posts', noindex: true });
   const { t } = useLanguage();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [posts, setPosts] = useState([]);
   const [filteredPosts, setFilteredPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -70,6 +75,22 @@ const Posts = () => {
 
   useEffect(() => {
     fetchPosts();
+  }, []);
+
+  // Browser back/forward doesn't go through the modal's own onClose handler.
+  // Posts is rendered here via App.jsx's backgroundLocation override, so its
+  // own useLocation() reflects that background (/posts), not the real
+  // address bar — a native popstate listener is what actually sees the URL
+  // change and closes the popup to match.
+  useEffect(() => {
+    const handlePopState = () => {
+      if (!window.location.pathname.startsWith('/profile/')) {
+        setShowProfileModal(false);
+        setSelectedProfile(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   useEffect(() => {
@@ -575,6 +596,12 @@ const Posts = () => {
                     onClick={() => {
                       setSelectedProfile({ userName: post.userName, userId: post.userId });
                       setShowProfileModal(true);
+                      // Popup stays exactly as-is; this just makes the URL bar reflect it so
+                      // the profile is shareable/bookmarkable. backgroundLocation keeps App.jsx
+                      // rendering Posts (not PublicProfile) underneath while it's open.
+                      if (post.userName) {
+                        navigate(`/profile/${encodeURIComponent(post.userName)}`, { state: { backgroundLocation: location } });
+                      }
                     }}
                   >
                     {post.userName}
@@ -885,6 +912,9 @@ const Posts = () => {
             onClose={() => {
               setShowProfileModal(false);
               setSelectedProfile(null);
+              // Pop the /profile/:userName entry we pushed when opening, so the
+              // address bar reverts to /posts too.
+              navigate(-1);
             }}
           />
         )}
