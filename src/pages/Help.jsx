@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import useSEO from '../hooks/useSEO';
 import {
   Mail, MessageCircle, HelpCircle, Users, CheckCircle,
-  AlertCircle, Send, Shield, Lock, FileText, ChevronDown,
+  AlertCircle, Send, Shield, Lock, FileText, ChevronDown, Copy,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
@@ -110,6 +110,19 @@ const Help = () => {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
   const [user, setUser] = useState(null);
+  const [emailCopied, setEmailCopied] = useState(false);
+  const SUPPORT_EMAIL = 'customer-support@festiveguest.com';
+
+  // mailto: hands off to whatever the OS/browser has registered as the
+  // default mail app (often Outlook desktop even for people who actually
+  // use Gmail/webmail) — there's no way for a page to know or override
+  // that. Copy-to-clipboard is the reliable fallback so anyone can paste
+  // the address into whichever email they actually use.
+  const copySupportEmail = () => {
+    navigator.clipboard.writeText(SUPPORT_EMAIL);
+    setEmailCopied(true);
+    setTimeout(() => setEmailCopied(false), 2000);
+  };
 
   useEffect(() => {
     try {
@@ -308,17 +321,35 @@ const Help = () => {
               <p style={{ margin: '0 0 1rem', fontSize: '0.82rem', color: 'var(--text-light)', lineHeight: 1.6 }}>
                 {t('emailSupportDesc')}
               </p>
-              <a
-                href="mailto:customer-support@festiveguest.com"
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
-                  background: 'var(--gradient-primary)', color: 'white',
-                  padding: '0.55rem 1.1rem', borderRadius: 'var(--radius-sm)',
-                  textDecoration: 'none', fontSize: '0.82rem', fontWeight: 600,
-                }}
-              >
-                <Mail size={14} />{t('customerSupport')}
-              </a>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <a
+                  href={`mailto:${SUPPORT_EMAIL}`}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                    background: 'var(--gradient-primary)', color: 'white',
+                    padding: '0.55rem 1.1rem', borderRadius: 'var(--radius-sm)',
+                    textDecoration: 'none', fontSize: '0.82rem', fontWeight: 600,
+                  }}
+                >
+                  <Mail size={14} />{t('customerSupport')}
+                </a>
+                <button
+                  type="button"
+                  onClick={copySupportEmail}
+                  title={`Copy ${SUPPORT_EMAIL}`}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+                    background: emailCopied ? '#dcfce7' : 'transparent',
+                    color: emailCopied ? '#166534' : 'var(--text-light)',
+                    border: '1.5px solid var(--border)',
+                    padding: '0.55rem 0.85rem', borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <Copy size={14} />{emailCopied ? 'Copied!' : 'Copy email'}
+                </button>
+              </div>
             </div>
           </AnimSection>
 
