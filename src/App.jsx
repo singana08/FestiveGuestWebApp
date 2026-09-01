@@ -30,6 +30,7 @@ const TermsOfService  = lazy(() => import('./pages/TermsOfService'));
 const SafetyGuidelines = lazy(() => import('./pages/SafetyGuidelines'));
 const ApiTest         = lazy(() => import('./components/ApiTest'));
 const ChatDebug       = lazy(() => import('./components/ChatDebug'));
+const NotFound        = lazy(() => import('./pages/NotFound'));
 
 // ── Static ambient background (CSS-only — no scroll-time repaint cost) ──
 const AppBackground = () => (
@@ -454,6 +455,7 @@ const AppContent = () => {
               <Route path="/safety-guidelines" element={<PageTransition><SafetyGuidelines /></PageTransition>} />
               <Route path="/api-test" element={<PageTransition><ApiTest /></PageTransition>} />
               <Route path="/chat-debug" element={<PageTransition><ChatDebug /></PageTransition>} />
+              <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
             </Routes>
         </Suspense>
       </main>

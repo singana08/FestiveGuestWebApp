@@ -20,14 +20,16 @@ template for the flows that do (login, search, booking) once you supply a dedica
 Found during manual exploration on 2026-09-01, and encoded as regression tests so they show up red until fixed:
 
 1. **`Forgot Password?` on `/login` does nothing.** No navigation, no modal — clicking it is a no-op.
+   Still open — needs a real password-reset flow (email + token), which is backend work.
    See `login.spec.ts` → `BUG: "Forgot Password?" control does not respond to clicks`.
-2. **No 404 / catch-all route.** Any URL the router doesn't recognize (including `/forgot-password` itself,
-   which has no route at all) renders the header only, with a completely blank content area and no
-   user-facing message. Confirmed via the console warning `No routes matched location "..."`.
-   See `routing-regressions.spec.ts`.
+2. ~~**No 404 / catch-all route.**~~ **Fixed 2026-09-02.** A catch-all `*` route now renders a real
+   `NotFound` page instead of a blank `<main>`. `/forgot-password` itself is still not a *registered*
+   route with its own reset form (that's tied to bug #1) — it now falls through to the 404 page rather
+   than rendering blank, which is what the test in `routing-regressions.spec.ts` (renamed from
+   `BUG: ...`) now asserts.
 
-Once these are fixed, update the corresponding test to assert the *correct* behavior instead (the tests
-say what to change inline).
+Once bug #1 is fixed, update `login.spec.ts`'s test to assert the *correct* behavior instead (the test
+says what to change inline).
 
 ## Setup
 
