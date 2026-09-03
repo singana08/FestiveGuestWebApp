@@ -34,6 +34,8 @@ test.describe('Homepage', () => {
   test('header navigation links point to the right routes', async ({ page }) => {
     await page.goto('/');
     await waitForAppShell(page);
+    // On mobile these links live behind the hamburger menu; no-op on desktop.
+    await openNavMenu(page);
 
     await expect(page.getByRole('link', { name: 'Help', exact: true })).toHaveAttribute('href', '/help');
     await expect(page.getByRole('link', { name: 'Login', exact: true })).toHaveAttribute('href', '/login');

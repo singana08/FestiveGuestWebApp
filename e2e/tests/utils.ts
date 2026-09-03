@@ -14,16 +14,23 @@ export async function waitForAppShell(page: Page) {
   await expect(page.getByAltText('FestiveGuest Logo')).toBeVisible({ timeout: 15_000 });
 }
 
-/** Opens the mobile/hamburger nav menu if this viewport has one. At the
- * "Desktop Chrome" project's viewport the hamburger isn't rendered at all
- * (the nav is a plain always-visible horizontal bar instead), so this is a
- * no-op there — safe to call unconditionally regardless of project/viewport
- * or whether the menu is already open. */
+/** Opens the mobile/hamburger nav menu if this viewport has one and it
+ * isn't already open. At the "Desktop Chrome" project's viewport the
+ * hamburger isn't rendered at all (the nav is a plain always-visible
+ * horizontal bar instead), so this is a no-op there. On mobile, the menu
+ * does NOT auto-close after selecting a language (App.jsx only closes it on
+ * route change) — a blind click would toggle an already-open menu *closed*
+ * instead. Open/closed state is read from the .nav-links.mobile-open class
+ * directly rather than a text-based indicator, since nav item text (e.g.
+ * "Help") is itself translated and unreliable right after a language
+ * switch. Safe to call unconditionally regardless of project/viewport or
+ * current state. */
 export async function openNavMenu(page: Page) {
   const toggle = page.getByRole('button', { name: /toggle menu/i });
-  if (await toggle.isVisible().catch(() => false)) {
-    await toggle.click();
-  }
+  if (!(await toggle.isVisible().catch(() => false))) return; // no hamburger at this viewport
+  const isOpen = (await page.locator('.nav-links.mobile-open').count()) > 0;
+  if (isOpen) return;
+  await toggle.click();
 }
 
 /** Switches the site language via the nav menu's language toggle, if it is
