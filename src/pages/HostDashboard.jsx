@@ -56,6 +56,17 @@ const HostDashboard = ({ user }) => {
       setLocationData(response.data);
     } catch (error) {
       console.error('Error fetching locations:', error);
+      // Fallback: provide basic Indian states if API fails, same as
+      // GuestDashboard's equivalent — otherwise the location filter is
+      // silently empty with no indication why.
+      setLocationData({
+        'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Other'],
+        'Karnataka': ['Bangalore', 'Mysore', 'Mangalore', 'Other'],
+        'Kerala': ['Kochi', 'Thiruvananthapuram', 'Kozhikode', 'Other'],
+        'Andhra Pradesh': ['Hyderabad', 'Visakhapatnam', 'Vijayawada', 'Other'],
+        'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Other'],
+        'Delhi': ['New Delhi', 'Other']
+      });
     }
   };
 
@@ -152,6 +163,10 @@ const HostDashboard = ({ user }) => {
       setReviewForm({ rating: 0, comment: '' });
     } catch (error) {
       console.error('Failed to fetch profile:', error);
+      // selectedProfile is never set on failure, so the modal (gated on it)
+      // never opens — without this, the loading spinner just vanishes with
+      // no explanation of what happened.
+      alert('Failed to load profile. Please try again.');
     } finally {
       setProfileLoading(false);
     }

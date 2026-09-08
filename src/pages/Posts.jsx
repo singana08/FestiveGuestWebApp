@@ -142,6 +142,16 @@ const Posts = () => {
       setLocationData(locations);
     } catch (error) {
       console.error('Error fetching locations:', error);
+      // Same fallback used by the other fetchLocations() further down in
+      // this file — otherwise the location filter is silently empty.
+      setLocationData({
+        'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Other'],
+        'Karnataka': ['Bangalore', 'Mysore', 'Mangalore', 'Other'],
+        'Kerala': ['Kochi', 'Thiruvananthapuram', 'Kozhikode', 'Other'],
+        'Andhra Pradesh': ['Hyderabad', 'Visakhapatnam', 'Vijayawada', 'Other'],
+        'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Other'],
+        'Delhi': ['New Delhi', 'Other']
+      });
     }
   };
 

@@ -197,6 +197,10 @@ const GuestDashboard = ({ user }) => {
       setReviewForm({ rating: 0, comment: '' });
     } catch (error) {
       console.error('Failed to fetch profile:', error);
+      // selectedProfile is never set on failure, so the modal (gated on it)
+      // never opens — without this, the loading spinner just vanishes with
+      // no explanation of what happened.
+      alert('Failed to load profile. Please try again.');
     } finally {
       setProfileLoading(false);
     }
@@ -350,6 +354,7 @@ const GuestDashboard = ({ user }) => {
       fetchMyPosts();
     } catch (error) {
       console.error('Failed to delete post:', error);
+      alert('Failed to delete post. Please try again.');
     }
   };
 

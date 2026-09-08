@@ -15,6 +15,7 @@ const Chats = () => {
   const [sending, setSending] = useState(false);
   const [showChatView, setShowChatView] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   const getUserId = () => {
     const storedUserId = localStorage.getItem('userId');
@@ -171,11 +172,12 @@ const Chats = () => {
     if (!newMessage.trim() || !selectedChat || sending) return;
 
     const content = newMessage.trim();
+    const tempId = 'temp-' + Date.now();
     setNewMessage('');
     setSending(true);
 
     setMessages(prev => [...prev, {
-      id: 'temp-' + Date.now(),
+      id: tempId,
       sender: 'Me',
       text: content,
       timestamp: new Date(),
@@ -191,17 +193,29 @@ const Chats = () => {
       fetchConversations(false);
     } catch (error) {
       console.error('Failed to send message:', error);
+      // On success refreshMessages() replaces the whole list (dropping this
+      // temp entry); on failure that never runs, so without this the
+      // "Sending..." status next to it would just sit there forever with
+      // no indication it actually failed.
+      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'Failed to send' } : m));
     } finally {
       setSending(false);
     }
   };
 
   const handleProfileClick = async (profileUserId) => {
+    setProfileLoading(true);
     try {
       const profileRes = await api.post('user/public-profile', { userId: profileUserId });
       setSelectedProfile(profileRes.data);
     } catch (error) {
       console.error('Failed to fetch profile:', error);
+      // selectedProfile is never set on failure, so the modal (gated on it)
+      // never opens — without this there was no loading indicator to begin
+      // with, so a click here previously did nothing visible at all.
+      alert('Failed to load profile. Please try again.');
+    } finally {
+      setProfileLoading(false);
     }
   };
 
@@ -378,6 +392,12 @@ const Chats = () => {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {profileLoading && (
+        <div className="modal-overlay">
+          <div className="loading" style={{ color: 'white' }}>Loading profile...</div>
         </div>
       )}
     </div>
