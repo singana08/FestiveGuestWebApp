@@ -1,0 +1,30 @@
+name: Keep API Warm
+
+# Azure App Service on the Free/Shared tier unloads the app after ~20 minutes
+# idle, so the next real request (e.g. a user's login or OTP request) pays a
+# multi-second cold-start tax — measured at ~13s cold vs ~4.7s warm on the
+# /email/send-otp endpoint. This is a workaround, not the real fix: the real
+# fix is upgrading the App Service plan to Basic (B1)+ and turning on
+# "Always On" in the Azure Portal, which removes the idle-unload behavior
+# entirely. Until/unless that happens, ping a cheap read-only endpoint often
+# enough that the app never goes idle.
+#
+# Pings location/states-with-cities — public (no auth), read-only reference
+# data used by the registration form's city dropdown, so this has no side
+# effects and doesn't touch anything user-specific.
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # Every 10 minutes — comfortably under Azure's ~20 min idle-unload window.
+    - cron: '*/10 * * * *'
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API
+        run: |
+          curl -sf -o /dev/null -w "status=%{http_code} time=%{time_total}s\n" \
+            --max-time 30 \
+            "https://festive-guest-api.azurewebsites.net/api/location/states-with-cities"
