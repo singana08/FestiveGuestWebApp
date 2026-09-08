@@ -59,18 +59,24 @@ test.describe('Login page', () => {
     await expect(page).toHaveURL(/\/login$/, { timeout: 10_000 });
   });
 
-  test('BUG: "Forgot Password?" control does not respond to clicks', async ({ page }) => {
+  test('Forgot Password? opens the reset-password modal', async ({ page }) => {
+    // Earlier revisions of this test only checked that the URL didn't
+    // change after clicking, and took that as proof nothing happened —
+    // opening a modal is a client-side state change, not a navigation, so
+    // that check "passed" while wrongly reporting this as a dead button.
+    // It actually opens a real Reset Password flow; verify that instead.
     const forgotPassword = page.getByText('Forgot Password?');
     await expect(forgotPassword).toBeVisible();
-
-    const urlBefore = page.url();
     await forgotPassword.click();
-    await page.waitForTimeout(1000);
 
-    // Known bug as of 2026-09-01: clicking this control does not navigate,
-    // open a modal, or produce any visible change. Once fixed, replace this
-    // assertion with a real check for the reset-password UI appearing.
-    expect(page.url()).toBe(urlBefore);
+    const modal = page.locator('.modal-content').filter({ hasText: 'Reset Password' });
+    await expect(modal.getByRole('heading', { name: 'Reset Password' })).toBeVisible({ timeout: 5000 });
+    await expect(modal.getByPlaceholder('your@email.com')).toBeVisible();
+    await expect(modal.getByRole('button', { name: 'Send OTP' })).toBeVisible();
+
+    // Close without submitting — never trigger a real OTP email.
+    await modal.getByRole('button', { name: '×' }).click();
+    await expect(modal).toBeHidden();
   });
 
   test('Create Account button opens the registration disclaimer gate', async ({ page }) => {

@@ -9,7 +9,7 @@ template for the flows that do (login, search, booking) once you supply a dedica
 | File | Covers |
 |---|---|
 | `homepage-and-nav.spec.ts` | Homepage content, console errors on load, header/footer links, language toggle |
-| `login.spec.ts` | Login form rendering & validation, invalid-login error path, the **broken "Forgot Password?" button** |
+| `login.spec.ts` | Login form rendering & validation, invalid-login error path, the "Forgot Password?" reset-password modal |
 | `routing-regressions.spec.ts` | The **missing 404/catch-all route** (unknown URLs and `/forgot-password` render blank) |
 | `help-and-static-pages.spec.ts` | Help page, FAQ accordion, feedback form validation, WhatsApp support link, Terms/Privacy/Safety pages |
 | `registration-disclaimer.spec.ts` | The mandatory disclaimer + consent checkbox gate before guest/host signup |
@@ -17,19 +17,19 @@ template for the flows that do (login, search, booking) once you supply a dedica
 
 ## Known bugs this suite documents
 
-Found during manual exploration on 2026-09-01, and encoded as regression tests so they show up red until fixed:
+Found during manual exploration on 2026-09-01, encoded as regression tests, and corrected as they turned
+out to be:
 
-1. **`Forgot Password?` on `/login` does nothing.** No navigation, no modal — clicking it is a no-op.
-   Still open — needs a real password-reset flow (email + token), which is backend work.
-   See `login.spec.ts` → `BUG: "Forgot Password?" control does not respond to clicks`.
-2. ~~**No 404 / catch-all route.**~~ **Fixed 2026-09-02.** A catch-all `*` route now renders a real
-   `NotFound` page instead of a blank `<main>`. `/forgot-password` itself is still not a *registered*
-   route with its own reset form (that's tied to bug #1) — it now falls through to the 404 page rather
-   than rendering blank, which is what the test in `routing-regressions.spec.ts` (renamed from
-   `BUG: ...`) now asserts.
-
-Once bug #1 is fixed, update `login.spec.ts`'s test to assert the *correct* behavior instead (the test
-says what to change inline).
+1. ~~**`Forgot Password?` on `/login` does nothing.**~~ **Not a bug — corrected 2026-09-03.** The original
+   test only checked that the URL didn't change after clicking, and took that as proof nothing happened.
+   Opening a modal is a client-side state change, not a navigation, so that check "passed" while wrongly
+   reporting a dead button. It actually opens a real Reset Password modal (email → OTP → new password).
+   `login.spec.ts` now asserts the modal renders instead. Lesson: a test's own assertion can be the bug —
+   this one went unquestioned for two days because it kept "confirming" itself on every re-run.
+2. **No 404 / catch-all route.** **Fixed 2026-09-02.** A catch-all `*` route now renders a real
+   `NotFound` page instead of a blank `<main>`. Note `/forgot-password` was never meant to be its own
+   route — the reset flow lives entirely as a modal on `/login` — so it correctly falls through to the
+   404 page like any other unrecognized URL, which is what `routing-regressions.spec.ts` asserts.
 
 ## Setup
 
