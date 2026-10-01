@@ -172,7 +172,37 @@ const AppContent = () => {
     setMenuOpen(false);
     setAvatarOpen(false);
     window.scrollTo(0, 0);
+
+    // Safety net for Chats.jsx's own cleanup of the body-scroll-lock class
+    // it adds on mount (see App.css "body.chat-active"). That cleanup runs
+    // on normal unmount, but bfcache restores and other non-standard exits
+    // from /chats can leave it stuck, silently locking scroll on every page
+    // visited afterward — including ones with no chat UI at all, like
+    // Profile. Idempotent, so it's safe to call even when already removed.
+    if (!location.pathname.startsWith('/chats')) {
+      document.body.classList.remove('chat-active');
+    }
   }, [location.pathname]);
+
+  // Native mouse-wheel scrolling can go silently inert after certain
+  // navigations (confirmed repro: visit /chats, then SPA-navigate to
+  // Profile — programmatic scrollTo still works, CSS/overflow is healthy,
+  // no listener calls preventDefault, but wheel-triggered scroll just stops
+  // doing anything). First seen scoped to the Posts page and worked around
+  // there; it isn't page-specific, so the fallback now lives here instead,
+  // covering every route for the app's whole lifetime. Root cause still
+  // not found after an exhaustive check (not CSS, not an explicit
+  // listener, not a stray overlay/iframe stealing focus) — revisit if a
+  // real cause surfaces, then this can be deleted.
+  useEffect(() => {
+    const handleWheelFallback = (e) => {
+      if (document.documentElement.scrollHeight > document.documentElement.clientHeight) {
+        window.scrollBy(0, e.deltaY);
+      }
+    };
+    window.addEventListener('wheel', handleWheelFallback, { passive: true });
+    return () => window.removeEventListener('wheel', handleWheelFallback);
+  }, []);
 
   // Close avatar dropdown on outside click
   useEffect(() => {

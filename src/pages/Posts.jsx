@@ -347,28 +347,10 @@ const Posts = () => {
     }
   };
 
-  // ponytail: native mouse-wheel/keyboard scrolling is silently inert on this
-  // page specifically (confirmed via live production testing — programmatic
-  // scroll, other logged-in pages, and the public landing page all scroll
-  // fine; only Posts doesn't, and no JS listener or CSS overflow/overscroll
-  // rule explains it after an exhaustive check). Root cause not found;
-  // this restores the actual behavior via the confirmed-working
-  // programmatic path. Revisit if a real cause surfaces (e.g. a framer-
-  // motion/library upgrade) — then this listener can be deleted.
-  // Attached at the window level (not as an onWheel prop on one div) so it
-  // also covers wheel events over the shared navbar, which sits outside
-  // this page's own DOM subtree — every other page scrolls fine there via
-  // native scroll, so this is the one page that needs the fallback to
-  // reach that far too.
-  useEffect(() => {
-    const handleWheelFallback = (e) => {
-      if (document.documentElement.scrollHeight > document.documentElement.clientHeight) {
-        window.scrollBy(0, e.deltaY);
-      }
-    };
-    window.addEventListener('wheel', handleWheelFallback, { passive: true });
-    return () => window.removeEventListener('wheel', handleWheelFallback);
-  }, []);
+  // The wheel-scroll-goes-inert bug this page used to work around here
+  // turned out not to be Posts-specific — see App.jsx's AppContent for the
+  // app-wide version of this same fallback (confirmed to recur after
+  // visiting /chats then navigating elsewhere, e.g. to Profile).
 
   return (
     <div className="browse-layout">
