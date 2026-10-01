@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import useSEO from '../hooks/useSEO';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, Key, ArrowRight, CheckCircle, Circle } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Key, ArrowRight, CheckCircle, Circle, Phone } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import api from '../utils/api';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -30,9 +30,21 @@ const Login = ({ setUser }) => {
   const [emailError, setEmailError] = useState('');
   const [toast, setToast]           = useState(null);
 
+  // Login with phone OTP (alternative to password)
+  const [loginMethod, setLoginMethod]           = useState('password'); // 'password' | 'phone'
+  const [loginPhone, setLoginPhone]             = useState('');
+  const [loginPhoneOtpSent, setLoginPhoneOtpSent] = useState(false);
+  const [loginPhoneOtpSending, setLoginPhoneOtpSending] = useState(false);
+  const [loginPhoneOtpSessionId, setLoginPhoneOtpSessionId] = useState('');
+  const [loginPhoneOtp, setLoginPhoneOtp]       = useState('');
+  const [loginPhoneError, setLoginPhoneError]   = useState('');
+
   // Forgot-password flow
   const [showForgot, setShowForgot]       = useState(false);
+  const [resetChannel, setResetChannel]   = useState('email'); // 'email' | 'phone'
   const [forgotEmail, setForgotEmail]     = useState('');
+  const [forgotPhone, setForgotPhone]     = useState('');
+  const [resetSessionId, setResetSessionId] = useState('');
   const [otpSent, setOtpSent]             = useState(false);
   const [otp, setOtp]                     = useState('');
   const [newPw, setNewPw]                 = useState('');
@@ -111,6 +123,26 @@ const Login = ({ setUser }) => {
 
   const sendOtp = async () => {
     setModalError('');
+    if (resetChannel === 'phone') {
+      if (!forgotPhone.trim() || forgotPhone.length !== 10) { setModalError('Please enter a valid 10-digit phone number'); return; }
+      setOtpSending(true);
+      try {
+        const res = await api.post('phone-otp/send', { phone: forgotPhone });
+        if (res.data.success) { setOtpSent(true); setResetSessionId(res.data.sessionId); }
+      } catch (err) {
+        const msg = err.response?.data?.message || err.message;
+        if (msg?.includes('not configured')) {
+          setModalError('Phone-based reset isn\'t available yet. Please use email instead.');
+          setResetChannel('email');
+        } else {
+          setModalError('Failed to send OTP: ' + msg);
+        }
+      } finally {
+        setOtpSending(false);
+      }
+      return;
+    }
+
     if (!forgotEmail.trim()) { setModalError('Please enter your email address'); return; }
     if (!emailRegex.test(forgotEmail)) { setModalError('Please enter a valid email address'); return; }
     setOtpSending(true);
@@ -124,26 +156,82 @@ const Login = ({ setUser }) => {
     }
   };
 
+  const resetForgotModal = () => {
+    setShowForgot(false); setOtpSent(false); setResetChannel('email');
+    setOtp(''); setNewPw(''); setConfirmPw(''); setForgotEmail(''); setForgotPhone(''); setResetSessionId(''); setModalError('');
+  };
+
   const resetPassword = async () => {
     setModalError('');
-    if (!otp.trim() || otp.length !== 6) { setModalError('Please enter the 6-digit OTP'); return; }
+    if (!otp.trim() || otp.length !== 6) { setModalError('Please enter a valid 6-digit OTP'); return; }
     if (!newPw.trim()) { setModalError('Please enter a new password'); return; }
     if (!confirmPw.trim()) { setModalError('Please confirm your password'); return; }
     if (!passwordRequirements.every(r => r.test(newPw))) { setModalError('Password must meet all requirements'); return; }
     if (newPw !== confirmPw) { setModalError('Passwords do not match'); return; }
     setResetting(true);
     try {
-      const res = await api.post('auth/reset-password', { email: forgotEmail, otpCode: otp, newPassword: newPw });
-      if (res.data.success) {
-        showToast('Password reset successful! Please sign in.', 'success');
-        setShowForgot(false);
-        setOtpSent(false);
-        setOtp(''); setNewPw(''); setConfirmPw(''); setForgotEmail(''); setModalError('');
+      if (resetChannel === 'phone') {
+        const verify = await api.post('phone-otp/verify', { sessionId: resetSessionId, otp, phone: forgotPhone, purpose: 'reset' });
+        if (!verify.data.success) throw new Error(verify.data.message || 'Invalid OTP');
+        const res = await api.post('auth/reset-password-phone', { phone: forgotPhone, verificationToken: verify.data.verificationToken, newPassword: newPw });
+        if (res.data.success) { showToast('Password reset successful! Please sign in.', 'success'); resetForgotModal(); }
+        return;
       }
+
+      const res = await api.post('auth/reset-password', { email: forgotEmail, otpCode: otp, newPassword: newPw });
+      if (res.data.success) { showToast('Password reset successful! Please sign in.', 'success'); resetForgotModal(); }
     } catch (err) {
       setModalError('Reset failed: ' + (err.response?.data?.message || err.message));
     } finally {
       setResetting(false);
+    }
+  };
+
+  const sendLoginPhoneOtp = async () => {
+    setLoginPhoneError('');
+    if (!loginPhone.trim() || loginPhone.length !== 10) { setLoginPhoneError('Please enter a valid 10-digit phone number'); return; }
+    setLoginPhoneOtpSending(true);
+    try {
+      const res = await api.post('phone-otp/send', { phone: loginPhone });
+      if (res.data.success) { setLoginPhoneOtpSent(true); setLoginPhoneOtpSessionId(res.data.sessionId); }
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message;
+      if (msg?.includes('not configured')) {
+        showToast('Login with OTP isn\'t available yet. Please use your password.', 'error');
+        setLoginMethod('password');
+      } else {
+        setLoginPhoneError('Failed to send OTP: ' + msg);
+      }
+    } finally {
+      setLoginPhoneOtpSending(false);
+    }
+  };
+
+  const loginWithPhoneOtp = async () => {
+    setLoginPhoneError('');
+    if (!loginPhoneOtp.trim() || loginPhoneOtp.length !== 6) { setLoginPhoneError('Please enter a valid 6-digit OTP'); return; }
+    setLoading(true);
+    try {
+      const verify = await api.post('phone-otp/verify', { sessionId: loginPhoneOtpSessionId, otp: loginPhoneOtp, phone: loginPhone, purpose: 'login' });
+      if (!verify.data.success) throw new Error(verify.data.message || 'Invalid OTP');
+
+      const res = await api.post('auth/login-with-phone', { phone: loginPhone, verificationToken: verify.data.verificationToken });
+      if (res?.data?.success && res?.data?.token) {
+        const { token, user } = res.data;
+        const userWithToken = { ...user, token };
+        localStorage.setItem('user', JSON.stringify(userWithToken));
+        localStorage.setItem('userId', user.userId);
+        localStorage.setItem('token', token);
+        setUser(userWithToken);
+        showToast('Login successful! Redirecting…', 'success');
+        navigate(redirectTo);
+      } else {
+        setLoginPhoneError(res?.data?.message || 'Login failed');
+      }
+    } catch (err) {
+      setLoginPhoneError(err.response?.data?.message || err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -287,7 +375,80 @@ const Login = ({ setUser }) => {
             <p style={{ color: 'var(--text-light)', fontSize: '0.9rem', margin: 0 }}>Sign in to your Festive Guest account</p>
           </div>
 
-          {/* Login form */}
+          {/* Login method toggle */}
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', background: 'var(--background)', borderRadius: 'var(--radius-sm)', padding: '0.25rem' }}>
+            {[{ key: 'password', label: 'Password' }, { key: 'phone', label: 'Phone OTP' }].map(m => (
+              <button key={m.key} type="button"
+                onClick={() => { setLoginMethod(m.key); setLoginPhoneError(''); }}
+                style={{
+                  flex: 1, padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
+                  fontWeight: 600, fontSize: '0.82rem', transition: 'all 0.2s', boxShadow: 'none',
+                  background: loginMethod === m.key ? 'white' : 'transparent',
+                  color: loginMethod === m.key ? 'var(--primary)' : 'var(--text-muted)',
+                }}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+
+          {loginMethod === 'phone' ? (
+            <div style={{ opacity: loading ? 0.65 : 1, pointerEvents: loading ? 'none' : 'auto' }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 500, fontSize: '0.875rem', color: 'var(--text)' }}>
+                  Phone Number
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <Phone size={16} style={{ position: 'absolute', left: '0.875rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <input
+                    type="tel"
+                    placeholder="10-digit mobile number"
+                    value={loginPhone} maxLength={10} disabled={loginPhoneOtpSent}
+                    onChange={e => { setLoginPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setLoginPhoneError(''); }}
+                    style={{ ...inputStyle(!!loginPhoneError), background: loginPhoneOtpSent ? '#f8fafc' : 'var(--background)' }}
+                  />
+                </div>
+                {loginPhoneError && <p style={{ margin: '0.35rem 0 0', color: 'var(--error)', fontSize: '0.78rem' }}>⚠️ {loginPhoneError}</p>}
+              </div>
+
+              {loginPhoneOtpSent && (
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: 500, fontSize: '0.875rem', color: 'var(--text)' }}>
+                    6-digit OTP
+                  </label>
+                  <input type="text" value={loginPhoneOtp}
+                    onChange={e => { setLoginPhoneOtp(e.target.value.replace(/\D/g, '').slice(0, 6)); setLoginPhoneError(''); }}
+                    placeholder="000000" maxLength={6}
+                    style={{ ...inputStyle(false), letterSpacing: '0.3em', textAlign: 'center' }}
+                  />
+                </div>
+              )}
+
+              <motion.button
+                type="button"
+                className="btn btn-primary"
+                disabled={loading || loginPhoneOtpSending}
+                onClick={loginPhoneOtpSent ? loginWithPhoneOtp : sendLoginPhoneOtp}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                style={{ width: '100%', padding: '0.9rem', fontSize: '1rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+              >
+                {loginPhoneOtpSent ? (loading ? 'Signing in…' : 'Verify & Sign In') : (loginPhoneOtpSending ? 'Sending…' : 'Send OTP')}
+              </motion.button>
+              {loginPhoneOtpSent && (
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem' }}>
+                  <button type="button" onClick={() => { setLoginPhoneOtp(''); sendLoginPhoneOtp(); }} disabled={loginPhoneOtpSending}
+                    style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, padding: 0, boxShadow: 'none', opacity: loginPhoneOtpSending ? 0.5 : 1 }}>
+                    {loginPhoneOtpSending ? 'Resending…' : 'Resend OTP'}
+                  </button>
+                  <button type="button" onClick={() => { setLoginPhoneOtpSent(false); setLoginPhoneOtp(''); }}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-light)', cursor: 'pointer', fontSize: '0.8rem', padding: 0, boxShadow: 'none' }}>
+                    Use a different number
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
           <form onSubmit={handleLogin} style={{ opacity: loading ? 0.65 : 1, pointerEvents: loading ? 'none' : 'auto' }}>
             {/* Email */}
             <div style={{ marginBottom: '1rem' }}>
@@ -377,6 +538,7 @@ const Login = ({ setUser }) => {
               )}
             </motion.button>
           </form>
+          )}
 
           {/* Divider */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', margin: '1.5rem 0 1rem' }}>
@@ -436,7 +598,7 @@ const Login = ({ setUser }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setShowForgot(false)}
+            onClick={resetForgotModal}
           >
             <motion.div
               className="modal-content"
@@ -449,9 +611,26 @@ const Login = ({ setUser }) => {
             >
               <div className="modal-header">
                 <h3><Key size={18} /> Reset Password</h3>
-                <button className="modal-close" onClick={() => setShowForgot(false)}>×</button>
+                <button className="modal-close" onClick={resetForgotModal}>×</button>
               </div>
               <div className="modal-body">
+                {!otpSent && (
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', background: 'var(--background)', borderRadius: 'var(--radius-sm)', padding: '0.25rem' }}>
+                    {[{ key: 'email', label: 'Via Email' }, { key: 'phone', label: 'Via Phone' }].map(c => (
+                      <button key={c.key} type="button"
+                        onClick={() => { setResetChannel(c.key); setModalError(''); }}
+                        style={{
+                          flex: 1, padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: 'none', cursor: 'pointer',
+                          fontWeight: 600, fontSize: '0.82rem', boxShadow: 'none',
+                          background: resetChannel === c.key ? 'white' : 'transparent',
+                          color: resetChannel === c.key ? 'var(--primary)' : 'var(--text-muted)',
+                        }}
+                      >
+                        {c.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <AnimatePresence>
                   {modalError && (
                     <motion.div
@@ -468,15 +647,23 @@ const Login = ({ setUser }) => {
                 {!otpSent ? (
                   <div>
                     <p style={{ color: 'var(--text-light)', fontSize: '0.9rem', marginBottom: '1rem' }}>
-                      Enter your email to receive a password reset OTP.
+                      {resetChannel === 'phone' ? 'Enter your phone number to receive a password reset OTP.' : 'Enter your email to receive a password reset OTP.'}
                     </p>
-                    <div className="form-group">
-                      <label>Email Address</label>
-                      <input type="email" className="form-control" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} placeholder="your@email.com" />
-                    </div>
+                    {resetChannel === 'phone' ? (
+                      <div className="form-group">
+                        <label>Phone Number</label>
+                        <input type="tel" className="form-control" value={forgotPhone} maxLength={10}
+                          onChange={e => { setForgotPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setModalError(''); }} placeholder="10-digit mobile number" />
+                      </div>
+                    ) : (
+                      <div className="form-group">
+                        <label>Email Address</label>
+                        <input type="email" className="form-control" value={forgotEmail} onChange={e => { setForgotEmail(e.target.value); setModalError(''); }} placeholder="your@email.com" />
+                      </div>
+                    )}
                     <button
                       onClick={sendOtp}
-                      disabled={otpSending || !forgotEmail}
+                      disabled={otpSending || (resetChannel === 'phone' ? forgotPhone.length !== 10 : !forgotEmail)}
                       className="btn btn-primary"
                       style={{ width: '100%', padding: '0.8rem' }}
                     >
@@ -486,21 +673,25 @@ const Login = ({ setUser }) => {
                 ) : (
                   <div>
                     <p style={{ color: 'var(--text-light)', fontSize: '0.875rem', marginBottom: '1rem' }}>
-                      OTP sent to <strong>{forgotEmail}</strong>. Enter it below with your new password.
+                      OTP sent to <strong>{resetChannel === 'phone' ? forgotPhone : forgotEmail}</strong>. Enter it below with your new password.
                     </p>
                     <div className="form-group">
                       <label>6-digit OTP</label>
                       <input
                         type="text" className="form-control"
                         value={otp}
-                        onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        onChange={e => { setOtp(e.target.value.replace(/\D/g, '').slice(0, 6)); setModalError(''); }}
                         placeholder="000000" maxLength={6}
                         style={{ letterSpacing: '0.3em', textAlign: 'center', fontSize: '1.2rem' }}
                       />
+                      <button type="button" onClick={() => { setOtp(''); setModalError(''); sendOtp(); }} disabled={otpSending}
+                        style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600, marginTop: '0.5rem', padding: 0, boxShadow: 'none', opacity: otpSending ? 0.5 : 1 }}>
+                        {otpSending ? 'Resending…' : 'Resend OTP'}
+                      </button>
                     </div>
                     <div className="form-group">
                       <label>New Password</label>
-                      <input type="password" className="form-control" value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="Strong password" />
+                      <input type="password" className="form-control" value={newPw} onChange={e => { setNewPw(e.target.value); setModalError(''); }} placeholder="Strong password" />
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.35rem', marginTop: '0.75rem' }}>
                         {passwordRequirements.map((req, i) => (
                           <div key={i} style={{ fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '0.3rem', color: req.test(newPw) ? '#16a34a' : 'var(--text-muted)', transition: 'color 0.2s' }}>
@@ -512,11 +703,11 @@ const Login = ({ setUser }) => {
                     </div>
                     <div className="form-group">
                       <label>Confirm Password</label>
-                      <input type="password" className="form-control" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} placeholder="Repeat password" />
+                      <input type="password" className="form-control" value={confirmPw} onChange={e => { setConfirmPw(e.target.value); setModalError(''); }} placeholder="Repeat password" />
                     </div>
                     <div style={{ display: 'flex', gap: '0.75rem' }}>
                       <button
-                        onClick={() => { setOtpSent(false); setOtp(''); setNewPw(''); setConfirmPw(''); setModalError(''); }}
+                        onClick={() => { setOtpSent(false); setOtp(''); setNewPw(''); setConfirmPw(''); setResetSessionId(''); setModalError(''); }}
                         className="btn btn-outline"
                         style={{ flex: 1, padding: '0.75rem' }}
                       >

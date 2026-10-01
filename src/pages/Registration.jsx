@@ -39,6 +39,14 @@ const Registration = ({ setUser }) => {
   const [verifiedEmail, setVerifiedEmail] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
   const [otpSending, setOtpSending] = useState(false);
+  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
+  const [phoneOtpSending, setPhoneOtpSending] = useState(false);
+  const [phoneOtpSessionId, setPhoneOtpSessionId] = useState('');
+  const [phoneOtpCode, setPhoneOtpCode] = useState('');
+  const [phoneOtpError, setPhoneOtpError] = useState('');
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [phoneVerificationToken, setPhoneVerificationToken] = useState('');
+  const [verifiedPhone, setVerifiedPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
@@ -173,6 +181,13 @@ const Registration = ({ setUser }) => {
         return;
       }
 
+      if (!phoneVerified) {
+        setServerError('Please verify your phone number before completing registration.');
+        showToast('Please verify your phone number before registering', 'error');
+        setLoading(false);
+        return;
+      }
+
       const storedAcceptance = sessionStorage.getItem('disclaimerAcceptance');
       if (!storedAcceptance) {
         showToast('Please accept the disclaimer again', 'error');
@@ -197,6 +212,7 @@ const Registration = ({ setUser }) => {
         password: isGoogleUser ? googlePassword : formData.password,
         name: formData.name,
         phone: formData.phone,
+        phoneVerificationToken: phoneVerificationToken || undefined,
         userType: formData.role,
         location: `${finalLocation}, ${formData.state}`,
         bio: formData.bio,
@@ -260,6 +276,43 @@ const Registration = ({ setUser }) => {
       }
     } catch (err) {
       setOtpError('Verification failed: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendPhoneOtp = async () => {
+    if (!formData.phone || phoneError) { showToast('Please enter a valid phone number first', 'error'); return; }
+    setPhoneOtpSending(true); setPhoneOtpError('');
+    try {
+      const res = await api.post('phone-otp/send', { phone: formData.phone });
+      if (res.data.success) { setPhoneOtpSent(true); setPhoneOtpSessionId(res.data.sessionId); showToast('OTP sent to your phone', 'success'); }
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message;
+      if (msg?.includes('not configured')) {
+        // Phone OTP isn't live yet — don't block signups on a feature that can't work.
+        setPhoneVerified(true); setVerifiedPhone(formData.phone);
+        showToast('Phone verification isn\'t available yet — continuing without it.', 'success');
+      } else {
+        showToast('Failed to send OTP: ' + msg, 'error');
+      }
+    } finally {
+      setPhoneOtpSending(false);
+    }
+  };
+
+  const verifyPhoneOtp = async () => {
+    if (!phoneOtpCode || phoneOtpCode.length !== 6) { setPhoneOtpError('Please enter a valid 6-digit OTP'); return; }
+    setLoading(true); setPhoneOtpError('');
+    try {
+      const res = await api.post('phone-otp/verify', { sessionId: phoneOtpSessionId, otp: phoneOtpCode, phone: formData.phone, purpose: 'register' });
+      if (res.data.success) {
+        setPhoneVerificationToken(res.data.verificationToken); setVerifiedPhone(formData.phone);
+        setPhoneVerified(true); setPhoneOtpSent(false); setPhoneOtpCode('');
+        showToast(res.data?.message || 'Phone verified', 'success');
+      }
+    } catch (err) {
+      setPhoneOtpError('Verification failed: ' + (err.response?.data?.message || err.message));
     } finally {
       setLoading(false);
     }
@@ -565,18 +618,59 @@ const Registration = ({ setUser }) => {
                   </div>
                 </div>}
 
-                {/* Phone */}
+                {/* Phone + OTP */}
                 <div style={{ marginBottom: '1rem' }}>
                   <label style={labelStyle}>Phone Number</label>
-                  <input type="tel" name="phone" value={formData.phone}
+                  <input type="tel" name="phone" value={formData.phone} disabled={phoneVerified}
                     onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); handleInputChange({ target: { name: 'phone', value: v } }); validatePhone(v); if (validationErrors.phone) setValidationErrors(p => ({ ...p, phone: '' })); }}
                     onBlur={e => validatePhone(e.target.value)}
                     placeholder="10-digit mobile number" required maxLength={10}
-                    style={inputStyle(!!(phoneError || validationErrors.phone))}
-                    onFocus={e => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(255,107,53,0.1)'; e.target.style.background = 'white'; }}
-                    onBlurCapture={e => { e.target.style.boxShadow = 'none'; e.target.style.background = 'var(--background)'; }}
+                    style={{ ...inputStyle(!!(phoneError || validationErrors.phone)), background: phoneVerified ? '#f8fafc' : 'var(--background)', cursor: phoneVerified ? 'not-allowed' : 'text' }}
+                    onFocus={e => { if (!phoneVerified) { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(255,107,53,0.1)'; e.target.style.background = 'white'; } }}
+                    onBlurCapture={e => { e.target.style.boxShadow = 'none'; e.target.style.background = phoneVerified ? '#f8fafc' : 'var(--background)'; }}
                   />
                   {(phoneError || validationErrors.phone) && <p style={errorStyle}>⚠️ {phoneError || validationErrors.phone}</p>}
+
+                  <div style={{ marginTop: '0.625rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                    {!phoneVerified && !phoneOtpSent && (
+                      <button type="button" onClick={sendPhoneOtp} disabled={phoneOtpSending || !!phoneError || !formData.phone}
+                        style={{ padding: '0.5rem 1rem', borderRadius: 'var(--radius-sm)', background: 'var(--gradient-primary)', color: 'white', border: 'none', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', opacity: (phoneOtpSending || !!phoneError || !formData.phone) ? 0.5 : 1, transition: 'opacity 0.2s' }}>
+                        {phoneOtpSending ? 'Sending…' : 'Send OTP'}
+                      </button>
+                    )}
+                    {phoneOtpSent && (
+                      <div>
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
+                          <div>
+                            <input type="text" value={phoneOtpCode}
+                              onChange={e => { setPhoneOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setPhoneOtpError(''); }}
+                              placeholder="6-digit OTP" maxLength={6}
+                              style={{ padding: '0.5rem 0.75rem', border: `1.5px solid ${phoneOtpError ? 'var(--error)' : 'var(--border)'}`, borderRadius: 'var(--radius-sm)', fontSize: '1rem', letterSpacing: '0.2em', width: '140px', background: 'var(--background)', color: 'var(--text)', outline: 'none' }}
+                            />
+                            {phoneOtpError && <p style={errorStyle}>⚠️ {phoneOtpError}</p>}
+                          </div>
+                          <button type="button" onClick={verifyPhoneOtp} disabled={loading || phoneOtpCode.length !== 6}
+                            style={{ padding: '0.5rem 0.875rem', borderRadius: 'var(--radius-sm)', background: 'var(--gradient-primary)', color: 'white', border: 'none', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', opacity: (loading || phoneOtpCode.length !== 6) ? 0.5 : 1 }}>
+                            Verify
+                          </button>
+                        </div>
+                        <button type="button" onClick={() => { setPhoneOtpCode(''); setPhoneOtpError(''); sendPhoneOtp(); }} disabled={phoneOtpSending}
+                          style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, marginTop: '0.5rem', padding: 0, boxShadow: 'none', opacity: phoneOtpSending ? 0.5 : 1 }}>
+                          {phoneOtpSending ? 'Resending…' : 'Resend OTP'}
+                        </button>
+                      </div>
+                    )}
+                    {phoneVerified && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ color: '#16a34a', fontWeight: 600, fontSize: '0.875rem' }}>✓ Phone verified</span>
+                        <button type="button"
+                          onClick={() => { setPhoneVerified(false); setVerifiedPhone(''); setPhoneOtpSent(false); setPhoneOtpCode(''); setPhoneVerificationToken(''); }}
+                          style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-light)', cursor: 'pointer' }}>
+                          Change
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Age confirmation */}
