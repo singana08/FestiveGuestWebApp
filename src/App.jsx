@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import { User, ShieldCheck, Menu, X, HelpCircle, LogOut, Globe, MessageSquare, FileText, ChevronDown, UserPlus, Compass, CalendarCheck } from 'lucide-react';
+import { User, ShieldCheck, Menu, X, HelpCircle, LogOut, Globe, MessageSquare, FileText, ChevronDown, UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { LanguageProvider, useLanguage } from './i18n/LanguageContext';
@@ -31,8 +31,6 @@ const SafetyGuidelines = lazy(() => import('./pages/SafetyGuidelines'));
 const ApiTest         = lazy(() => import('./components/ApiTest'));
 const ChatDebug       = lazy(() => import('./components/ChatDebug'));
 const NotFound        = lazy(() => import('./pages/NotFound'));
-const Guidance        = lazy(() => import('./pages/Guidance'));
-const Bookings        = lazy(() => import('./pages/Bookings'));
 
 // ── Static ambient background (CSS-only — no scroll-time repaint cost) ──
 const AppBackground = () => (
@@ -296,9 +294,6 @@ const AppContent = () => {
               <Link to="/posts" className={`nav-item ${isActive('/posts') ? 'active' : ''}`}>
                 <FileText size={17} /> {t('posts')}
               </Link>
-              <Link to="/guidance" className={`nav-item ${isActive('/guidance') ? 'active' : ''}`}>
-                <Compass size={17} /> {t('guidance')}
-              </Link>
               <Link
                 to="/chats"
                 className={`nav-item chat-nav-item ${isActive('/chats') ? 'active' : ''}`}
@@ -348,9 +343,6 @@ const AppContent = () => {
                         <Link to="/profile" className="nav-dropdown-item" onClick={() => setAvatarOpen(false)}>
                           <User size={15} /> My Profile
                         </Link>
-                        <Link to="/bookings" className="nav-dropdown-item" onClick={() => setAvatarOpen(false)}>
-                          <CalendarCheck size={15} /> {t('myBookings')}
-                        </Link>
                         <button className="nav-dropdown-item" onClick={() => { setAvatarOpen(false); setShowInviteModal(true); }}>
                           <UserPlus size={15} /> Invite Friends
                         </button>
@@ -375,9 +367,6 @@ const AppContent = () => {
               <div className="nav-mobile-section">
                 <Link to="/profile" className={`nav-item ${isActive('/profile') ? 'active' : ''}`}>
                   <User size={17} /> My Profile
-                </Link>
-                <Link to="/bookings" className={`nav-item ${isActive('/bookings') ? 'active' : ''}`}>
-                  <CalendarCheck size={17} /> {t('myBookings')}
                 </Link>
                 <button onClick={() => setShowInviteModal(true)} className="nav-item">
                   <UserPlus size={17} /> Invite Friends
@@ -492,8 +481,6 @@ const AppContent = () => {
               <Route path="/host-dashboard" element={(user?.role === 'Host' || user?.userType === 'Host') ? <PageTransition><HostDashboard user={user} /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/chats" element={user ? <PageTransition><Chats /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/posts" element={user ? <PageTransition><Posts /></PageTransition> : <Navigate to="/login" />} />
-              <Route path="/guidance" element={user ? <PageTransition><Guidance /></PageTransition> : <Navigate to="/login" />} />
-              <Route path="/bookings" element={user ? <PageTransition><Bookings /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/profile" element={user ? <PageTransition><Profile /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/referrals" element={user ? <PageTransition><Referrals /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/subscription" element={user ? <PageTransition><Subscription /></PageTransition> : <Navigate to="/login" />} />
