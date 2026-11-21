@@ -14,9 +14,6 @@ import './styles/App.css';
 // ── Lazy-loaded pages (code splitting for faster initial load) ──
 const Login           = lazy(() => import('./pages/Login'));
 const Registration    = lazy(() => import('./pages/Registration'));
-const GuestDashboard  = lazy(() => import('./pages/GuestDashboard'));
-const HostDashboard   = lazy(() => import('./pages/HostDashboard'));
-const Chat            = lazy(() => import('./pages/Chat'));
 const Chats           = lazy(() => import('./pages/Chats'));
 const Admin           = lazy(() => import('./pages/Admin'));
 const Profile         = lazy(() => import('./pages/Profile'));
@@ -24,18 +21,14 @@ const PublicProfile   = lazy(() => import('./pages/PublicProfile'));
 const Help            = lazy(() => import('./pages/Help'));
 const Posts           = lazy(() => import('./pages/Posts'));
 const PrivacyPolicy   = lazy(() => import('./pages/PrivacyPolicy'));
-const Subscription    = lazy(() => import('./pages/Subscription'));
-const Referrals       = lazy(() => import('./pages/Referrals'));
 const ReferralRedirect = lazy(() => import('./pages/ReferralRedirect'));
 const TermsOfService  = lazy(() => import('./pages/TermsOfService'));
 const SafetyGuidelines = lazy(() => import('./pages/SafetyGuidelines'));
-const ApiTest         = lazy(() => import('./components/ApiTest'));
-const ChatDebug       = lazy(() => import('./components/ChatDebug'));
 const NotFound        = lazy(() => import('./pages/NotFound'));
 
 // Every page uses the dark glass theme except these legacy ones (matched as
 // the path or a sub-path). Keep in sync with public/boot-theme.js.
-const LIGHT_PAGES = ['/admin', '/browse', '/guest-dashboard', '/host-dashboard', '/subscription', '/chat', '/api-test', '/chat-debug'];
+const LIGHT_PAGES = ['/admin'];
 const isLightPage = (path) => LIGHT_PAGES.some((p) => path === p || path.startsWith(`${p}/`));
 
 // ── Static ambient background (CSS-only — no scroll-time repaint cost) ──
@@ -198,14 +191,6 @@ const AppContent = () => {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [avatarOpen]);
-
-  const getDashboardRoute = (u) => {
-    const role = u?.role || u?.userType;
-    if (role === 'Host') return '/posts';
-    if (role === 'Guest') return '/guest-dashboard';
-    if (role === 'Admin') return '/admin';
-    return '/login';
-  };
 
   const isAdmin = user?.role === 'Admin' || user?.userType === 'Admin';
   const isActive = (path) => location.pathname === path;
@@ -449,23 +434,19 @@ const AppContent = () => {
               <Route path="/r/:code" element={<PageTransition><ReferralRedirect /></PageTransition>} />
               <Route path="/login" element={!user ? <PageTransition><Login setUser={setUser} /></PageTransition> : <Navigate to={postLoginRedirect} />} />
               <Route path="/register" element={!user ? <PageTransition><Registration setUser={setUser} /></PageTransition> : <Navigate to="/home" />} />
-              <Route path="/browse" element={(user?.role === 'Guest' || user?.userType === 'Guest') ? <PageTransition><GuestDashboard user={user} /></PageTransition> : <Navigate to="/login" />} />
-              <Route path="/guest-dashboard" element={(user?.role === 'Guest' || user?.userType === 'Guest') ? <PageTransition><GuestDashboard user={user} /></PageTransition> : <Navigate to="/login" />} />
-              <Route path="/host-dashboard" element={(user?.role === 'Host' || user?.userType === 'Host') ? <PageTransition><HostDashboard user={user} /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/chats" element={user ? <PageTransition><Chats /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/posts" element={user ? <PageTransition><Posts /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/profile" element={user ? <PageTransition><Profile /></PageTransition> : <Navigate to="/login" />} />
-              <Route path="/referrals" element={user ? <PageTransition><Referrals /></PageTransition> : <Navigate to="/login" />} />
-              <Route path="/subscription" element={user ? <PageTransition><Subscription /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/profile/:userName" element={<PageTransition><PublicProfile /></PageTransition>} />
               <Route path="/admin" element={isAdmin ? <PageTransition><Admin /></PageTransition> : <Navigate to="/login" />} />
-              <Route path="/chat/:recipientId" element={user ? <PageTransition><Chat user={user} /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/help" element={<PageTransition><Help /></PageTransition>} />
               <Route path="/privacy-policy" element={<PageTransition><PrivacyPolicy /></PageTransition>} />
               <Route path="/terms-of-service" element={<PageTransition><TermsOfService /></PageTransition>} />
               <Route path="/safety-guidelines" element={<PageTransition><SafetyGuidelines /></PageTransition>} />
-              <Route path="/api-test" element={<PageTransition><ApiTest /></PageTransition>} />
-              <Route path="/chat-debug" element={<PageTransition><ChatDebug /></PageTransition>} />
+              {/* Old addresses people may have bookmarked */}
+              {['/browse', '/guest-dashboard', '/host-dashboard'].map((p) => <Route key={p} path={p} element={<Navigate to="/posts" replace />} />)}
+              {['/subscription', '/referrals'].map((p) => <Route key={p} path={p} element={<Navigate to="/profile" replace />} />)}
+              <Route path="/chat/:recipientId" element={<Navigate to="/chats" replace />} />
               <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
             </Routes>
         </Suspense>

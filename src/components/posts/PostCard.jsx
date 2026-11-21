@@ -1,12 +1,13 @@
 import { motion } from 'framer-motion';
 import { MapPin, Users, Moon, CalendarDays, MessageCircle, Pencil, Trash2, Compass } from 'lucide-react';
 import { AMENITY_ICON, GUIDE_HELP, fmt, daysUntil, isNewPost, citiesInLocation } from './postUtils';
+import { VerifiedTick } from '../VerifiedBadge';
 
 const EASE = [0.22, 1, 0.36, 1];
 
-const Tags = ({ items }) => {
+const Tags = ({ items, all }) => {
   if (!items?.length) return null;
-  const shown = items.slice(0, 5);
+  const shown = all ? items : items.slice(0, 5);
   return (
     <div className="pb-tags">
       {shown.map((tag) => (
@@ -29,8 +30,23 @@ const postedLabel = (c, createdAt) => {
   return ago <= 0 ? c.postedToday : fmt(c.postedDaysAgo, { n: ago });
 };
 
+// Title and long descriptions open the full post (onOpen); in the full view they're plain text.
+const Title = ({ post, onOpen }) => (onOpen
+  ? <h3 className="pb-card-title"><button type="button" className="pb-title-btn" onClick={() => onOpen(post)} title={post.title}>{post.title}</button></h3>
+  : <h3 className="pb-card-title">{post.title}</h3>);
+const Desc = ({ post, c, onOpen }) => {
+  if (!post.content) return null;
+  const long = onOpen && post.content.length > 150;
+  return (
+    <>
+      <p className="pb-desc">{post.content}</p>
+      {long && <button type="button" className="pb-more" onClick={() => onOpen(post)}>{c.readMore}</button>}
+    </>
+  );
+};
+
 /** A traveller's trip request (what hosts browse). */
-const TripCard = ({ post, c, locale, isOwn, onContact, onProfile, onEdit, onDelete }) => {
+const TripCard = ({ post, c, locale, isOwn, full, onOpen, onContact, onProfile, onEdit, onDelete }) => {
   const d = daysUntil(post.planningDate);
   const date = post.planningDate ? new Date(post.planningDate) : null;
   const tone = d === null ? 'flex' : d < 0 ? 'past' : d <= 3 ? 'soon' : 'later';
@@ -55,7 +71,7 @@ const TripCard = ({ post, c, locale, isOwn, onContact, onProfile, onEdit, onDele
             {d !== null && d >= 0 && d <= 3 && <span className="pb-badge pb-badge--soon">{c.soonBadge}</span>}
             {isOwn && <span className="pb-badge">{c.yours}</span>}
           </div>
-          <h3 className="pb-card-title" title={post.title}>{post.title}</h3>
+          <Title post={post} onOpen={onOpen} />
           <p className={`pb-when pb-when--${tone}`}>{when}{date && ` · ${date.toLocaleDateString(locale, { weekday: 'short' })}`}</p>
         </div>
       </div>
@@ -67,7 +83,7 @@ const TripCard = ({ post, c, locale, isOwn, onContact, onProfile, onEdit, onDele
         {needsGuide && post.guideHours && <li><Compass size={14} /> {post.guideHours === 1 ? c.guideHour : fmt(c.guideHours, { n: post.guideHours })}</li>}
       </ul>
 
-      {post.content && <p className="pb-desc">{post.content}</p>}
+      <Desc post={post} c={c} onOpen={onOpen} />
       {needsGuide && (
         <div className="pb-guide">
           {post.guideHelpWith?.length > 0 && (
@@ -83,12 +99,12 @@ const TripCard = ({ post, c, locale, isOwn, onContact, onProfile, onEdit, onDele
           </p>
         </div>
       )}
-      {needsStay && <Tags items={post.facilities} />}
+      {needsStay && <Tags items={post.facilities} all={full} />}
 
       <footer className="pb-card-foot">
         <button type="button" className="pb-author" onClick={() => onProfile(post)}>
           <span className="pb-avatar pb-avatar--guest" aria-hidden="true">{(post.userName || '?').charAt(0).toUpperCase()}</span>
-          <span className="pb-author-text"><strong>{post.userName}</strong><small>{postedLabel(c, post.createdAt)}</small></span>
+          <span className="pb-author-text"><strong>{post.userName}{post.userVerified && <VerifiedTick />}</strong><small>{postedLabel(c, post.createdAt)}</small></span>
         </button>
         {isOwn
           ? <OwnActions c={c} post={post} onEdit={onEdit} onDelete={onDelete} />
@@ -99,7 +115,7 @@ const TripCard = ({ post, c, locale, isOwn, onContact, onProfile, onEdit, onDele
 };
 
 /** A host's listing (what guests browse). */
-const HostCard = ({ post, c, locale, isOwn, onContact, onProfile, onEdit, onDelete }) => {
+const HostCard = ({ post, c, locale, isOwn, full, onOpen, onContact, onProfile, onEdit, onDelete }) => {
   const cities = citiesInLocation(post.location);
   const since = post.commenceDate ? new Date(post.commenceDate) : null;
   return (
@@ -113,9 +129,9 @@ const HostCard = ({ post, c, locale, isOwn, onContact, onProfile, onEdit, onDele
             {isNewPost(post.createdAt) && <span className="pb-badge pb-badge--new">{c.newBadge}</span>}
             {isOwn && <span className="pb-badge">{c.yours}</span>}
           </div>
-          <h3 className="pb-card-title" title={post.title}>{post.title}</h3>
+          <Title post={post} onOpen={onOpen} />
           <p className="pb-host-line">
-            <button type="button" className="pb-author-link" onClick={() => onProfile(post)}>{post.userName}</button>
+            <button type="button" className="pb-author-link" onClick={() => onProfile(post)}>{post.userName}</button>{post.userVerified && <VerifiedTick />}
             <span aria-hidden="true"> · </span>{postedLabel(c, post.createdAt)}
           </p>
         </div>
@@ -124,8 +140,8 @@ const HostCard = ({ post, c, locale, isOwn, onContact, onProfile, onEdit, onDele
       {cities.length > 0 && (
         <div className="pb-areas">
           <MapPin size={14} aria-hidden="true" />
-          {cities.slice(0, 4).map((city) => <span key={city} className="pb-area">{city}</span>)}
-          {cities.length > 4 && <span className="pb-area pb-area--more">+{cities.length - 4}</span>}
+          {(full ? cities : cities.slice(0, 4)).map((city) => <span key={city} className="pb-area">{city}</span>)}
+          {!full && cities.length > 4 && <span className="pb-area pb-area--more">+{cities.length - 4}</span>}
         </div>
       )}
 
@@ -134,8 +150,8 @@ const HostCard = ({ post, c, locale, isOwn, onContact, onProfile, onEdit, onDele
         {since && <li><CalendarDays size={14} /> {fmt(c.availableFrom, { date: since.toLocaleDateString(locale, { day: 'numeric', month: 'short' }) })}</li>}
       </ul>
 
-      {post.content && <p className="pb-desc">{post.content}</p>}
-      <Tags items={post.amenities} />
+      <Desc post={post} c={c} onOpen={onOpen} />
+      <Tags items={post.amenities} all={full} />
 
       <footer className="pb-card-foot">
         {post.pricePerNight > 0
@@ -151,7 +167,7 @@ const HostCard = ({ post, c, locale, isOwn, onContact, onProfile, onEdit, onDele
 
 const PostCard = ({ index = 0, ...props }) => (
   <motion.article
-    className={`pb-card pb-card--${props.post.userType === 'Guest' ? 'trip' : 'host'}${props.post.needType === 'guide' || props.post.needType === 'both' ? ' is-guide' : ''}`}
+    className={`pb-card pb-card--${props.post.userType === 'Guest' ? 'trip' : 'host'}${props.post.needType === 'guide' || props.post.needType === 'both' ? ' is-guide' : ''}${props.full ? ' pb-card--full' : ''}`}
     initial={{ opacity: 0, y: 18 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.45, ease: EASE, delay: Math.min(index, 8) * 0.05 }}

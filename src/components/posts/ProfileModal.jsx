@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { MapPin, Star, AlertTriangle } from 'lucide-react';
 import api from '../../utils/api';
 import GlassDialog from './GlassDialog';
+import SafetyActions from '../SafetyActions';
+import { VerifiedChip } from '../VerifiedBadge';
 
 const Stars = ({ value, size = 15 }) => (
   <span className="pb-stars" aria-label={`${value} out of 5`}>
@@ -10,7 +12,7 @@ const Stars = ({ value, size = 15 }) => (
 );
 
 /** Public profile + reviews for a post's author (same API calls as before). */
-const ProfileModal = ({ open, userId, userName, onClose }) => {
+const ProfileModal = ({ open, userId, userName, onClose, onBlockChange }) => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showReviewForm, setShowReviewForm] = useState(false);
@@ -81,6 +83,7 @@ const ProfileModal = ({ open, userId, userName, onClose }) => {
               <span className={`pb-avatar pb-avatar--xl pb-avatar--${profile.userType === 'Host' ? 'host' : 'guest'}`} aria-hidden="true">{profile.name.charAt(0).toUpperCase()}</span>
             )}
             <div>
+              {profile.isVerified && <p className="pb-profile-verified"><VerifiedChip /></p>}
               {profile.location && <p className="pb-profile-loc"><MapPin size={14} /> {profile.location}</p>}
               <p className="pb-profile-rating">
                 <Stars value={profile.averageRating || 0} />
@@ -153,6 +156,11 @@ const ProfileModal = ({ open, userId, userName, onClose }) => {
               <p className="pb-muted">No reviews yet. Be the first to share your experience!</p>
             )}
           </section>
+          {profile.userId !== me?.userId && (
+            <section className="pb-profile-section pb-profile-safety">
+              <SafetyActions userId={profile.userId} userName={profile.name} context="profile" onBlockChange={onBlockChange} />
+            </section>
+          )}
         </div>
       )}
     </GlassDialog>

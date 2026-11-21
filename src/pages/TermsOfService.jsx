@@ -129,6 +129,7 @@ const TermsOfService = () => {
           <p>Connections and arrangements are facilitated through our platform messaging system. We provide the tools for communication but are not a party to agreements between users.</p>
 
           <h3>6.3 Premium Subscription Payments</h3>
+          <p>FestiveGuest is currently free to use during its launch period, and no Premium subscriptions are being sold. If paid subscriptions are offered again, the terms in this section will apply.</p>
           <p>The only payments processed through FestiveGuest are optional Premium subscription payments. We do not process payments, bookings, or any financial transaction between Hosts and Guests — any such arrangement is made directly between users and is outside our platform.</p>
           <ul>
             <li><strong>Payment Method:</strong> Subscription payments are made via UPI/bank transfer directly to FestiveGuest, verified manually from a payment screenshot sent via WhatsApp (see our <Link to="/privacy-policy" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Privacy Policy</Link>, Section 14)</li>

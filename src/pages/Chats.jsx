@@ -5,6 +5,7 @@ import useSEO from '../hooks/useSEO';
 import api from '../utils/api';
 import ImageWithSas from '../components/ImageWithSas';
 import ProfileModal from '../components/posts/ProfileModal';
+import SafetyActions from '../components/SafetyActions';
 import { useNotifications } from '../contexts/NotificationContext';
 import '../styles/Register.css';
 import '../styles/PostsBoard.css';
@@ -175,7 +176,8 @@ const Chats = () => {
     } catch (error) {
       console.error('Failed to send message:', error);
       // A successful refresh replaces the temp entry; on failure mark it so it doesn't sit on "Sending…".
-      setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, status: 'Failed to send' } : m)));
+      const status = error.response?.status === 403 ? 'Not sent — you can’t message this member' : 'Failed to send';
+      setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, status } : m)));
     } finally {
       setSending(false);
     }
@@ -262,6 +264,8 @@ const Chats = () => {
               <button type="button" className="ch-head-btn" onClick={() => setProfile({ userId: selectedChat.otherUserId, userName: selectedChat.otherUserName })}>
                 <UserRound size={15} /> <span>View profile</span>
               </button>
+              <SafetyActions className="ch-safety" userId={selectedChat.otherUserId} userName={selectedChat.otherUserName} context="chat"
+                onBlockChange={(b) => { if (b) handleBackToList(); }} />
             </header>
 
             <div className="ch-msgs">
@@ -272,7 +276,7 @@ const Chats = () => {
                 const first = newDay || prev.sender !== msg.sender;
                 const last = !next || next.sender !== msg.sender || !sameDay(next.timestamp, msg.timestamp);
                 const mine = msg.sender === 'Me';
-                const failed = msg.status === 'Failed to send';
+                const failed = msg.status === 'Failed to send' || msg.status?.startsWith('Not sent');
                 return (
                   <Fragment key={msg.id || i}>
                     {newDay && <div className="ch-day"><span>{dayLabel(msg.timestamp)}</span></div>}

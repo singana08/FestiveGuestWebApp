@@ -74,8 +74,10 @@ api.interceptors.response.use(
     // session — redirecting to /login there was breaking every public page
     // for anyone not already logged in. Let those calls fail and let the
     // calling component degrade gracefully instead.
+    // Only 401 means the session is gone. A 403 is "signed in, but not allowed"
+    // (e.g. messaging someone who blocked you) and must not log the user out.
     const hadToken = !!error.config?.headers?.Authorization;
-    if (hadToken && (error.response?.status === 401 || error.response?.status === 403)) {
+    if (hadToken && error.response?.status === 401) {
       // Token expired or invalid - clear all auth data
       localStorage.removeItem('user');
       localStorage.removeItem('userId');

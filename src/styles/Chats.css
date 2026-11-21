@@ -179,3 +179,8 @@
   .ch-msgs { padding: 0.5rem 0.75rem 0.75rem; }
 }
 @media (prefers-reduced-motion: reduce) { .ch-fb { animation: none; } }
+.ch-safety { flex-shrink: 0; flex-wrap: nowrap; }
+@media (max-width: 900px) {
+  /* icons only in the narrow header */
+  .ch-safety .sa-btn { font-size: 0; gap: 0; padding: 0.45rem; }
+}

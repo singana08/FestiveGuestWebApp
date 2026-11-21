@@ -31,7 +31,7 @@ const mapGuestPost = (post, fallbackName) => ({
   planningDate: post.planningDate, visitors: post.visitors || 1, days: post.days || 1,
   facilities: post.facilities ? post.facilities.split(',') : [],
   userName: post.userName || fallbackName || 'Unknown', userId: post.userId, userType: 'Guest',
-  createdAt: new Date(post.createdAt), status: post.status,
+  createdAt: new Date(post.createdAt), status: post.status, userVerified: !!post.userVerified,
   needType: post.needType || 'stay', guideHelpWith: splitCsv(post.guideHelpWith), guideHours: post.guideHours || null,
   guideLanguages: splitCsv(post.guideLanguages), guideBudgetPerHour: post.guideBudgetPerHour ?? null,
 });
@@ -40,7 +40,7 @@ const mapHostPost = (post, fallbackName) => ({
   maxGuests: post.maxGuests || 1, pricePerNight: post.pricePerNight,
   amenities: post.amenities ? post.amenities.split(',') : [],
   userName: post.userName || fallbackName || 'Unknown', userId: post.userId, userType: 'Host',
-  createdAt: new Date(post.createdAt), status: post.status, commenceDate: post.commenceDate,
+  createdAt: new Date(post.createdAt), status: post.status, commenceDate: post.commenceDate, userVerified: !!post.userVerified,
 });
 
 // Upcoming trips by date, then flexible ones, then past trips (most recent first).
@@ -91,6 +91,7 @@ const Posts = () => {
   const [deleting, setDeleting] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
   const [profile, setProfile] = useState(null);
+  const [detail, setDetail] = useState(null); // post opened in full
   const [activeChat, setActiveChat] = useState(null);
   const [toast, setToast] = useState(null);
   const fetchId = useRef(0);
@@ -153,7 +154,7 @@ const Posts = () => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  const anyDialogOpen = form.open || !!deletingPost || showHowItWorks || !!profile;
+  const anyDialogOpen = form.open || !!deletingPost || showHowItWorks || !!profile || !!detail;
   useEffect(() => {
     document.body.style.overflow = anyDialogOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -436,7 +437,7 @@ const Posts = () => {
                   <div className="pb-grid pb-grid--below-map">
                     {results.map((post, i) => (
                       <PostCard key={post.id} index={i} post={post} c={c} locale={locale} isOwn={user && post.userId === user.userId}
-                        onContact={(p) => openChat(p.userId, p.userName)} onProfile={openProfile} onEdit={openEdit} onDelete={setDeletingPost} />
+                        onOpen={setDetail} onContact={(p) => openChat(p.userId, p.userName)} onProfile={openProfile} onEdit={openEdit} onDelete={setDeletingPost} />
                     ))}
                   </div>
                 )}
@@ -455,7 +456,7 @@ const Posts = () => {
               <div className="pb-grid">
                 {results.map((post, i) => (
                   <PostCard key={post.id} index={i} post={post} c={c} locale={locale} isOwn={user && post.userId === user.userId}
-                    onContact={(p) => openChat(p.userId, p.userName)} onProfile={openProfile} onEdit={openEdit} onDelete={setDeletingPost} />
+                    onOpen={setDetail} onContact={(p) => openChat(p.userId, p.userName)} onProfile={openProfile} onEdit={openEdit} onDelete={setDeletingPost} />
                 ))}
               </div>
             )}
@@ -548,7 +549,17 @@ const Posts = () => {
           </ol>
         </GlassDialog>
 
-        <ProfileModal key={profile?.userId || 'none'} open={!!profile} userId={profile?.userId} userName={profile?.userName} onClose={closeProfile} />
+        <GlassDialog open={!!detail} onClose={() => setDetail(null)} size="md" title={detail?.userType === 'Host' ? c.detailHost : c.detailTrip}>
+          {detail && (
+            <PostCard post={detail} c={c} locale={locale} full isOwn={user && detail.userId === user.userId}
+              onContact={(p) => { setDetail(null); openChat(p.userId, p.userName); }}
+              onProfile={(p) => { setDetail(null); openProfile(p); }}
+              onEdit={(p) => { setDetail(null); openEdit(p); }}
+              onDelete={(p) => { setDetail(null); setDeletingPost(p); }} />
+          )}
+        </GlassDialog>
+
+        <ProfileModal key={profile?.userId || 'none'} open={!!profile} userId={profile?.userId} userName={profile?.userName} onClose={closeProfile} onBlockChange={fetchPosts} />
       </div>
     </MotionConfig>
   );

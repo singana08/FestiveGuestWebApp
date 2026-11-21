@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import {
   Camera, Pencil, KeyRound, Lock, Eye, EyeOff, MapPin, Mail, Phone, Bell, Check, X, Copy, Share2,
-  Gift, ShieldCheck, CalendarDays, Sparkles, CheckCircle2, AlertTriangle, Upload,
+  Gift, ShieldCheck, CalendarDays, Sparkles, CheckCircle2, AlertTriangle, Upload, Ban,
 } from 'lucide-react';
 import api from '../utils/api';
 import ImageWithSas from '../components/ImageWithSas';
@@ -44,6 +44,7 @@ function Profile() {
   const [updateError, setUpdateError] = useState('');
   const [locationData, setLocationData] = useState(null);
   const [toast, setToast] = useState(null);
+  const [blocks, setBlocks] = useState([]);
   const fileInputRef = useRef(null);
 
   const passwordRequirements = [
@@ -63,6 +64,7 @@ function Profile() {
 
   useEffect(() => {
     if (localStorage.getItem('userId')) fetchUser();
+    api.get('safety/blocks').then((res) => setBlocks(res.data || [])).catch(() => {});
     locationService.getLocations().then(setLocationData).catch((err) => console.error('Failed to load locations:', err));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -146,6 +148,16 @@ function Profile() {
       showToast('Photo upload failed: ' + (err.response?.data?.error || err.message), 'error');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const unblock = async (b) => {
+    try {
+      await api.delete(`safety/block/${encodeURIComponent(b.userId)}`);
+      setBlocks((list) => list.filter((x) => x.userId !== b.userId));
+      showToast(`${b.name || 'Member'} unblocked`);
+    } catch {
+      showToast('Could not unblock. Please try again.', 'error');
     }
   };
 
@@ -393,6 +405,20 @@ function Profile() {
                   <p>Every feature is free right now — no subscriptions, no fees.</p>
                 </div>
               </motion.section>
+
+              {blocks.length > 0 && (
+                <motion.section className="pf-card" {...rise(0.14)}>
+                  <header className="pf-card-head"><h2><Ban size={16} /> Blocked members</h2><span className="pf-count">{blocks.length}</span></header>
+                  <ul className="pf-blocks">
+                    {blocks.map((b) => (
+                      <li key={b.userId}>
+                        <span>{b.name || 'Member'}</span>
+                        <button type="button" className="sa-btn" onClick={() => unblock(b)}>Unblock</button>
+                      </li>
+                    ))}
+                  </ul>
+                </motion.section>
+              )}
 
               <motion.section className="pf-card pf-refer" {...rise(0.16)}>
                 <header className="pf-card-head">

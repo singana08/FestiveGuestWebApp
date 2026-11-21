@@ -5,6 +5,9 @@ import { ArrowLeft, Star, CalendarDays, MapPin, MessageCircle, UserX, ShieldChec
 import api from '../utils/api';
 import ImageWithSas from '../components/ImageWithSas';
 import ChatWidget from '../components/ChatWidget';
+import SafetyActions from '../components/SafetyActions';
+import useIsBlocked from '../hooks/useIsBlocked';
+import { VerifiedChip } from '../components/VerifiedBadge';
 import useSEO from '../hooks/useSEO';
 import '../styles/Register.css';
 import '../styles/PostsBoard.css';
@@ -26,6 +29,7 @@ function PublicProfile() {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
+  const [blocked, setBlocked] = useIsBlocked(profile?.userId);
   const me = (() => { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } })();
 
   useSEO({
@@ -111,6 +115,7 @@ function PublicProfile() {
               {profile.createdAt && <span><CalendarDays size={13} /> Joined {monthYear(profile.createdAt)}</span>}
             </p>
             <p className="pf-chips">
+              {profile.isVerified && <VerifiedChip />}
               {reviews.length > 0
                 ? <span className="pf-chip is-gold"><Star size={12} /> {average.toFixed(1)} · {reviews.length} review{reviews.length === 1 ? '' : 's'}</span>
                 : <span className="pf-chip">No reviews yet</span>}
@@ -118,7 +123,8 @@ function PublicProfile() {
           </div>
           {me && !isMe && (
             <div className="pf-hero-actions">
-              <button type="button" className="rg-btn rg-btn-primary pf-btn" onClick={() => setChatOpen(true)}><MessageCircle size={15} /> Message {firstName}</button>
+              {!blocked && <button type="button" className="rg-btn rg-btn-primary pf-btn" onClick={() => setChatOpen(true)}><MessageCircle size={15} /> Message {firstName}</button>}
+              <SafetyActions userId={profile.userId} userName={profile.name} context="profile" onBlockChange={(b) => { setBlocked(b); if (b) setChatOpen(false); }} />
             </div>
           )}
         </div>
