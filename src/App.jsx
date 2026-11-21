@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import { User, ShieldCheck, Menu, X, HelpCircle, LogOut, Globe, MessageSquare, FileText, ChevronDown, UserPlus } from 'lucide-react';
+import { User, ShieldCheck, Menu, X, HelpCircle, LogOut, Globe, MessageSquare, FileText, ChevronDown, UserPlus, Compass, CalendarCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { LanguageProvider, useLanguage } from './i18n/LanguageContext';
@@ -31,6 +31,8 @@ const SafetyGuidelines = lazy(() => import('./pages/SafetyGuidelines'));
 const ApiTest         = lazy(() => import('./components/ApiTest'));
 const ChatDebug       = lazy(() => import('./components/ChatDebug'));
 const NotFound        = lazy(() => import('./pages/NotFound'));
+const Guidance        = lazy(() => import('./pages/Guidance'));
+const Bookings        = lazy(() => import('./pages/Bookings'));
 
 // ── Static ambient background (CSS-only — no scroll-time repaint cost) ──
 const AppBackground = () => (
@@ -188,13 +190,21 @@ const AppContent = () => {
   // navigations (confirmed repro: visit /chats, then SPA-navigate to
   // Profile — programmatic scrollTo still works, CSS/overflow is healthy,
   // no listener calls preventDefault, but wheel-triggered scroll just stops
-  // doing anything). First seen scoped to the Posts page and worked around
-  // there; it isn't page-specific, so the fallback now lives here instead,
-  // covering every route for the app's whole lifetime. Root cause still
-  // not found after an exhaustive check (not CSS, not an explicit
-  // listener, not a stray overlay/iframe stealing focus) — revisit if a
-  // real cause surfaces, then this can be deleted.
+  // doing anything). Root cause still not found after an exhaustive check
+  // (not CSS, not an explicit listener, not a stray overlay/iframe stealing
+  // focus) — revisit if a real cause surfaces, then this can be deleted.
+  //
+  // Scoped to only arm right after leaving /chats, the one confirmed repro:
+  // applying it on every route unconditionally double-scrolled EVERY page
+  // (this scrollBy stacking on top of the native scroll, which had already
+  // happened by the time this listener ran — Chrome applies passive wheel
+  // listeners' default scroll on the compositor thread without waiting on
+  // JS, so there's no reliable way to detect "did it already scroll" here).
+  const prevPathRef = useRef(location.pathname);
   useEffect(() => {
+    const cameFromChats = prevPathRef.current.startsWith('/chats');
+    prevPathRef.current = location.pathname;
+    if (!cameFromChats) return;
     const handleWheelFallback = (e) => {
       if (document.documentElement.scrollHeight > document.documentElement.clientHeight) {
         window.scrollBy(0, e.deltaY);
@@ -202,7 +212,7 @@ const AppContent = () => {
     };
     window.addEventListener('wheel', handleWheelFallback, { passive: true });
     return () => window.removeEventListener('wheel', handleWheelFallback);
-  }, []);
+  }, [location.pathname]);
 
   // Close avatar dropdown on outside click
   useEffect(() => {
@@ -286,6 +296,9 @@ const AppContent = () => {
               <Link to="/posts" className={`nav-item ${isActive('/posts') ? 'active' : ''}`}>
                 <FileText size={17} /> {t('posts')}
               </Link>
+              <Link to="/guidance" className={`nav-item ${isActive('/guidance') ? 'active' : ''}`}>
+                <Compass size={17} /> {t('guidance')}
+              </Link>
               <Link
                 to="/chats"
                 className={`nav-item chat-nav-item ${isActive('/chats') ? 'active' : ''}`}
@@ -335,6 +348,9 @@ const AppContent = () => {
                         <Link to="/profile" className="nav-dropdown-item" onClick={() => setAvatarOpen(false)}>
                           <User size={15} /> My Profile
                         </Link>
+                        <Link to="/bookings" className="nav-dropdown-item" onClick={() => setAvatarOpen(false)}>
+                          <CalendarCheck size={15} /> {t('myBookings')}
+                        </Link>
                         <button className="nav-dropdown-item" onClick={() => { setAvatarOpen(false); setShowInviteModal(true); }}>
                           <UserPlus size={15} /> Invite Friends
                         </button>
@@ -359,6 +375,9 @@ const AppContent = () => {
               <div className="nav-mobile-section">
                 <Link to="/profile" className={`nav-item ${isActive('/profile') ? 'active' : ''}`}>
                   <User size={17} /> My Profile
+                </Link>
+                <Link to="/bookings" className={`nav-item ${isActive('/bookings') ? 'active' : ''}`}>
+                  <CalendarCheck size={17} /> {t('myBookings')}
                 </Link>
                 <button onClick={() => setShowInviteModal(true)} className="nav-item">
                   <UserPlus size={17} /> Invite Friends
@@ -473,6 +492,8 @@ const AppContent = () => {
               <Route path="/host-dashboard" element={(user?.role === 'Host' || user?.userType === 'Host') ? <PageTransition><HostDashboard user={user} /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/chats" element={user ? <PageTransition><Chats /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/posts" element={user ? <PageTransition><Posts /></PageTransition> : <Navigate to="/login" />} />
+              <Route path="/guidance" element={user ? <PageTransition><Guidance /></PageTransition> : <Navigate to="/login" />} />
+              <Route path="/bookings" element={user ? <PageTransition><Bookings /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/profile" element={user ? <PageTransition><Profile /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/referrals" element={user ? <PageTransition><Referrals /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/subscription" element={user ? <PageTransition><Subscription /></PageTransition> : <Navigate to="/login" />} />

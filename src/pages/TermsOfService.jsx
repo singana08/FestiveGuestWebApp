@@ -8,30 +8,30 @@ const TermsOfService = () => {
     <div className="legal-document">
       <div className="container">
         <h1>Terms of Service</h1>
-        <p className="last-updated">Last Updated: {new Date().toLocaleDateString('en-IN')}</p>
-        
+        <p className="last-updated">Last Updated: 21 November 2026</p>
+
         <section>
           <h2>1. Acceptance of Terms</h2>
-          <p>By accessing or using Local Host Connect ("Service"), you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of these terms, you may not access the Service.</p>
-          <p>These Terms constitute a legally binding agreement between you and Local Host Connect.</p>
+          <p>By accessing or using FestiveGuest ("Service"), you agree to be bound by these Terms of Service ("Terms"). If you disagree with any part of these terms, you may not access the Service.</p>
+          <p>These Terms constitute a legally binding agreement between you and FestiveGuest.</p>
         </section>
 
         <section>
           <h2>2. Description of Service</h2>
-          <p>Local Host Connect is a platform that connects travelers ("Guests") with local accommodation providers ("Hosts"). We facilitate introductions and provide tools for communication, but we do not provide accommodation services directly.</p>
-          
+          <p>FestiveGuest is a platform that connects travelers ("Guests") with local accommodation providers ("Hosts"). We facilitate introductions and provide tools for communication, but we do not provide accommodation services directly.</p>
+
           <h3>2.1 Platform Services Include:</h3>
           <ul>
             <li>User registration and profile creation</li>
             <li>Host and guest matching services</li>
             <li>Secure messaging system</li>
             <li>Review and rating system</li>
-            <li>Payment processing facilitation</li>
+            <li>Premium subscription management</li>
             <li>Customer support services</li>
           </ul>
 
           <h3>2.2 IMPORTANT: We Are an Introduction Service Only</h3>
-          <p><strong>Local Host Connect operates solely as an introduction and communication platform. We explicitly disclaim any responsibility for:</strong></p>
+          <p><strong>FestiveGuest operates solely as an introduction and communication platform. We explicitly disclaim any responsibility for:</strong></p>
           <ul>
             <li><strong>User Verification:</strong> We do not conduct background checks, criminal record searches, or verify the identity, character, or existence of users</li>
             <li><strong>User Behavior:</strong> We are not responsible for the conduct, actions, or behavior of any user on or off the platform</li>
@@ -39,7 +39,7 @@ const TermsOfService = () => {
             <li><strong>Meeting Arrangements:</strong> We are not involved in or responsible for any in-person meetings, accommodations, or arrangements made between users</li>
             <li><strong>Safety and Security:</strong> We do not guarantee the safety, security, or well-being of users during interactions or meetings</li>
             <li><strong>Disputes and Conflicts:</strong> We are not responsible for resolving disputes, conflicts, or disagreements between users</li>
-            <li><strong>Financial Transactions:</strong> While we may facilitate payment processing, we are not responsible for payment disputes or financial arrangements between users</li>
+            <li><strong>Financial Transactions:</strong> We are not a party to and are not responsible for any financial arrangements, payments, or disputes between Hosts and Guests</li>
             <li><strong>Property and Belongings:</strong> We are not responsible for damage to property, theft, or loss of belongings during user interactions</li>
             <li><strong>Accommodation Quality:</strong> We do not inspect, verify, or guarantee the quality, safety, or suitability of accommodations</li>
             <li><strong>User Representations:</strong> We do not verify the accuracy of information provided by users in their profiles or communications</li>
@@ -71,7 +71,7 @@ const TermsOfService = () => {
           </ul>
 
           <h3>4.2 Identity Verification</h3>
-          <p>We may require identity verification through government-issued documents. Failure to provide required verification may result in account suspension or termination.</p>
+          <p>We verify your identity through phone (OTP) and email verification at registration. We may request additional verification where needed. Failure to provide required verification may result in account suspension or termination.</p>
 
           <h3>4.3 Account Termination</h3>
           <p>You may terminate your account at any time. We reserve the right to suspend or terminate accounts that violate these Terms.</p>
@@ -125,42 +125,26 @@ const TermsOfService = () => {
           <h3>6.2 Booking Process</h3>
           <p>Connections and arrangements are facilitated through our platform messaging system. We provide the tools for communication but are not a party to agreements between users.</p>
 
-          <h3>6.3 Payment Processing and Terms</h3>
+          <h3>6.3 Premium Subscription Payments</h3>
+          <p>The only payments processed through FestiveGuest are optional Premium subscription payments. We do not process payments, bookings, or any financial transaction between Hosts and Guests — any such arrangement is made directly between users and is outside our platform.</p>
           <ul>
-            <li><strong>Payment Methods:</strong> We use third-party payment processors (Stripe, PayPal, or similar) for secure transactions</li>
-            <li><strong>Service Fees:</strong> We charge a service fee of [X]% on each transaction for platform usage</li>
-            <li><strong>Payment Terms:</strong> Payment terms are agreed upon between hosts and guests through our platform</li>
-            <li><strong>Currency:</strong> All payments are processed in Indian Rupees (INR) unless otherwise specified</li>
+            <li><strong>Payment Method:</strong> Subscription payments are made via UPI/bank transfer directly to FestiveGuest, verified manually from a payment screenshot sent via WhatsApp (see our <Link to="/privacy-policy" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Privacy Policy</Link>, Section 14)</li>
+            <li><strong>Currency:</strong> All payments are processed in Indian Rupees (INR)</li>
             <li><strong>Taxes:</strong> All payments are subject to applicable GST and other taxes as per Indian law</li>
-            <li><strong>Payment Security:</strong> We do not store credit card information; all payment data is handled by PCI-compliant processors</li>
-            <li><strong>Failed Payments:</strong> Failed payments may result in booking cancellation or account suspension</li>
+            <li><strong>Verification Delay:</strong> Verification is manual and may take up to 24-48 hours; features unlock only after verification is complete</li>
+            <li><strong>Unverified Payments:</strong> We are not liable for screenshots that cannot be verified due to incorrect, incomplete, or fraudulent submissions</li>
           </ul>
 
           <h3>6.4 Refund Policy</h3>
-          <p><strong>Refund eligibility depends on the following:</strong></p>
           <ul>
-            <li><strong>Host Cancellation Policy:</strong> Each host sets their own cancellation policy (Flexible, Moderate, or Strict)</li>
-            <li><strong>Cancellation Timeframes:</strong>
-              <ul>
-                <li>Flexible: Full refund if cancelled 24 hours before check-in</li>
-                <li>Moderate: Full refund if cancelled 5 days before check-in</li>
-                <li>Strict: 50% refund if cancelled 7 days before check-in</li>
-              </ul>
-            </li>
-            <li><strong>Service Fee:</strong> Service fees are non-refundable except in cases of host cancellation</li>
-            <li><strong>Extraordinary Circumstances:</strong> Full refunds may be provided for natural disasters, government travel bans, or platform errors</li>
-            <li><strong>Dispute Resolution:</strong> Refund disputes must be submitted within 14 days of check-in date</li>
-            <li><strong>Processing Time:</strong> Approved refunds are processed within 5-10 business days</li>
+            <li><strong>Eligibility:</strong> Refunds may be considered where a Premium subscription payment was made in error, charged incorrectly, or could not be activated due to a platform error</li>
+            <li><strong>How to Request:</strong> Refund requests must be raised via WhatsApp or email (see Section 20) within 14 days of payment</li>
+            <li><strong>Processing Time:</strong> Approved refunds are processed within 5-10 business days to the original payment source</li>
+            <li><strong>Non-Refundable:</strong> Subscription fees are non-refundable once the Premium period has been activated and used, except where required by law</li>
           </ul>
 
-          <h3>6.5 Chargebacks and Payment Disputes</h3>
-          <p><strong>Important Notice:</strong></p>
-          <ul>
-            <li>Initiating a chargeback without contacting us first may result in immediate account suspension</li>
-            <li>We provide dispute resolution services and will work with both parties to resolve payment issues</li>
-            <li>Fraudulent chargebacks may result in permanent account termination and legal action</li>
-            <li>All payment disputes must be reported within 30 days of the transaction</li>
-          </ul>
+          <h3>6.5 Payment Disputes</h3>
+          <p>If you believe a subscription payment was processed in error, contact us via WhatsApp or email (Section 20) before raising a dispute with your bank or payment provider, so we can investigate and resolve it directly.</p>
         </section>
 
         <section>
@@ -177,7 +161,7 @@ const TermsOfService = () => {
           </ul>
 
           <h3>7.2 Background Checks</h3>
-          <p>We may conduct background checks on users but do not guarantee the accuracy or completeness of such checks. Users should exercise their own judgment when interacting with others.</p>
+          <p>We do not conduct background checks on users (see Section 8.1). Users should exercise their own judgment when interacting with others.</p>
 
           <h3>7.3 Reporting and Response</h3>
           <p>Users must report any safety concerns, inappropriate behavior, or violations of these Terms immediately. We will investigate reports and take appropriate action.</p>
@@ -187,7 +171,7 @@ const TermsOfService = () => {
           <h2>8. Platform Limitations and User Responsibility</h2>
           
           <h3>8.1 No Verification or Background Checks</h3>
-          <p><strong>IMPORTANT NOTICE:</strong> Local Host Connect does not:</p>
+          <p><strong>IMPORTANT NOTICE:</strong> FestiveGuest does not:</p>
           <ul>
             <li>Conduct background checks on users</li>
             <li>Verify criminal records or legal history</li>
@@ -219,7 +203,7 @@ const TermsOfService = () => {
           </ul>
 
           <h3>8.4 No Involvement in User Arrangements</h3>
-          <p>Local Host Connect is not involved in and takes no responsibility for:</p>
+          <p>FestiveGuest is not involved in and takes no responsibility for:</p>
           <ul>
             <li>Arrangements made between hosts and guests</li>
             <li>The quality, safety, or condition of accommodations</li>
@@ -234,9 +218,9 @@ const TermsOfService = () => {
           <h2>9. Intellectual Property Rights</h2>
           
           <h3>9.1 Platform Ownership</h3>
-          <p><strong>Local Host Connect owns all rights to:</strong></p>
+          <p><strong>FestiveGuest owns all rights to:</strong></p>
           <ul>
-            <li>The "Local Host Connect" and "FestiveGuest" brand names, logos, and trademarks</li>
+            <li>The "FestiveGuest" brand name, logo, and trademarks</li>
             <li>Platform design, layout, and user interface</li>
             <li>Software, code, algorithms, and technology</li>
             <li>Platform features and functionality</li>
@@ -294,8 +278,8 @@ const TermsOfService = () => {
           <p>We collect and process personal data as outlined in our Privacy Policy, including:</p>
           <ul>
             <li>Account information (name, email, phone, date of birth)</li>
-            <li>Identity verification documents</li>
-            <li>Payment information (processed by third-party processors)</li>
+            <li>Phone/email verification (OTP)</li>
+            <li>Premium subscription payment screenshots (manually verified via WhatsApp)</li>
             <li>Usage data and analytics</li>
             <li>Communication records</li>
           </ul>
@@ -308,7 +292,7 @@ const TermsOfService = () => {
           <h2>11. Disclaimers and Limitations of Liability</h2>
           
           <h3>11.1 Introduction Service Disclaimer</h3>
-          <p><strong>CRITICAL NOTICE: Local Host Connect is ONLY an introduction and communication platform. We explicitly disclaim all responsibility for:</strong></p>
+          <p><strong>CRITICAL NOTICE: FestiveGuest is ONLY an introduction and communication platform. We explicitly disclaim all responsibility for:</strong></p>
           <ul>
             <li><strong>No Background Checks:</strong> We do not conduct background checks, criminal record searches, identity verification, or character assessments of any users</li>
             <li><strong>No User Monitoring:</strong> We do not monitor, supervise, or control user behavior, communications, or interactions</li>
@@ -324,7 +308,7 @@ const TermsOfService = () => {
           <p>THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND. WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.</p>
 
           <h3>11.3 Third-Party Services</h3>
-          <p>We are not responsible for the actions, content, or services of third parties, including hosts, guests, payment processors, or other service providers.</p>
+          <p>We are not responsible for the actions, content, or services of third parties, including hosts, guests, or other service providers.</p>
 
           <h3>11.4 Limitation of Liability</h3>
           <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF PROFITS, DATA, OR USE, ARISING FROM:</p>
@@ -345,7 +329,7 @@ const TermsOfService = () => {
 
         <section>
           <h2>12. Indemnification</h2>
-          <p>You agree to indemnify, defend, and hold harmless Local Host Connect and its officers, directors, employees, and agents from any claims, damages, losses, or expenses arising from:</p>
+          <p>You agree to indemnify, defend, and hold harmless FestiveGuest and its officers, directors, employees, and agents from any claims, damages, losses, or expenses arising from:</p>
           <ul>
             <li>Your use of the Service</li>
             <li>Your violation of these Terms</li>
@@ -396,7 +380,7 @@ const TermsOfService = () => {
           <p>Before initiating formal proceedings, parties agree to attempt informal resolution through direct communication or mediation.</p>
 
           <h3>16.2 Arbitration</h3>
-          <p>Any disputes arising from these Terms shall be resolved through binding arbitration in accordance with the Arbitration and Conciliation Act, 2015 of India.</p>
+          <p>Any disputes arising from these Terms shall be resolved through binding arbitration in accordance with the Arbitration and Conciliation Act, 1996 (as amended) of India.</p>
 
           <h3>16.3 Class Action Waiver</h3>
           <p>You agree to resolve disputes individually and waive any right to participate in class action lawsuits.</p>
@@ -413,7 +397,7 @@ const TermsOfService = () => {
           </ul>
           
           <h3>17.1 Jurisdiction</h3>
-          <p>Any legal proceedings arising from these Terms shall be conducted exclusively in the courts of [Your City], [Your State], India.</p>
+          <p>Any legal proceedings arising from these Terms shall be conducted in the competent courts of India.</p>
           
           <h3>17.2 International Users</h3>
           <p>If you access our Service from outside India, you are responsible for compliance with local laws. For users in the EU, GDPR provisions apply as outlined in our Privacy Policy. For users in California, CCPA provisions apply.</p>
@@ -426,20 +410,18 @@ const TermsOfService = () => {
 
         <section>
           <h2>19. Entire Agreement</h2>
-          <p>These Terms, together with our Privacy Policy, constitute the entire agreement between you and Local Host Connect regarding the Service.</p>
+          <p>These Terms, together with our Privacy Policy, constitute the entire agreement between you and FestiveGuest regarding the Service.</p>
         </section>
 
         <section>
           <h2>20. Contact Information</h2>
           <div className="contact-info">
             <p><strong>Legal and Terms Inquiries:</strong></p>
-            <p>Email: legal@localhostconnect.com</p>
-            <p>Support: support@localhostconnect.com</p>
+            <p>Email: customer-support@festiveguest.com</p>
+            <p>WhatsApp: <a href="https://wa.me/919966888484" target="_blank" rel="noopener noreferrer">+91 99668 88484</a></p>
             <p>For general questions, visit our <Link to="/help" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Help & Support page</Link>.</p>
             <p><strong>Registered Office:</strong></p>
-            <p>Local Host Connect<br/>
-            [Your Business Address]<br/>
-            [City, State, PIN Code]<br/>
+            <p>FestiveGuest<br/>
             India</p>
           </div>
         </section>

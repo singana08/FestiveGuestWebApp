@@ -8,11 +8,11 @@ const PrivacyPolicy = () => {
     <div className="legal-document">
       <div className="container">
         <h1>Privacy Policy</h1>
-        <p className="last-updated">Last Updated: {new Date().toLocaleDateString('en-IN')}</p>
-        
+        <p className="last-updated">Last Updated: 21 November 2026</p>
+
         <section>
           <h2>1. Introduction</h2>
-          <p>Local Host Connect ("we," "our," or "us") operates the FestiveGuestWebApp platform that connects travelers with local hosts. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our service.</p>
+          <p>FestiveGuest ("we," "our," or "us") operates the FestiveGuest platform that connects travelers with local hosts. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our service.</p>
           <p>By using our service, you agree to the collection and use of information in accordance with this policy.</p>
         </section>
 
@@ -143,7 +143,7 @@ const PrivacyPolicy = () => {
             <li><strong>Objection:</strong> Object to processing for marketing purposes</li>
             <li><strong>Withdraw Consent:</strong> Withdraw consent for data processing</li>
           </ul>
-          <p>To exercise these rights, contact us via WhatsApp at [Your WhatsApp Number] or email at privacy@localhostconnect.com</p>
+          <p>To exercise these rights, contact us via WhatsApp at <a href="https://wa.me/919966888484" target="_blank" rel="noopener noreferrer">+91 99668 88484</a> or email at customer-support@festiveguest.com</p>
         </section>
 
         <section>
@@ -200,14 +200,9 @@ const PrivacyPolicy = () => {
           <h2>13. Contact Information</h2>
           <div className="contact-info">
             <p><strong>Data Protection Officer / Privacy Contact:</strong></p>
-            <p>Email: privacy@localhostconnect.com</p>
-            <p>Support Email: support@localhostconnect.com</p>
+            <p>Email: customer-support@festiveguest.com</p>
+            <p>WhatsApp: <a href="https://wa.me/919966888484" target="_blank" rel="noopener noreferrer">+91 99668 88484</a></p>
             <p>For general inquiries, please visit our <Link to="/help" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Help & Support page</Link>.</p>
-            <p><strong>Mailing Address:</strong></p>
-            <p>Local Host Connect<br/>
-            [Your Business Address]<br/>
-            [City, State, PIN Code]<br/>
-            India</p>
           </div>
         </section>
 
@@ -240,7 +235,7 @@ const PrivacyPolicy = () => {
 
         <section>
           <h2>15. Governing Law</h2>
-          <p>This Privacy Policy is governed by the laws of India. Any disputes arising from this policy will be subject to the exclusive jurisdiction of the courts in [Your City], India.</p>
+          <p>This Privacy Policy is governed by the laws of India. Any disputes arising from this policy will be subject to the exclusive jurisdiction of the competent courts in India.</p>
         </section>
 
         <section>
