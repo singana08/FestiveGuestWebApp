@@ -150,21 +150,17 @@ const PrivacyPolicy = () => {
         </section>
 
         <section>
-          <h2>8. Cookies and Tracking Technologies</h2>
-          <p>We use cookies and similar technologies to enhance your experience. Types of cookies we use:</p>
-          <ul>
-            <li><strong>Essential Cookies:</strong> Required for basic platform functionality (session management, authentication)</li>
-            <li><strong>Performance Cookies:</strong> Google Analytics to understand user interactions and improve platform performance</li>
-            <li><strong>Functional Cookies:</strong> Remember your preferences, settings, and language choices</li>
-            <li><strong>Marketing Cookies:</strong> Used to deliver relevant advertisements (if applicable)</li>
-          </ul>
-          <p>You can control cookie preferences through your browser settings. Note that disabling essential cookies may affect platform functionality.</p>
-          
-          <h3>8.1 Session Cookies</h3>
-          <p>We use session cookies to maintain your login state and ensure secure access to your account. These cookies are deleted when you close your browser.</p>
-          
-          <h3>8.2 Analytics and Tracking</h3>
-          <p>We use Google Analytics to collect anonymized data about how users interact with our platform. This helps us improve user experience and identify technical issues. You can opt out of Google Analytics by installing the Google Analytics Opt-out Browser Add-on.</p>
+          <h2>8. Cookies, Analytics and Monitoring</h2>
+          <p>We do not use advertising or marketing cookies, and we do not use your data for advertising.</p>
+
+          <h3>8.1 Sign-in and Preferences</h3>
+          <p>To keep you signed in and remember choices such as your language, we store a sign-in token and your settings in your browser's local storage. They remain until you sign out or clear your browser data. If you use Google Sign-In, Google may set its own cookies under Google's privacy policy.</p>
+
+          <h3>8.2 Website Analytics</h3>
+          <p>We use Cloudflare Web Analytics to understand how the platform is used: page views, which pages are visited, which websites referred visitors, general country, browser and device type, and page loading speed. It does not use cookies, does not track individual visitors, and reports to us only in aggregate.</p>
+
+          <h3>8.3 Error Monitoring</h3>
+          <p>Our servers record technical details of requests and errors (such as the address requested, the time and the error message) using Microsoft Azure Application Insights, so we can find and fix problems. This information is kept in our Azure account and is not used for advertising.</p>
         </section>
 
         <section>
