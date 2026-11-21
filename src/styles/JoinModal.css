@@ -1,0 +1,186 @@
+/* ═══ Join / disclaimer dialog — dark glass, matches the home page ═══
+   Centered card on desktop, bottom sheet on phones. Prefix: jm- */
+
+.jm-overlay {
+  position: fixed; inset: 0; z-index: 10000;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1.25rem;
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 0%, rgba(255, 107, 53, 0.2), transparent 70%),
+    rgba(10, 5, 18, 0.74);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  perspective: 1600px;
+}
+
+.jm-sheet {
+  position: relative;
+  width: min(760px, 100%);
+  max-height: min(88vh, 880px);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  border-radius: 28px;
+  color: #fff7f0;
+  font-family: 'Inter', sans-serif;
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 40%),
+    linear-gradient(160deg, #2b1a46 0%, #1b0f2d 55%, #150b21 100%);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 40px 120px -20px rgba(0, 0, 0, 0.75), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  outline: none;
+}
+.jm-glow {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(255, 122, 61, 0.28), transparent 42%),
+    radial-gradient(circle at 100% 100%, rgba(139, 108, 255, 0.22), transparent 45%);
+}
+.jm-handle { display: none; }
+
+/* Header */
+.jm-head { position: relative; padding: 1.35rem 1.6rem 1rem; }
+.jm-topbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.jm-role { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 0.6rem; }
+.jm-role-label { font-size: 0.74rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; color: rgba(255, 240, 230, 0.55); }
+.jm-seg {
+  display: inline-flex; gap: 0.15rem; padding: 0.25rem; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.jm-seg button {
+  position: relative; z-index: 0;
+  border: 0; background: transparent; cursor: pointer;
+  padding: 0.45rem 0.95rem; border-radius: 999px;
+  font: 700 0.85rem 'Plus Jakarta Sans', sans-serif;
+  color: rgba(255, 240, 230, 0.75);
+  transition: color 0.2s;
+}
+.jm-seg button[aria-pressed='true'] { color: #2a1206; }
+.jm-seg-pill {
+  position: absolute; inset: 0; z-index: -1; border-radius: 999px;
+  background: linear-gradient(135deg, #ffd38a 0%, #ff9a4d 50%, #ff6b35 100%);
+  box-shadow: 0 8px 18px -8px rgba(255, 107, 53, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.jm-close {
+  flex-shrink: 0; width: 40px; height: 40px; padding: 0; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+  color: #fff7f0; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.16);
+  transition: background 0.2s, transform 0.2s;
+}
+.jm-close:hover { background: rgba(255, 255, 255, 0.15); transform: rotate(90deg); }
+
+.jm-title-row { display: flex; align-items: center; gap: 1rem; margin-top: 1.25rem; }
+.jm-badge-icon {
+  flex-shrink: 0; width: 54px; height: 54px; border-radius: 17px;
+  display: grid; place-items: center; color: #3b1a00;
+  background: linear-gradient(145deg, #ffe2a8 0%, #ffb347 55%, #ff7a3d 100%);
+  box-shadow: 0 14px 30px -10px rgba(255, 140, 60, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -3px 0 rgba(150, 50, 0, 0.3);
+}
+.jm-sheet .jm-title { margin: 0; font: 800 1.55rem/1.2 'Plus Jakarta Sans', sans-serif; letter-spacing: -0.02em; color: #fff7f0; }
+.jm-sheet .jm-sub { margin: 0.2rem 0 0; font-size: 0.92rem; line-height: 1.5; color: rgba(255, 240, 230, 0.68); }
+
+/* Body */
+.jm-body {
+  position: relative; flex: 1; min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain;
+  padding: 0.25rem 1.6rem 1.25rem;
+  scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+.jm-sheet .jm-intro { margin: 0 0 1rem; font-size: 0.93rem; line-height: 1.6; color: rgba(255, 240, 230, 0.75); }
+.jm-intro strong { color: #fff7f0; }
+
+.jm-points { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.jm-point {
+  display: flex; gap: 0.8rem; padding: 0.9rem 1rem; border-radius: 18px;
+  background: rgba(255, 255, 255, 0.055); border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.jm-point:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.jm-point-icon {
+  flex-shrink: 0; width: 40px; height: 40px; border-radius: 12px;
+  display: grid; place-items: center; font-size: 1.15rem;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.05));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.jm-sheet .jm-point h3 { margin: 0.1rem 0 0.25rem; font: 700 0.92rem/1.3 'Plus Jakarta Sans', sans-serif; color: #fff7f0; }
+.jm-sheet .jm-point p { margin: 0; font-size: 0.82rem; line-height: 1.5; color: rgba(255, 240, 230, 0.68); }
+
+/* Consent */
+.jm-consent {
+  margin-top: 1.1rem; display: flex; align-items: flex-start; gap: 0.9rem;
+  padding: 1rem 1.1rem; border-radius: 18px; cursor: pointer;
+  background: rgba(255, 193, 99, 0.07); border: 1.5px solid rgba(255, 193, 99, 0.32);
+  transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
+}
+.jm-consent.is-on { border-color: rgba(52, 211, 153, 0.6); background: rgba(52, 211, 153, 0.08); box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.1); }
+.jm-check {
+  -webkit-appearance: none; appearance: none;
+  flex-shrink: 0; width: 26px; height: 26px; margin: 0.1rem 0 0;
+  display: grid; place-content: center; cursor: pointer;
+  border-radius: 8px; border: 2px solid rgba(255, 255, 255, 0.42); background: rgba(255, 255, 255, 0.06);
+  transition: background 0.2s, border-color 0.2s;
+}
+.jm-check::after {
+  content: ''; width: 12px; height: 6px; margin-top: -3px;
+  border-left: 3px solid #052e1f; border-bottom: 3px solid #052e1f;
+  transform: rotate(-45deg) scale(0);
+  transition: transform 0.22s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+.jm-check:checked { background: linear-gradient(135deg, #a7f3d0, #34d399); border-color: #34d399; }
+.jm-check:checked::after { transform: rotate(-45deg) scale(1); }
+.jm-check:focus-visible { outline: 2px solid #ffc163; outline-offset: 3px; }
+.jm-consent-text { font-size: 0.88rem; line-height: 1.6; color: rgba(255, 240, 230, 0.86); }
+.jm-consent-text a { color: #ffc163; font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+.jm-consent-text a:hover { color: #ffd38a; }
+
+/* Footer */
+.jm-foot {
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  padding: 1rem 1.6rem 1.3rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 5, 18, 0.35);
+}
+.jm-hint {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0; border: 0; background: none; border-radius: 0;
+  font: 500 0.82rem 'Inter', sans-serif; color: rgba(255, 240, 230, 0.55);
+}
+button.jm-hint { cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; transition: color 0.2s; }
+button.jm-hint:hover { color: #ffc163; }
+.jm-hint.is-ready { color: #6ee7b7; font-weight: 600; }
+.jm-actions { display: flex; gap: 0.65rem; margin-left: auto; }
+.jm-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  padding: 0.8rem 1.35rem; border-radius: 999px; border: 0; cursor: pointer;
+  font: 700 0.95rem 'Plus Jakarta Sans', sans-serif;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s, background 0.2s;
+}
+.jm-btn-ghost { color: #fff7f0; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.18); }
+.jm-btn-ghost:hover { background: rgba(255, 255, 255, 0.14); }
+.jm-btn-primary {
+  color: #2a1206;
+  background: linear-gradient(135deg, #ffd38a 0%, #ff9a4d 45%, #ff6b35 100%);
+  box-shadow: 0 12px 28px -10px rgba(255, 107, 53, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.65), inset 0 -3px 0 rgba(150, 50, 0, 0.28);
+}
+.jm-btn-primary:hover:not(:disabled) { transform: translateY(-2px); }
+.jm-btn-primary:disabled { cursor: not-allowed; opacity: 0.42; filter: grayscale(0.4); box-shadow: none; }
+
+/* Phones: bottom sheet */
+@media (max-width: 600px) {
+  .jm-overlay { align-items: flex-end; padding: 0; }
+  .jm-sheet {
+    width: 100%; max-height: 92vh; max-height: 92dvh;
+    border-radius: 26px 26px 0 0; border-bottom: 0;
+  }
+  .jm-handle { display: block; position: relative; width: 44px; height: 5px; margin: 0.6rem auto 0; border-radius: 999px; background: rgba(255, 255, 255, 0.25); }
+  .jm-head { padding: 0.75rem 1.15rem 0.85rem; }
+  .jm-sheet .jm-title { font-size: 1.3rem; }
+  .jm-badge-icon { width: 46px; height: 46px; border-radius: 15px; }
+  .jm-title-row { margin-top: 1rem; }
+  .jm-body { padding: 0.25rem 1.15rem 1rem; }
+  .jm-points { grid-template-columns: 1fr; gap: 0.6rem; }
+  .jm-foot { flex-wrap: wrap; padding: 0.85rem 1.15rem calc(1rem + env(safe-area-inset-bottom)); }
+  .jm-hint { width: 100%; justify-content: center; }
+  .jm-actions { width: 100%; }
+  .jm-btn { padding: 0.8rem 1.1rem; white-space: nowrap; }
+  .jm-btn-primary { flex: 1; }
+}

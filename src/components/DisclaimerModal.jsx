@@ -1,213 +1,255 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
+import { X, ShieldAlert, ArrowRight, Lock, CheckCircle2 } from 'lucide-react';
 import { useLanguage } from '../i18n/LanguageContext';
+import '../styles/JoinModal.css';
 
-const DisclaimerModal = ({ isOpen, onClose, selectedRole }) => {
-  const { t } = useLanguage();
+const EASE = [0.22, 1, 0.36, 1];
+
+// The legal wording itself comes from translations.js (t(key)) and is shown in
+// full; the short titles here only make the list scannable.
+const POINTS = [
+  { key: 'notResponsible', icon: '🛡️' },
+  { key: 'noGuarantee', icon: '🤝' },
+  { key: 'platformOnly', icon: '🔎' },
+  { key: 'ownRisk', icon: '🧭' },
+  { key: 'paymentCaution', icon: '💳' },
+  { key: 'meetPublic', icon: '☕' },
+  { key: 'fullResponsibility', icon: '✅' },
+];
+
+const COPY = {
+  en: {
+    joiningAs: 'Joining as',
+    roles: { Guest: '🧳 I need a stay', Host: '🏡 I can host' },
+    title: 'Important Disclaimer',
+    subtitle: 'Please read carefully — this is how FestiveGuest works.',
+    pointTitles: [
+      "We're not liable for incidents",
+      'No guaranteed match',
+      "Members aren't background-checked",
+      'Your own discretion',
+      'Be careful with money',
+      'Meet in public first',
+      'Your safety is your call',
+    ],
+    hint: 'Tick the consent box to continue',
+    ready: "You're all set",
+    close: 'Close',
+  },
+  te: {
+    joiningAs: 'ఇలా చేరుతున్నారు',
+    roles: { Guest: '🧳 నాకు చోటు కావాలి', Host: '🏡 నేను హోస్ట్ చేస్తాను' },
+    title: 'ముఖ్యమైన నిరాకరణ',
+    subtitle: 'దయచేసి జాగ్రత్తగా చదవండి — ఫెస్టివ్ గెస్ట్ ఇలా పనిచేస్తుంది.',
+    pointTitles: [
+      'ఘటనలకు మేము బాధ్యులం కాదు',
+      'సరిపోయే వ్యక్తి దొరుకుతారని హామీ లేదు',
+      'సభ్యుల నేపథ్యాన్ని మేము తనిఖీ చేయము',
+      'మీ స్వంత నిర్ణయం',
+      'డబ్బు విషయంలో జాగ్రత్త',
+      'ముందు బహిరంగ ప్రదేశంలో కలవండి',
+      'మీ భద్రత మీ బాధ్యత',
+    ],
+    hint: 'కొనసాగడానికి అంగీకార పెట్టెను టిక్ చేయండి',
+    ready: 'అంతా సిద్ధం',
+    close: 'మూసివేయండి',
+  },
+};
+
+const JoinSheet = ({ initialRole, onClose }) => {
+  const { language, t } = useLanguage();
+  const c = COPY[language] || COPY.en;
   const navigate = useNavigate();
-  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
-  const [agreementTimestamp, setAgreementTimestamp] = useState(null);
+  const [role, setRole] = useState(initialRole);
+  const [agreed, setAgreed] = useState(false);
+  const [isSheet] = useState(() => window.matchMedia('(max-width: 600px)').matches);
+  const sheetRef = useRef(null);
+  const checkRef = useRef(null);
+
+  // The consent box sits after the full disclaimer, usually below the fold;
+  // the footer hint takes the user straight to it.
+  const goToConsent = () => {
+    checkRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    checkRef.current?.focus({ preventScroll: true });
+  };
+
+  // Lock page scroll and make the page behind inert (no tabbing or screen
+  // reader focus behind the dialog); remember focus so it returns on close.
+  useEffect(() => {
+    const { body, documentElement: html } = document;
+    const appRoot = document.getElementById('root');
+    const prevFocus = document.activeElement;
+    const prev = { overflow: body.style.overflow, paddingRight: body.style.paddingRight, htmlOverflow: html.style.overflow };
+    const scrollbar = window.innerWidth - html.clientWidth;
+    body.style.overflow = 'hidden';
+    body.style.paddingRight = `${scrollbar}px`;
+    html.style.overflow = 'hidden';
+    appRoot?.setAttribute('inert', '');
+    // iOS ignores overflow:hidden for touch scrolling.
+    const blockTouch = (e) => { if (!e.target.closest('.jm-body')) e.preventDefault(); };
+    document.addEventListener('touchmove', blockTouch, { passive: false });
+    sheetRef.current?.focus();
+    return () => {
+      body.style.overflow = prev.overflow;
+      body.style.paddingRight = prev.paddingRight;
+      html.style.overflow = prev.htmlOverflow;
+      appRoot?.removeAttribute('inert');
+      document.removeEventListener('touchmove', blockTouch);
+      if (prevFocus instanceof HTMLElement && prevFocus.isConnected) prevFocus.focus();
+    };
+  }, []);
 
   useEffect(() => {
-    if (isOpen) {
-      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-      document.body.style.overflow = 'hidden';
-      document.body.style.paddingRight = `${scrollbarWidth}px`;
-      document.documentElement.style.overflow = 'hidden';
-      
-      // Prevent scroll on touch devices
-      const preventScroll = (e) => {
-        if (!e.target.closest('.modal-content')) {
-          e.preventDefault();
-        }
-      };
-      document.addEventListener('touchmove', preventScroll, { passive: false });
-      document.addEventListener('wheel', preventScroll, { passive: false });
-      
-      return () => {
-        document.body.style.overflow = '';
-        document.body.style.paddingRight = '';
-        document.documentElement.style.overflow = '';
-        document.removeEventListener('touchmove', preventScroll);
-        document.removeEventListener('wheel', preventScroll);
-      };
-    }
-  }, [isOpen]);
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
-  const handleAccept = () => {
-    if (!disclaimerAccepted) return;
-    
+  // Navigate only — don't also call onClose. The page unmounts on the route
+  // change anyway, and onClose updates the URL itself, which would override
+  // this navigation and leave the user on the home page.
+  const accept = () => {
+    if (!agreed) return;
     const timestamp = Date.now();
-    const acceptanceData = {
+    sessionStorage.setItem('disclaimerAcceptance', JSON.stringify({
       accepted: true,
       timestamp,
-      role: selectedRole,
+      role,
       userAgent: navigator.userAgent,
-      sessionId: crypto.randomUUID()
-    };
-    
-    // Store in sessionStorage with security measures
-    sessionStorage.setItem('disclaimerAcceptance', JSON.stringify(acceptanceData));
-    
-    navigate(`/register?role=${selectedRole}&disclaimerAccepted=${timestamp}`);
-    onClose();
+      sessionId: crypto.randomUUID(),
+    }));
+    navigate(`/register?role=${role}&disclaimerAccepted=${timestamp}`);
   };
 
-  const handleCancel = () => {
-    navigate('/');
-    onClose();
-  };
-
-  const handleCheckboxChange = (e) => {
-    const isChecked = e.target.checked;
-    setDisclaimerAccepted(isChecked);
-    if (isChecked) {
-      setAgreementTimestamp(Date.now());
-    } else {
-      setAgreementTimestamp(null);
-    }
-  };
-
-  if (!isOpen) return null;
+  const sheetMotion = isSheet
+    ? { initial: { y: '100%' }, animate: { y: 0 }, exit: { y: '100%' }, transition: { duration: 0.45, ease: EASE } }
+    : {
+        initial: { opacity: 0, y: 48, scale: 0.94, rotateX: 12 },
+        animate: { opacity: 1, y: 0, scale: 1, rotateX: 0 },
+        exit: { opacity: 0, y: 24, scale: 0.97 },
+        transition: { duration: 0.5, ease: EASE },
+      };
 
   return (
-    <div className="modal-overlay" style={{ zIndex: 9999 }}>
-      <div className="modal-content" style={{ maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overscrollBehavior: 'contain' }}>
-        <div className="modal-header" style={{ padding: '1.5rem', flexShrink: 0 }}>
-          <h3 style={{ color: '#1e293b', margin: 0 }}>{t('importantDisclaimer')}</h3>
-        </div>
-        
-        <div className="modal-body" style={{ padding: '0 1.5rem', overflowY: 'auto', flex: 1 }}>
-          <style>
-            {`
-              .modal-body::-webkit-scrollbar {
-                width: 4px;
-              }
-              .modal-body::-webkit-scrollbar-track {
-                background: transparent;
-              }
-              .modal-body::-webkit-scrollbar-thumb {
-                background: #cbd5e1;
-                border-radius: 2px;
-              }
-              .modal-body::-webkit-scrollbar-thumb:hover {
-                background: #94a3b8;
-              }
-            `}
-          </style>
-          <div style={{ 
-            padding: '1.5rem', 
-            background: '#fef3c7', 
-            border: '2px solid #f59e0b', 
-            borderRadius: '0.75rem',
-            marginBottom: '1.5rem'
-          }}>
-            <div style={{ color: '#92400e', fontSize: '0.95rem', lineHeight: '1.6' }}>
-              <p style={{ margin: '0 0 1rem 0', fontWeight: '600' }}>
-                <strong>Local Host Connect</strong> {t('disclaimerIntro')}
-              </p>
-              <ul style={{ margin: '0', paddingLeft: '1.5rem' }}>
-                <li style={{ marginBottom: '0.75rem' }}>{t('notResponsible')}</li>
-                <li style={{ marginBottom: '0.75rem' }}>{t('noGuarantee')}</li>
-                <li style={{ marginBottom: '0.75rem' }}>{t('platformOnly')}</li>
-                <li style={{ marginBottom: '0.75rem' }}>{t('ownRisk')}</li>
-                <li style={{ marginBottom: '0.75rem' }}>{t('paymentCaution')}</li>
-                <li style={{ marginBottom: '0.75rem' }}>{t('meetPublic')}</li>
-                <li>{t('fullResponsibility')}</li>
-              </ul>
+    <motion.div
+      className="jm-overlay"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25 }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <motion.div
+        ref={sheetRef}
+        className="jm-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="jm-title"
+        tabIndex={-1}
+        {...sheetMotion}
+      >
+        <div className="jm-glow" aria-hidden="true" />
+        <div className="jm-handle" aria-hidden="true" />
+
+        <header className="jm-head">
+          <div className="jm-topbar">
+            <div className="jm-role">
+              <span className="jm-role-label">{c.joiningAs}</span>
+              <div className="jm-seg">
+                {['Guest', 'Host'].map((r) => (
+                  <button key={r} type="button" aria-pressed={role === r} onClick={() => setRole(r)}>
+                    {role === r && (
+                      <motion.span layoutId="jm-role-pill" className="jm-seg-pill" transition={{ type: 'spring', stiffness: 420, damping: 32 }} />
+                    )}
+                    {c.roles[r]}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button type="button" className="jm-close" onClick={onClose} aria-label={c.close}>
+              <X size={19} />
+            </button>
+          </div>
+
+          <div className="jm-title-row">
+            <span className="jm-badge-icon" aria-hidden="true"><ShieldAlert size={26} /></span>
+            <div>
+              <h2 id="jm-title" className="jm-title">{c.title}</h2>
+              <p className="jm-sub">{c.subtitle}</p>
             </div>
           </div>
+        </header>
 
-          <div style={{ 
-            padding: '1.5rem', 
-            background: '#f0f9ff', 
-            border: '2px solid #0ea5e9', 
-            borderRadius: '0.75rem',
-            marginBottom: '1.5rem'
-          }}>
-            <label style={{ 
-              display: 'flex', 
-              alignItems: 'flex-start', 
-              gap: '1rem',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              lineHeight: '1.5'
-            }}>
-              <input
-                type="checkbox"
-                checked={disclaimerAccepted}
-                onChange={handleCheckboxChange}
-                required
-                style={{
-                  width: '20px',
-                  height: '20px',
-                  marginTop: '2px',
-                  cursor: 'pointer',
-                  accentColor: '#0ea5e9'
-                }}
-              />
-              <span style={{ color: '#0c4a6e', fontWeight: '500' }}>
-                {t('iAgree')}{' '}
-                <button 
-                  type="button"
-                  style={{ 
-                    background: 'none', 
-                    border: 'none', 
-                    color: '#0ea5e9', 
-                    textDecoration: 'underline', 
-                    cursor: 'pointer',
-                    padding: 0,
-                    font: 'inherit'
-                  }}
-                  onClick={() => window.open('/privacy-policy', '_blank')}
-                >
-                  {t('privacyPolicy')}
-                </button>
-                {' '}{t('and')}{' '}
-                <button 
-                  type="button"
-                  style={{ 
-                    background: 'none', 
-                    border: 'none', 
-                    color: '#0ea5e9', 
-                    textDecoration: 'underline', 
-                    cursor: 'pointer',
-                    padding: 0,
-                    font: 'inherit'
-                  }}
-                  onClick={() => window.open('/terms-of-service', '_blank')}
-                >
-                  {t('termsOfService')}
-                </button>.
-              </span>
-            </label>
+        <div className="jm-body">
+          <p className="jm-intro"><strong>FestiveGuest</strong> {t('disclaimerIntro')}</p>
+
+          <ul className="jm-points">
+            {POINTS.map((p, i) => (
+              <motion.li
+                key={p.key}
+                className="jm-point"
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 + i * 0.05, duration: 0.4, ease: EASE }}
+              >
+                <span className="jm-point-icon" aria-hidden="true">{p.icon}</span>
+                <div>
+                  <h3>{c.pointTitles[i]}</h3>
+                  <p>{t(p.key)}</p>
+                </div>
+              </motion.li>
+            ))}
+          </ul>
+
+          <label className={`jm-consent${agreed ? ' is-on' : ''}`}>
+            <input
+              ref={checkRef}
+              type="checkbox"
+              className="jm-check"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+            />
+            <span className="jm-consent-text">
+              {t('iAgree')}{' '}
+              <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">{t('privacyPolicy')}</a>
+              {' '}{t('and')}{' '}
+              <a href="/terms-of-service" target="_blank" rel="noopener noreferrer">{t('termsOfService')}</a>.
+            </span>
+          </label>
+        </div>
+
+        <footer className="jm-foot">
+          {agreed ? (
+            <span className="jm-hint is-ready" aria-live="polite"><CheckCircle2 size={15} /> {c.ready}</span>
+          ) : (
+            <button type="button" className="jm-hint" onClick={goToConsent}><Lock size={14} /> {c.hint}</button>
+          )}
+          <div className="jm-actions">
+            <button type="button" className="jm-btn jm-btn-ghost" onClick={onClose}>{t('cancel')}</button>
+            <button type="button" className="jm-btn jm-btn-primary" onClick={accept} disabled={!agreed}>
+              {t('agreeContinue')} <ArrowRight size={17} />
+            </button>
           </div>
-        </div>
-
-        <div className="modal-footer" style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', padding: '1.5rem', marginBottom: '1rem', flexShrink: 0 }}>
-          <button 
-            onClick={handleCancel}
-            className="btn btn-outline"
-            style={{ padding: '0.75rem 1.5rem' }}
-          >
-            {t('cancel')}
-          </button>
-          <button 
-            onClick={handleAccept}
-            className="btn btn-primary"
-            disabled={!disclaimerAccepted}
-            style={{ 
-              padding: '0.75rem 1.5rem',
-              opacity: !disclaimerAccepted ? 0.5 : 1,
-              cursor: !disclaimerAccepted ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {t('agreeContinue')}
-          </button>
-        </div>
-      </div>
-    </div>
+        </footer>
+      </motion.div>
+    </motion.div>
   );
 };
+
+// Rendered into <body> so no page-level stacking context (the home page
+// isolates its own) can put the sticky navbar on top of the overlay.
+const DisclaimerModal = ({ isOpen, onClose, selectedRole }) => createPortal(
+  <MotionConfig reducedMotion="user">
+    <AnimatePresence>
+      {isOpen && (
+        <JoinSheet key="join" initialRole={selectedRole === 'Host' ? 'Host' : 'Guest'} onClose={onClose} />
+      )}
+    </AnimatePresence>
+  </MotionConfig>,
+  document.body,
+);
 
 export default DisclaimerModal;

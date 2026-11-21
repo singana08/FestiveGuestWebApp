@@ -1,11 +1,86 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import useSEO from '../hooks/useSEO';
-import { motion, AnimatePresence } from 'framer-motion';
+import {
+  motion, AnimatePresence, MotionConfig,
+  useMotionValue, useSpring, useTransform, useReducedMotion,
+} from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Eye, EyeOff, ArrowRight, CheckCircle } from 'lucide-react';
+import {
+  Eye, EyeOff, ArrowRight, ArrowLeft, Check, CheckCircle2, Mail, Smartphone,
+  ShieldCheck, Gift, Map as MapIcon, X, Sparkles, AlertTriangle, MessageCircle, Lock,
+} from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import api from '../utils/api';
 import locationService from '../utils/locationService';
+import '../styles/Register.css';
+
+const EASE = [0.22, 1, 0.36, 1];
+const ROLES = [
+  { value: 'Guest', emoji: '🧳', title: 'I need a stay', desc: 'Looking for a local host' },
+  { value: 'Host', emoji: '🏡', title: 'I can host', desc: 'Welcoming guests to my city' },
+];
+
+const Stamp = ({ done, icon, label }) => (
+  <span className={`rg-stamp${done ? ' is-done' : ''}`}>
+    <motion.span
+      className="rg-stamp-ring"
+      initial={false}
+      animate={done ? { scale: [1.7, 0.9, 1], rotate: [-20, -6, -6] } : { scale: 1, rotate: 0 }}
+      transition={{ duration: 0.5, ease: EASE }}
+    >
+      {done ? <Check size={14} strokeWidth={3} /> : icon}
+    </motion.span>
+    <span className="rg-stamp-label">{label}</span>
+  </span>
+);
+
+// Live preview of the account being created; tilts gently with the pointer.
+const PassCard = ({ name, role, place, since, code, stamps, interactive }) => {
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  const spring = { stiffness: 110, damping: 18, mass: 0.6 };
+  const rotateX = useSpring(useTransform(my, [-0.5, 0.5], [9, -5]), spring);
+  const rotateY = useSpring(useTransform(mx, [-0.5, 0.5], [-12, 8]), spring);
+
+  useEffect(() => {
+    if (!interactive) return undefined;
+    const onMove = (e) => {
+      mx.set(e.clientX / window.innerWidth - 0.5);
+      my.set(e.clientY / window.innerHeight - 0.5);
+    };
+    window.addEventListener('pointermove', onMove, { passive: true });
+    return () => window.removeEventListener('pointermove', onMove);
+  }, [interactive, mx, my]);
+
+  return (
+    <div className="rg-pass-stage" aria-hidden="true">
+      <motion.div className="rg-pass" style={{ rotateX, rotateY }}>
+        <div className="rg-pass-top">
+          <span className="rg-pass-brand">🪔 FestiveGuest</span>
+          <span className="rg-pass-kind">Member pass</span>
+        </div>
+        <div className="rg-pass-main">
+          <span className={`rg-avatar${role === 'Host' ? ' rg-avatar--host' : ''}`}>{(name.trim() || '?').charAt(0).toUpperCase()}</span>
+          <div>
+            <div className={`rg-pass-name${name.trim() ? '' : ' is-empty'}`}>{name.trim() || 'Your name'}</div>
+            <span className="rg-role-tag">{role === 'Host' ? '🏡 Local host' : '🧳 Guest'}</span>
+          </div>
+        </div>
+        <dl className="rg-pass-grid">
+          <div><dt>Home city</dt><dd className={place ? '' : 'is-empty'}>{place || 'Add in step 2'}</dd></div>
+          <div><dt>Member since</dt><dd>{since}</dd></div>
+        </dl>
+        <div className="rg-perf" />
+        <div className="rg-stamps">{stamps.map((s) => <Stamp key={s.label} {...s} />)}</div>
+        <div className="rg-pass-foot">
+          <span className="rg-barcode" />
+          <span className="rg-pass-code">No. {code}</span>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
 
 const Registration = ({ setUser }) => {
   useSEO({ title: 'Sign Up', description: 'Create your free FestiveGuest account to find a trusted local host in India, or register as a verified host yourself.' });
@@ -57,6 +132,8 @@ const Registration = ({ setUser }) => {
   const [showHostingModal, setShowHostingModal] = useState(false);
   const [tempHostingAreas, setTempHostingAreas] = useState([]);
   const [tempCityCount, setTempCityCount] = useState(0);
+  // 'email' | 'google' when the server says that address already has an account.
+  const [accountExists, setAccountExists] = useState(null);
 
   const passwordRequirements = [
     { label: 'At least 8 characters', test: pw => pw.length >= 8 },
@@ -138,6 +215,7 @@ const Registration = ({ setUser }) => {
     const newEmail = e.target.value;
     handleInputChange(e);
     validateEmail(newEmail);
+    setAccountExists(null);
     if (newEmail !== verifiedEmail) { setEmailVerified(false); setOtpSent(false); setVerificationOTP(''); }
   };
 
@@ -228,12 +306,14 @@ const Registration = ({ setUser }) => {
       if (userData.success || userData.message === 'User registered successfully') {
         sessionStorage.removeItem('disclaimerAcceptance');
         showToast('🎉 Registration successful!', 'success');
-        setRegistrationSuccessCountdown(5);
+        // Count down in a local variable: navigating from inside a state
+        // updater runs a side effect during render (React warns about it).
+        let remaining = 5;
+        setRegistrationSuccessCountdown(remaining);
         const countdown = setInterval(() => {
-          setRegistrationSuccessCountdown(prev => {
-            if (prev <= 1) { clearInterval(countdown); navigate('/login'); return 0; }
-            return prev - 1;
-          });
+          remaining -= 1;
+          if (remaining <= 0) { clearInterval(countdown); navigate('/login'); return; }
+          setRegistrationSuccessCountdown(remaining);
         }, 1000);
       } else {
         throw new Error(userData.message || 'Registration failed');
@@ -259,6 +339,8 @@ const Registration = ({ setUser }) => {
       if (res.data.success) { setOtpSent(true); setRegisteredEmail(formData.email); showToast('OTP sent to your email', 'success'); }
     } catch (err) {
       const msg = err.response?.data?.message || err.message;
+      // 409: the email already has an account — say so on the field itself.
+      if (err.response?.status === 409) { setAccountExists('email'); setEmailError(msg); return; }
       showToast('Failed to send OTP: ' + msg, 'error');
     } finally {
       setOtpSending(false);
@@ -334,645 +416,586 @@ const Registration = ({ setUser }) => {
         showToast(res.data?.message || 'Google verification failed', 'error');
       }
     } catch (err) {
+      if (err.response?.status === 409) { setAccountExists('google'); return; }
       showToast('Google verification failed: ' + (err.response?.data?.message || err.message), 'error');
     }
   };
 
-  // ── Style helpers ──
-  const labelStyle = { display: 'block', marginBottom: '0.4rem', fontWeight: 600, fontSize: '0.875rem', color: 'var(--text)' };
-  const inputStyle = hasError => ({
-    width: '100%', padding: '0.875rem 1rem',
-    border: `1.5px solid ${hasError ? 'var(--error)' : 'var(--border-strong)'}`,
-    borderRadius: 'var(--radius-sm)', fontSize: '0.95rem',
-    fontFamily: 'Inter, sans-serif', outline: 'none',
-    background: 'var(--background)', color: 'var(--text)',
-    transition: 'all 0.2s', boxSizing: 'border-box',
-  });
-  const errorStyle = { margin: '0.35rem 0 0', color: 'var(--error)', fontSize: '0.78rem' };
+  // ── Step navigation (same validation as before, pulled out of inline handlers) ──
+  const nextFromAccount = () => {
+    const errors = {};
+    if (!formData.name.trim()) errors.name = 'Name is required';
+    if (!formData.email.trim() || !emailVerified) errors.email = emailVerified ? 'Email is required' : 'Please verify your email';
+    if (!isGoogleUser && (!formData.password.trim() || !passwordRequirements.every(r => r.test(formData.password)))) errors.password = 'Password must meet all requirements';
+    if (!formData.phone.trim() || phoneError) errors.phone = phoneError || 'Phone number is required';
+    if (!ageConfirmed) errors.ageConfirmed = 'You must confirm you are at least 18 years old';
+    setValidationErrors(prev => ({ ...prev, ...errors }));
+    if (Object.keys(errors).length > 0) { showToast('Please complete all required fields', 'error'); return; }
+    setCurrentStep(2);
+  };
 
+  const nextFromProfile = () => {
+    const errors = {};
+    if (!formData.state) errors.state = 'State is required';
+    if (!formData.city) errors.city = 'City is required';
+    if (!formData.bio.trim()) errors.bio = 'Description is required';
+    if (formData.role === 'Host' && !formData.hostingAreas.some(a => a.cities?.length > 0)) errors.hostingAreas = 'Please select at least one hosting area';
+    setValidationErrors(prev => ({ ...prev, ...errors }));
+    if (Object.keys(errors).length > 0) { showToast('Please complete all required fields', 'error'); return; }
+    setCurrentStep(3);
+  };
+
+  // ── Hosting-areas picker ──
+  // Works on a deep copy: the previous version pushed into the saved areas'
+  // city arrays in place, so closing the picker without "Done" still changed
+  // the selection.
+  const openHostingModal = () => {
+    const copy = formData.hostingAreas.map(a => ({ ...a, cities: [...a.cities] }));
+    setTempHostingAreas(copy);
+    setTempCityCount(copy.reduce((t, a) => t + a.cities.length, 0));
+    setShowHostingModal(true);
+  };
+
+  const toggleHostingCity = (state, city, selected) => {
+    const newAreas = tempHostingAreas.map(a => ({ ...a, cities: [...a.cities] }));
+    const idx = newAreas.findIndex(a => a.state === state);
+    if (idx >= 0) {
+      if (selected) {
+        newAreas[idx].cities = newAreas[idx].cities.filter(c => c !== city);
+        if (newAreas[idx].cities.length === 0) newAreas.splice(idx, 1);
+      } else {
+        newAreas[idx].cities.push(city);
+      }
+    } else {
+      if (newAreas.length >= 3) { showToast('Free users can select up to 3 hosting areas only', 'error'); return; }
+      newAreas.push({ state, cities: [city] });
+    }
+    setTempHostingAreas(newAreas);
+    setTempCityCount(newAreas.reduce((t, a) => t + a.cities.length, 0));
+  };
+
+  useEffect(() => {
+    if (!showHostingModal) return undefined;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = e => { if (e.key === 'Escape') setShowHostingModal(false); };
+    document.addEventListener('keydown', onKey);
+    return () => { document.body.style.overflow = prevOverflow; document.removeEventListener('keydown', onKey); };
+  }, [showHostingModal]);
+
+  // ── View helpers ──
+  const reduceMotion = useReducedMotion();
+  const [finePointer] = useState(() => window.matchMedia('(hover: hover) and (pointer: fine)').matches);
+  const [since] = useState(() => new Date().toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }));
   const steps = [{ num: 1, label: 'Account' }, { num: 2, label: 'Profile' }, { num: 3, label: 'Confirm' }];
+  const place = formData.city && formData.state
+    ? `${formData.city === 'Other' ? (formData.otherCity || 'Other') : formData.city}, ${formData.state}`
+    : '';
+  const stamps = [
+    { label: 'Email', done: emailVerified, icon: <Mail size={13} /> },
+    { label: 'Phone', done: phoneVerified, icon: <Smartphone size={13} /> },
+    { label: '18+', done: ageConfirmed, icon: <ShieldCheck size={13} /> },
+  ];
+  const pwMet = passwordRequirements.filter(r => r.test(formData.password)).length;
+  const selectedCityCount = formData.hostingAreas.reduce((t, a) => t + a.cities.length, 0);
+  const isHost = formData.role === 'Host';
+  const clearError = key => { if (validationErrors[key]) setValidationErrors(p => ({ ...p, [key]: '' })); };
+  const inputCls = (error, verified) => `rg-input${error ? ' has-error' : ''}${verified ? ' is-verified' : ''}`;
+  const stepMotion = {
+    initial: { opacity: 0, x: 24 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -24 },
+    transition: { duration: 0.3, ease: EASE },
+  };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #FF6B35 0%, #E55A2B 40%, #2D1B69 100%)',
-      display: 'flex', position: 'relative', overflow: 'hidden',
-      padding: '2rem 1.5rem', alignItems: 'flex-start',
-    }}>
+    <MotionConfig reducedMotion="user">
+      <div className="rg">
+        <div className="rg-aurora" aria-hidden="true"><span className="a1" /><span className="a2" /><span className="a3" /></div>
 
-      {/* Background decoration */}
-      <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
-        {[...Array(6)].map((_, i) => (
-          <motion.div key={i}
-            style={{ position: 'absolute', width: `${80 + i * 40}px`, height: `${80 + i * 40}px`, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', left: `${10 + i * 15}%`, top: `${5 + i * 12}%` }}
-            animate={{ y: [0, -15, 0], rotate: [0, 360] }}
-            transition={{ duration: 6 + i * 2, repeat: Infinity, ease: 'easeInOut', delay: i * 0.5 }}
-          />
-        ))}
-      </div>
-
-      {/* Toast */}
-      <AnimatePresence>
-        {toast && (
-          <motion.div
-            initial={{ x: 120, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 120, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-            style={{
-              position: 'fixed', top: '1.5rem', right: '1.5rem',
-              padding: '0.875rem 1.25rem',
-              background: toast.type === 'success' ? '#ecfdf5' : '#fef2f2',
-              borderRadius: 'var(--radius)', zIndex: 9999,
-              boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
-              display: 'flex', alignItems: 'center', gap: '0.75rem',
-              maxWidth: '320px', fontSize: '0.875rem',
-              borderLeft: `4px solid ${toast.type === 'success' ? '#10b981' : '#ef4444'}`,
-            }}
-          >
-            <span>{toast.type === 'success' ? '✅' : '❌'}</span>
-            <span style={{ fontWeight: 500, color: 'var(--text)' }}>
-              {toast.message}
-              {registrationSuccessCountdown > 0 && (
-                <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-                  Redirecting in {registrationSuccessCountdown}s…
-                </span>
-              )}
+        <div className="rg-shell">
+          {/* ═════════ Left: intro + live pass ═════════ */}
+          <aside className="rg-side">
+            <span className="rg-chip">
+              {registrationSuccessCountdown > 0
+                ? <><CheckCircle2 size={14} /> All done · Welcome aboard</>
+                : <><Sparkles size={14} /> Step {currentStep} of 3 · Free to join</>}
             </span>
-            {toast.type !== 'success' && (
-              <button onClick={() => setToast(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', marginLeft: 'auto', padding: 0, fontSize: '1.1rem' }}>×</button>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Server error banner */}
-      {serverError && (
-        <div style={{ position: 'fixed', top: '5rem', left: '50%', transform: 'translateX(-50%)', zIndex: 9998, background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '0.75rem 1.25rem', borderRadius: 'var(--radius)', maxWidth: '480px', width: '90%', fontSize: '0.875rem' }}>
-          ⚠️ {serverError}
-        </div>
-      )}
-
-      {/* Main card */}
-      <div style={{ margin: 'auto', width: '100%', maxWidth: '560px', position: 'relative', zIndex: 1, paddingTop: '0.5rem', paddingBottom: '2rem' }}>
-        <motion.div
-          initial={{ opacity: 0, y: 32, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.5, ease: 'easeOut' }}
-          style={{ background: 'white', borderRadius: 'var(--radius-xl)', boxShadow: '0 30px 80px rgba(0,0,0,0.22)', padding: '2.5rem 2rem' }}
-        >
-          {/* Logo + heading */}
-          <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-            <motion.div
-              initial={{ scale: 0 }} animate={{ scale: 1 }}
-              transition={{ delay: 0.15, type: 'spring', stiffness: 300 }}
-              style={{ width: 64, height: 64, background: 'var(--gradient-primary)', borderRadius: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem', margin: '0 auto 1rem', boxShadow: '0 8px 24px rgba(255,107,53,0.3)' }}
-            >
-              🎉
-            </motion.div>
-            <h1 style={{ margin: '0 0 0.25rem', fontSize: '1.5rem', fontWeight: 800, fontFamily: 'Plus Jakarta Sans, sans-serif', color: 'var(--text)' }}>
-              Join Festive Guest
+            <h1 className="rg-title">
+              {isHost ? <>Open your door to <span className="rg-grad">someone who needs it.</span></> : <>Your trusted local, <span className="rg-grad">wherever you go.</span></>}
             </h1>
-            <p style={{ color: 'var(--text-light)', fontSize: '0.875rem', margin: 0 }}>
-              Connect with local hosts across India
+            <p className="rg-lead">
+              {isHost
+                ? 'Create your host account, tell guests where you can host, and help someone at an important moment.'
+                : 'Create your account, verify your email and phone, and connect with local hosts across India.'}
             </p>
-          </div>
 
-          {/* Google Sign-In */}
-          {!isGoogleUser ? (
-            <>
-              {/* OpenID Connect — id_token for identity verification */}
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1rem' }}>
-                <GoogleLogin
-                  onSuccess={credentialResponse => handleGoogleVerify(credentialResponse.credential)}
-                  onError={() => showToast('Google sign-in failed', 'error')}
-                  useOneTap={false}
-                  text="continue_with"
-                  shape="rectangular"
-                  theme="outline"
-                  size="large"
-                  width="320"
-                />
+            <PassCard
+              name={formData.name}
+              role={formData.role}
+              place={place}
+              since={since}
+              code={formData.userId.slice(0, 8).toUpperCase()}
+              stamps={stamps}
+              interactive={finePointer && !reduceMotion}
+            />
+
+            <div className="rg-strip" aria-hidden="true">
+              <span className={`rg-avatar${isHost ? ' rg-avatar--host' : ''}`}>{(formData.name.trim() || '?').charAt(0).toUpperCase()}</span>
+              <div className="rg-strip-text">
+                <div className={`rg-pass-name${formData.name.trim() ? '' : ' is-empty'}`}>{formData.name.trim() || 'Your name'}</div>
+                <span className="rg-role-tag">{isHost ? '🏡 Local host' : '🧳 Guest'}</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-                <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
-                <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>or register with email</span>
-                <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
-              </div>
-            </>
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', padding: '0.75rem 1rem', background: 'rgba(22,163,74,0.06)', border: '1.5px solid rgba(22,163,74,0.25)', borderRadius: 'var(--radius)', marginBottom: '1.5rem' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" style={{ flexShrink: 0 }}><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-              <div style={{ flex: 1, fontSize: '0.85rem' }}>
-                <span style={{ color: '#15803d', fontWeight: 600 }}>✓ Google account verified</span>
-                <span style={{ color: 'var(--text-muted)', marginLeft: '0.5rem' }}>{verifiedEmail}</span>
-              </div>
-              <button type="button" onClick={() => { setIsGoogleUser(false); setEmailVerified(false); setVerifiedEmail(''); setFormData(prev => ({ ...prev, name: '', email: '' })); }}
-                style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-light)', cursor: 'pointer' }}>
-                Change
-              </button>
+              <div className="rg-stamps">{stamps.map(s => <Stamp key={s.label} {...s} />)}</div>
             </div>
-          )}
 
-          {/* Step indicator */}
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '2rem' }}>
-            {steps.map((step, i) => (
-              <React.Fragment key={step.num}>
-                {i > 0 && (
-                  <div style={{ flex: 1, height: '2px', background: currentStep > i ? 'var(--primary)' : 'var(--border)', maxWidth: '64px', minWidth: '20px', marginBottom: '1.25rem', transition: 'background 0.3s' }} />
-                )}
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
-                  <div style={{
-                    width: 34, height: 34, borderRadius: '50%',
-                    background: currentStep >= step.num ? 'var(--gradient-primary)' : 'var(--border)',
-                    color: currentStep >= step.num ? 'white' : 'var(--text-muted)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontWeight: 700, fontSize: '0.875rem', transition: 'all 0.3s',
-                    boxShadow: currentStep >= step.num ? '0 4px 12px rgba(255,107,53,0.35)' : 'none',
-                  }}>
-                    {currentStep > step.num ? '✓' : step.num}
-                  </div>
-                  <span style={{ fontSize: '0.68rem', fontWeight: currentStep === step.num ? 700 : 400, color: currentStep === step.num ? 'var(--primary)' : 'var(--text-muted)', whiteSpace: 'nowrap', transition: 'all 0.3s' }}>
-                    {step.label}
-                  </span>
-                </div>
-              </React.Fragment>
-            ))}
-          </div>
+            <ul className="rg-perks">
+              <li><Lock size={16} /> Your phone number and email stay hidden</li>
+              <li><MessageCircle size={16} /> Chat privately inside the app</li>
+              <li><CheckCircle2 size={16} /> Free to join — no booking fees</li>
+            </ul>
+          </aside>
 
-          <form onSubmit={handleSubmit}>
-
-            {/* ── Step 1: Account ── */}
-            {currentStep === 1 && (
-              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
-
-                {/* Role selector */}
-                <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={labelStyle}>I want to join as</label>
-                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
-                    {[
-                      { value: 'Guest', emoji: '🎒', title: 'Traveler', desc: 'Looking for hosts' },
-                      { value: 'Host', emoji: '🏠', title: 'Local Host', desc: 'Welcoming guests' },
-                    ].map(role => (
-                      <button key={role.value} type="button"
-                        onClick={() => setFormData(prev => ({ ...prev, role: role.value }))}
-                        style={{
-                          flex: 1, padding: '0.875rem 0.5rem', borderRadius: 'var(--radius)',
-                          border: `2px solid ${formData.role === role.value ? 'var(--primary)' : 'var(--border)'}`,
-                          background: formData.role === role.value ? 'rgba(255,107,53,0.06)' : 'var(--background)',
-                          cursor: 'pointer', transition: 'all 0.2s', textAlign: 'center',
-                          boxShadow: formData.role === role.value ? '0 4px 16px rgba(255,107,53,0.15)' : 'none',
-                        }}
-                      >
-                        <div style={{ fontSize: '1.4rem', marginBottom: '0.25rem' }}>{role.emoji}</div>
-                        <div style={{ fontWeight: 700, fontSize: '0.875rem', color: formData.role === role.value ? 'var(--primary)' : 'var(--text)', marginBottom: '0.1rem' }}>{role.title}</div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{role.desc}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Name */}
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={labelStyle}>Full Name</label>
-                  <input type="text" name="name" value={formData.name}
-                    onChange={e => { handleInputChange(e); if (validationErrors.name) setValidationErrors(p => ({ ...p, name: '' })); }}
-                    placeholder="Enter your full name" required
-                    style={inputStyle(!!validationErrors.name)}
-                    onFocus={e => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(255,107,53,0.1)'; e.target.style.background = 'white'; }}
-                    onBlur={e => { e.target.style.boxShadow = 'none'; e.target.style.background = 'var(--background)'; }}
-                  />
-                  {validationErrors.name && <p style={errorStyle}>⚠️ {validationErrors.name}</p>}
-                </div>
-
-                {/* Email + OTP */}
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={labelStyle}>Email Address</label>
-                  <input type="email" name="email" value={formData.email}
-                    onChange={e => { handleEmailChange(e); if (validationErrors.email) setValidationErrors(p => ({ ...p, email: '' })); }}
-                    onBlur={e => validateEmail(e.target.value)}
-                    placeholder="you@example.com" required disabled={emailVerified}
-                    style={{ ...inputStyle(!!(emailError || validationErrors.email)), background: emailVerified ? '#f8fafc' : 'var(--background)', cursor: emailVerified ? 'not-allowed' : 'text' }}
-                    onFocus={e => { if (!emailVerified) { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(255,107,53,0.1)'; e.target.style.background = 'white'; } }}
-                    onBlurCapture={e => { e.target.style.boxShadow = 'none'; e.target.style.background = emailVerified ? '#f8fafc' : 'var(--background)'; }}
-                  />
-                  {(emailError || validationErrors.email) && <p style={errorStyle}>⚠️ {emailError || validationErrors.email}</p>}
-
-                  <div style={{ marginTop: '0.625rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                    {!emailVerified && !otpSent && (
-                      <button type="button" onClick={sendRegistrationOtp} disabled={otpSending || !!emailError || !formData.email}
-                        style={{ padding: '0.5rem 1rem', borderRadius: 'var(--radius-sm)', background: 'var(--gradient-primary)', color: 'white', border: 'none', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', opacity: (otpSending || !!emailError || !formData.email) ? 0.5 : 1, transition: 'opacity 0.2s' }}>
-                        {otpSending ? 'Sending…' : 'Send OTP'}
-                      </button>
-                    )}
-                    {otpSent && (
-                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                        <div>
-                          <input type="text" value={verificationOTP}
-                            onChange={e => { setVerificationOTP(e.target.value.replace(/\D/g, '').slice(0, 6)); setOtpError(''); }}
-                            placeholder="6-digit OTP" maxLength={6}
-                            style={{ padding: '0.5rem 0.75rem', border: `1.5px solid ${otpError ? 'var(--error)' : 'var(--border)'}`, borderRadius: 'var(--radius-sm)', fontSize: '1rem', letterSpacing: '0.2em', width: '140px', background: 'var(--background)', color: 'var(--text)', outline: 'none' }}
-                          />
-                          {otpError && <p style={errorStyle}>⚠️ {otpError}</p>}
-                        </div>
-                        <button type="button" onClick={verifyRegistrationOtp} disabled={loading || verificationOTP.length !== 6}
-                          style={{ padding: '0.5rem 0.875rem', borderRadius: 'var(--radius-sm)', background: 'var(--gradient-primary)', color: 'white', border: 'none', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', opacity: (loading || verificationOTP.length !== 6) ? 0.5 : 1 }}>
-                          Verify
-                        </button>
-                      </div>
-                    )}
-                    {emailVerified && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ color: '#16a34a', fontWeight: 600, fontSize: '0.875rem' }}>✓ Email verified</span>
-                        <button type="button"
-                          onClick={() => { setEmailVerified(false); setVerifiedEmail(''); setOtpSent(false); setVerificationOTP(''); }}
-                          style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-light)', cursor: 'pointer' }}>
-                          Change
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Password — hidden for Google users */}
-                {!isGoogleUser && <div style={{ marginBottom: '1rem' }}>
-                  <label style={labelStyle}>Password</label>
-                  <div style={{ position: 'relative' }}>
-                    <input type={showPassword ? 'text' : 'password'} name="password" value={formData.password}
-                      onChange={e => { handleInputChange(e); if (validationErrors.password) setValidationErrors(p => ({ ...p, password: '' })); }}
-                      placeholder="Create a strong password" required
-                      style={{ ...inputStyle(!!validationErrors.password), paddingRight: '2.75rem' }}
-                      onFocus={e => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(255,107,53,0.1)'; e.target.style.background = 'white'; }}
-                      onBlur={e => { e.target.style.boxShadow = 'none'; e.target.style.background = 'var(--background)'; }}
-                    />
-                    <button type="button" onClick={() => setShowPassword(v => !v)}
-                      style={{ position: 'absolute', right: '0.875rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: 0 }}>
-                      {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-                    </button>
-                  </div>
-                  {validationErrors.password && <p style={errorStyle}>⚠️ {validationErrors.password}</p>}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.3rem', marginTop: '0.625rem' }}>
-                    {passwordRequirements.map((req, i) => (
-                      <div key={i} style={{ fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: '0.3rem', color: req.test(formData.password) ? '#16a34a' : 'var(--text-muted)', transition: 'color 0.2s' }}>
-                        {req.test(formData.password) ? '✓' : '○'} {req.label}
-                      </div>
-                    ))}
-                  </div>
-                </div>}
-
-                {/* Phone + OTP */}
-                <div style={{ marginBottom: '1rem' }}>
-                  <label style={labelStyle}>Phone Number</label>
-                  <input type="tel" name="phone" value={formData.phone} disabled={phoneVerified}
-                    onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); handleInputChange({ target: { name: 'phone', value: v } }); validatePhone(v); if (validationErrors.phone) setValidationErrors(p => ({ ...p, phone: '' })); }}
-                    onBlur={e => validatePhone(e.target.value)}
-                    placeholder="10-digit mobile number" required maxLength={10}
-                    style={{ ...inputStyle(!!(phoneError || validationErrors.phone)), background: phoneVerified ? '#f8fafc' : 'var(--background)', cursor: phoneVerified ? 'not-allowed' : 'text' }}
-                    onFocus={e => { if (!phoneVerified) { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(255,107,53,0.1)'; e.target.style.background = 'white'; } }}
-                    onBlurCapture={e => { e.target.style.boxShadow = 'none'; e.target.style.background = phoneVerified ? '#f8fafc' : 'var(--background)'; }}
-                  />
-                  {(phoneError || validationErrors.phone) && <p style={errorStyle}>⚠️ {phoneError || validationErrors.phone}</p>}
-
-                  <div style={{ marginTop: '0.625rem', display: 'flex', gap: '0.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                    {!phoneVerified && !phoneOtpSent && (
-                      <button type="button" onClick={sendPhoneOtp} disabled={phoneOtpSending || !!phoneError || !formData.phone}
-                        style={{ padding: '0.5rem 1rem', borderRadius: 'var(--radius-sm)', background: 'var(--gradient-primary)', color: 'white', border: 'none', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', opacity: (phoneOtpSending || !!phoneError || !formData.phone) ? 0.5 : 1, transition: 'opacity 0.2s' }}>
-                        {phoneOtpSending ? 'Sending…' : 'Send OTP'}
-                      </button>
-                    )}
-                    {phoneOtpSent && (
-                      <div>
-                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                          <div>
-                            <input type="text" value={phoneOtpCode}
-                              onChange={e => { setPhoneOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setPhoneOtpError(''); }}
-                              placeholder="6-digit OTP" maxLength={6}
-                              style={{ padding: '0.5rem 0.75rem', border: `1.5px solid ${phoneOtpError ? 'var(--error)' : 'var(--border)'}`, borderRadius: 'var(--radius-sm)', fontSize: '1rem', letterSpacing: '0.2em', width: '140px', background: 'var(--background)', color: 'var(--text)', outline: 'none' }}
-                            />
-                            {phoneOtpError && <p style={errorStyle}>⚠️ {phoneOtpError}</p>}
-                          </div>
-                          <button type="button" onClick={verifyPhoneOtp} disabled={loading || phoneOtpCode.length !== 6}
-                            style={{ padding: '0.5rem 0.875rem', borderRadius: 'var(--radius-sm)', background: 'var(--gradient-primary)', color: 'white', border: 'none', fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', opacity: (loading || phoneOtpCode.length !== 6) ? 0.5 : 1 }}>
-                            Verify
-                          </button>
-                        </div>
-                        <button type="button" onClick={() => { setPhoneOtpCode(''); setPhoneOtpError(''); sendPhoneOtp(); }} disabled={phoneOtpSending}
-                          style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600, marginTop: '0.5rem', padding: 0, boxShadow: 'none', opacity: phoneOtpSending ? 0.5 : 1 }}>
-                          {phoneOtpSending ? 'Resending…' : 'Resend OTP'}
-                        </button>
-                      </div>
-                    )}
-                    {phoneVerified && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <span style={{ color: '#16a34a', fontWeight: 600, fontSize: '0.875rem' }}>✓ Phone verified</span>
-                        <button type="button"
-                          onClick={() => { setPhoneVerified(false); setVerifiedPhone(''); setPhoneOtpSent(false); setPhoneOtpCode(''); setPhoneVerificationToken(''); }}
-                          style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--text-light)', cursor: 'pointer' }}>
-                          Change
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Age confirmation */}
-                <div style={{ marginBottom: '1.25rem' }}>
-                  <div style={{
-                    display: 'flex', alignItems: 'flex-start', gap: '0.75rem',
-                    padding: '1rem', borderRadius: 'var(--radius)',
-                    background: validationErrors.ageConfirmed ? '#fef2f2' : 'rgba(255,107,53,0.05)',
-                    border: `1.5px solid ${validationErrors.ageConfirmed ? 'var(--error)' : 'rgba(255,107,53,0.2)'}`,
-                    transition: 'all 0.2s',
-                  }}>
-                    <input type="checkbox" id="ageConfirm" checked={ageConfirmed}
-                      onChange={e => { setAgeConfirmed(e.target.checked); if (validationErrors.ageConfirmed) setValidationErrors(p => ({ ...p, ageConfirmed: '' })); }}
-                      style={{ marginTop: '0.2rem', width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--primary)', flexShrink: 0 }}
-                    />
-                    <label htmlFor="ageConfirm" style={{ fontWeight: 600, color: 'var(--text)', cursor: 'pointer', lineHeight: 1.5, fontSize: '0.875rem' }}>
-                      I confirm I am at least <strong style={{ color: 'var(--primary)' }}>18 years old</strong> and can enter legally binding agreements.
-                    </label>
-                  </div>
-                  {validationErrors.ageConfirmed && <p style={errorStyle}>⚠️ {validationErrors.ageConfirmed}</p>}
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <motion.button type="button" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      const errors = {};
-                      if (!formData.name.trim()) errors.name = 'Name is required';
-                      if (!formData.email.trim() || !emailVerified) errors.email = emailVerified ? 'Email is required' : 'Please verify your email';
-                      if (!isGoogleUser && (!formData.password.trim() || !passwordRequirements.every(r => r.test(formData.password)))) errors.password = 'Password must meet all requirements';
-                      if (!formData.phone.trim() || phoneError) errors.phone = phoneError || 'Phone number is required';
-                      if (!ageConfirmed) errors.ageConfirmed = 'You must confirm you are at least 18 years old';
-                      setValidationErrors(prev => ({ ...prev, ...errors }));
-                      if (Object.keys(errors).length > 0) { showToast('Please complete all required fields', 'error'); return; }
-                      setCurrentStep(2);
-                    }}
-                    style={{ padding: '0.875rem 2rem', background: 'var(--gradient-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius)', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.95rem' }}
-                  >
-                    Next: Profile <ArrowRight size={18} />
-                  </motion.button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* ── Step 2: Profile ── */}
-            {currentStep === 2 && (
-              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
-
-                {/* State */}
-                <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={labelStyle}>State</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.5rem' }}>
-                    {Object.keys(locationData || {}).map(state => (
-                      <button key={state} type="button"
-                        onClick={() => { setFormData(prev => ({ ...prev, state, city: '' })); if (validationErrors.state) setValidationErrors(p => ({ ...p, state: '' })); }}
-                        style={{ padding: '0.45rem 0.875rem', borderRadius: 'var(--radius-sm)', border: `1.5px solid ${formData.state === state ? 'var(--primary)' : 'var(--border)'}`, background: formData.state === state ? 'rgba(255,107,53,0.08)' : 'var(--surface)', color: formData.state === state ? 'var(--primary)' : 'var(--text)', fontWeight: formData.state === state ? 700 : 500, fontSize: '0.825rem', cursor: 'pointer', transition: 'all 0.15s' }}>
-                        {state}
-                      </button>
-                    ))}
-                  </div>
-                  {validationErrors.state && <p style={errorStyle}>⚠️ {validationErrors.state}</p>}
-                </div>
-
-                {/* City */}
-                {formData.state && (
-                  <div style={{ marginBottom: '1.25rem' }}>
-                    <label style={labelStyle}>City</label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.5rem' }}>
-                      {(locationData[formData.state] || []).map(city => (
-                        <button key={city} type="button"
-                          onClick={() => { setFormData(prev => ({ ...prev, city })); if (validationErrors.city) setValidationErrors(p => ({ ...p, city: '' })); }}
-                          style={{ padding: '0.35rem 0.75rem', borderRadius: '8px', border: `1.5px solid ${formData.city === city ? 'var(--primary)' : 'var(--border)'}`, background: formData.city === city ? 'var(--primary)' : 'var(--surface)', color: formData.city === city ? 'white' : 'var(--text)', fontSize: '0.8rem', fontWeight: formData.city === city ? 600 : 400, cursor: 'pointer', transition: 'all 0.15s', boxShadow: formData.city === city ? '0 3px 10px rgba(255,107,53,0.25)' : 'none' }}>
-                          {city}
-                        </button>
-                      ))}
-                    </div>
-                    {validationErrors.city && <p style={errorStyle}>⚠️ {validationErrors.city}</p>}
-                  </div>
-                )}
-
-                {formData.city === 'Other' && (
-                  <div style={{ marginBottom: '1.25rem' }}>
-                    <label style={labelStyle}>Your City Name</label>
-                    <input type="text" name="otherCity" value={formData.otherCity} onChange={handleInputChange} placeholder="Enter city name"
-                      style={inputStyle(false)}
-                      onFocus={e => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(255,107,53,0.1)'; e.target.style.background = 'white'; }}
-                      onBlur={e => { e.target.style.boxShadow = 'none'; e.target.style.background = 'var(--background)'; }}
-                    />
-                  </div>
-                )}
-
-                {/* Bio */}
-                <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={labelStyle}>
-                    {formData.role === 'Host' ? 'What You Offer as a Host' : "What You're Looking For"}
-                  </label>
-                  <textarea name="bio" value={formData.bio}
-                    onChange={e => { handleInputChange(e); if (validationErrors.bio) setValidationErrors(p => ({ ...p, bio: '' })); }}
-                    placeholder={formData.role === 'Host' ? 'Describe what you offer to travelers (accommodation, local experiences, cultural insights…)' : "Tell hosts what you're looking for (cultural exchange, business travel, local food, festivals…)"}
-                    required rows={3} maxLength={250}
-                    style={{ ...inputStyle(!!validationErrors.bio), resize: 'vertical', minHeight: '88px', paddingLeft: '1rem', fontFamily: 'Inter, sans-serif' }}
-                    onFocus={e => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(255,107,53,0.1)'; e.target.style.background = 'white'; }}
-                    onBlur={e => { e.target.style.boxShadow = 'none'; e.target.style.background = 'var(--background)'; }}
-                  />
-                  {validationErrors.bio && <p style={errorStyle}>⚠️ {validationErrors.bio}</p>}
-                  <p style={{ textAlign: 'right', fontSize: '0.72rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>{formData.bio.length}/250</p>
-                </div>
-
-                {/* Hosting areas (Host only) */}
-                {formData.role === 'Host' && (
-                  <div style={{ marginBottom: '1.25rem' }}>
-                    <label style={labelStyle}>
-                      Areas Where You Can Host{' '}
-                      <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(up to 3 states)</span>
-                    </label>
-                    <button type="button"
-                      onClick={() => { const c = [...formData.hostingAreas]; setTempHostingAreas(c); setTempCityCount(c.reduce((t, a) => t + a.cities.length, 0)); setShowHostingModal(true); }}
-                      style={{ width: '100%', padding: '0.875rem 1rem', borderRadius: 'var(--radius)', border: `1.5px solid ${validationErrors.hostingAreas ? 'var(--error)' : 'var(--border)'}`, background: 'var(--surface)', color: 'var(--text)', fontWeight: 500, cursor: 'pointer', textAlign: 'left', fontSize: '0.875rem', transition: 'all 0.2s' }}>
-                      🗺️ Select Hosting Areas ({formData.hostingAreas.reduce((t, a) => t + a.cities.length, 0)} cities selected)
-                    </button>
-                    {validationErrors.hostingAreas && <p style={errorStyle}>⚠️ {validationErrors.hostingAreas}</p>}
-                    {formData.hostingAreas.some(a => a.cities.length > 0) && (
-                      <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: 'rgba(22,163,74,0.06)', border: '1px solid rgba(22,163,74,0.2)', borderRadius: 'var(--radius-sm)' }}>
-                        {formData.hostingAreas.filter(a => a.cities.length > 0).map(area => (
-                          <div key={area.state} style={{ fontSize: '0.825rem', color: '#15803d', marginBottom: '0.125rem' }}>
-                            <strong>{area.state}:</strong> {area.cities.join(', ')}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Referral */}
-                <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={labelStyle}>
-                    Referral Code{' '}
-                    <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span>
-                  </label>
-                  <input type="text" name="ReferredBy" value={formData.ReferredBy || ''}
-                    onChange={e => setFormData(prev => ({ ...prev, ReferredBy: e.target.value.toUpperCase() }))}
-                    placeholder="Friend's referral code"
-                    style={inputStyle(false)}
-                    onFocus={e => { e.target.style.borderColor = 'var(--primary)'; e.target.style.boxShadow = '0 0 0 3px rgba(255,107,53,0.1)'; e.target.style.background = 'white'; }}
-                    onBlur={e => { e.target.style.boxShadow = 'none'; e.target.style.background = 'var(--background)'; }}
-                  />
-                  {formData.ReferredBy && (
-                    <p style={{ fontSize: '0.75rem', color: '#16a34a', margin: '0.25rem 0 0' }}>✓ Referral code applied: {formData.ReferredBy}</p>
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  <motion.button type="button" whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-                    onClick={() => setCurrentStep(1)}
-                    style={{ padding: '0.875rem 1.5rem', background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius)', fontWeight: 600, cursor: 'pointer', color: 'var(--text-light)', fontSize: '0.9rem' }}>
-                    ← Back
-                  </motion.button>
-                  <motion.button type="button" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      const errors = {};
-                      if (!formData.state) errors.state = 'State is required';
-                      if (!formData.city) errors.city = 'City is required';
-                      if (!formData.bio.trim()) errors.bio = 'Description is required';
-                      if (formData.role === 'Host' && !formData.hostingAreas.some(a => a.cities?.length > 0)) errors.hostingAreas = 'Please select at least one hosting area';
-                      setValidationErrors(prev => ({ ...prev, ...errors }));
-                      if (Object.keys(errors).length > 0) { showToast('Please complete all required fields', 'error'); return; }
-                      setCurrentStep(3);
-                    }}
-                    style={{ flex: 1, padding: '0.875rem 2rem', background: 'var(--gradient-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius)', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.95rem' }}>
-                    Next: Confirm <ArrowRight size={18} />
-                  </motion.button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* ── Step 3: Confirm ── */}
-            {currentStep === 3 && (
-              <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
-
-                {/* Review summary */}
-                <div style={{ background: 'rgba(255,107,53,0.04)', border: '1px solid rgba(255,107,53,0.15)', borderRadius: 'var(--radius)', padding: '1.25rem', marginBottom: '1rem' }}>
-                  <p style={{ margin: '0 0 0.875rem', fontWeight: 700, color: 'var(--text)', fontSize: '0.9rem' }}>Review your details</p>
-                  <div style={{ display: 'grid', gap: '0.5rem' }}>
-                    {[
-                      { label: 'Name', value: formData.name },
-                      { label: 'Email', value: verifiedEmail + ' ✓' },
-                      { label: 'Phone', value: formData.phone },
-                      { label: 'Role', value: formData.role === 'Host' ? '🏠 Local Host' : '🎒 Traveler' },
-                      { label: 'Location', value: formData.city && formData.state ? `${formData.city === 'Other' ? formData.otherCity : formData.city}, ${formData.state}` : '—' },
-                    ].map(row => (
-                      <div key={row.label} style={{ display: 'flex', gap: '0.75rem', fontSize: '0.875rem' }}>
-                        <span style={{ color: 'var(--text-muted)', minWidth: '72px', flexShrink: 0 }}>{row.label}</span>
-                        <span style={{ fontWeight: 600, color: 'var(--text)' }}>{row.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', padding: '0.875rem', background: 'rgba(22,163,74,0.06)', border: '1px solid rgba(22,163,74,0.2)', borderRadius: 'var(--radius)', fontSize: '0.825rem', color: '#15803d', alignItems: 'flex-start' }}>
-                  <span style={{ flexShrink: 0, marginTop: '0.05rem' }}>✓</span>
-                  <span>Age confirmed (18+) · Terms &amp; Privacy accepted · Email verified</span>
-                </div>
-
-                <div style={{ display: 'flex', gap: '0.75rem' }}>
-                  <motion.button type="button" whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-                    onClick={() => setCurrentStep(2)}
-                    style={{ padding: '0.875rem 1.5rem', background: 'var(--surface)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius)', fontWeight: 600, cursor: 'pointer', color: 'var(--text-light)', fontSize: '0.9rem' }}>
-                    ← Back
-                  </motion.button>
-                  <motion.button type="submit" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                    disabled={loading || registrationSuccessCountdown > 0}
-                    style={{ flex: 1, padding: '0.9rem 2rem', background: 'var(--gradient-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius)', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', opacity: (loading || registrationSuccessCountdown > 0) ? 0.65 : 1, fontSize: '0.95rem' }}>
-                    {loading ? (
-                      <><div style={{ width: 18, height: 18, border: '2.5px solid rgba(255,255,255,0.4)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> Registering…</>
-                    ) : registrationSuccessCountdown > 0 ? (
-                      <>🎉 Redirecting in {registrationSuccessCountdown}s</>
-                    ) : (
-                      <>Create Account <CheckCircle size={18} /></>
-                    )}
-                  </motion.button>
-                </div>
-              </motion.div>
-            )}
-
-          </form>
-
-          {/* Sign-in link */}
-          <div style={{ textAlign: 'center', marginTop: '1.75rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border)' }}>
-            <span style={{ color: 'var(--text-light)', fontSize: '0.875rem' }}>Already have an account? </span>
-            <motion.button onClick={() => navigate('/login')} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-              style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 700, cursor: 'pointer', fontSize: '0.875rem', padding: 0 }}>
-              Sign In →
-            </motion.button>
-          </div>
-
-        </motion.div>
-      </div>
-
-      {/* ── Hosting Areas Modal ── */}
-      {showHostingModal && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(15,8,0,0.55)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem' }}
-          onClick={() => setShowHostingModal(false)}
-        >
-          <div
-            style={{ background: 'white', borderRadius: 'var(--radius-lg)', boxShadow: '0 30px 80px rgba(0,0,0,0.22)', maxWidth: '680px', width: '100%', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
-            onClick={e => e.stopPropagation()}
+          {/* ═════════ Right: form ═════════ */}
+          <motion.section
+            className="rg-card"
+            initial={{ opacity: 0, y: 28 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, ease: EASE }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
-              <h3 style={{ margin: 0, fontSize: '1rem', color: 'var(--text)' }}>🗺️ Select Hosting Areas</h3>
-              <button onClick={() => setShowHostingModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.5rem', color: 'var(--text-muted)', lineHeight: 1, padding: 0 }}>×</button>
-            </div>
-            <div style={{ overflowY: 'auto', padding: '1.25rem 1.5rem', flex: 1 }}>
-              {Object.entries(locationData || {}).map(([state, cities]) => {
-                const selectedCities = tempHostingAreas.find(a => a.state === state)?.cities || [];
-                return (
-                  <div key={state} style={{ marginBottom: '1.25rem' }}>
-                    <div style={{ fontWeight: 700, fontSize: '0.825rem', color: 'var(--text)', marginBottom: '0.5rem', paddingBottom: '0.25rem', borderBottom: '1px solid var(--border)' }}>{state}</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.5rem' }}>
-                      {cities.map(city => {
-                        const selected = selectedCities.includes(city);
-                        return (
-                          <button key={city} type="button"
-                            onClick={() => {
-                              const newAreas = [...tempHostingAreas];
-                              const idx = newAreas.findIndex(a => a.state === state);
-                              if (idx >= 0) {
-                                if (selected) {
-                                  newAreas[idx].cities = newAreas[idx].cities.filter(c => c !== city);
-                                  if (newAreas[idx].cities.length === 0) newAreas.splice(idx, 1);
-                                } else {
-                                  newAreas[idx].cities.push(city);
-                                }
-                              } else {
-                                if (newAreas.length >= 3) { showToast('Free users can select up to 3 hosting areas only', 'error'); return; }
-                                newAreas.push({ state, cities: [city] });
-                              }
-                              setTempHostingAreas(newAreas);
-                              setTempCityCount(newAreas.reduce((t, a) => t + a.cities.length, 0));
-                            }}
-                            style={{ padding: '0.35rem 0.75rem', borderRadius: '8px', border: `1.5px solid ${selected ? 'var(--primary)' : 'var(--border)'}`, background: selected ? 'var(--primary)' : 'var(--surface)', color: selected ? 'white' : 'var(--text)', fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.15s', fontWeight: selected ? 600 : 400 }}>
-                            {city}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
-              <motion.button type="button" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                onClick={() => { setFormData(prev => ({ ...prev, hostingAreas: tempHostingAreas })); setShowHostingModal(false); }}
-                style={{ padding: '0.75rem 2rem', background: 'var(--gradient-primary)', color: 'white', border: 'none', borderRadius: 'var(--radius)', fontWeight: 700, cursor: 'pointer', fontSize: '0.9rem' }}>
-                ✓ Done ({tempCityCount} cities selected)
-              </motion.button>
-            </div>
-          </div>
-        </div>
-      )}
+            {registrationSuccessCountdown > 0 ? (
+              <div className="rg-success" role="status">
+                <motion.div className="rg-success-icon" initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 14 }}>
+                  <Check size={42} strokeWidth={3} />
+                </motion.div>
+                <h2>You're in! 🎉</h2>
+                <p>Your FestiveGuest account is ready — taking you to the sign-in page ({registrationSuccessCountdown}s)…</p>
+              </div>
+            ) : (
+              <>
+                <h2 className="rg-card-title">Create your account</h2>
+                <p className="rg-card-sub">Takes a few minutes — we verify every member's email and phone.</p>
 
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
+                <div className="rg-stepper">
+                  <div className="rg-steps-track" aria-hidden="true">
+                    <motion.span className="rg-steps-fill" initial={false} animate={{ width: `${((currentStep - 1) / 2) * 100}%` }} transition={{ duration: 0.45, ease: EASE }} />
+                  </div>
+                  <ol className="rg-steps">
+                    {steps.map(s => (
+                      <li key={s.num} className={`rg-step${currentStep === s.num ? ' is-current' : ''}${currentStep > s.num ? ' is-done' : ''}`}>
+                        <button type="button" disabled={s.num >= currentStep} onClick={() => setCurrentStep(s.num)} aria-current={currentStep === s.num ? 'step' : undefined}>
+                          <span className="rg-step-dot">{currentStep > s.num ? <Check size={15} strokeWidth={3} /> : s.num}</span>
+                          {s.label}
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+
+                {serverError && (
+                  <div className="rg-alert" role="alert"><AlertTriangle size={17} /> {serverError}</div>
+                )}
+
+                <form onSubmit={handleSubmit} noValidate>
+                  <AnimatePresence mode="wait" initial={false}>
+                    {/* ── Step 1: Account ── */}
+                    {currentStep === 1 && (
+                      <motion.div key="step1" {...stepMotion}>
+                        {!isGoogleUser ? (
+                          <>
+                            <div className="rg-google">
+                              <GoogleLogin
+                                onSuccess={credentialResponse => handleGoogleVerify(credentialResponse.credential)}
+                                onError={() => showToast('Google sign-in failed', 'error')}
+                                useOneTap={false}
+                                text="continue_with"
+                                shape="pill"
+                                theme="outline"
+                                size="large"
+                                width="320"
+                              />
+                            </div>
+                            {accountExists === 'google' && (
+                              <div className="rg-alert" role="alert" style={{ marginTop: '1rem', marginBottom: 0 }}>
+                                <AlertTriangle size={17} />
+                                <span>
+                                  That Google account is already registered.{' '}
+                                  <button type="button" className="rg-link-btn" onClick={() => navigate('/login')}>Sign in instead</button>
+                                </span>
+                              </div>
+                            )}
+                            <div className="rg-divider">or sign up with email</div>
+                          </>
+                        ) : (
+                          <div className="rg-google-ok">
+                            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" style={{ flexShrink: 0 }}><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <strong>Google account verified</strong>{' '}
+                              <span className="rg-mute">{verifiedEmail}</span>
+                            </div>
+                            <button type="button" className="rg-link-btn" onClick={() => { setIsGoogleUser(false); setEmailVerified(false); setVerifiedEmail(''); setFormData(prev => ({ ...prev, name: '', email: '' })); }}>
+                              Change
+                            </button>
+                          </div>
+                        )}
+
+                        <div className="rg-field">
+                          <span className="rg-label" id="rg-role-label">I want to join as</span>
+                          <div className="rg-roles" role="radiogroup" aria-labelledby="rg-role-label">
+                            {ROLES.map(r => (
+                              <button key={r.value} type="button" role="radio" aria-checked={formData.role === r.value}
+                                className={`rg-role${formData.role === r.value ? ' is-on' : ''}`}
+                                onClick={() => setFormData(prev => ({ ...prev, role: r.value }))}>
+                                <span className="rg-role-icon" aria-hidden="true">{r.emoji}</span>
+                                <span className="rg-role-title">{r.title}</span>
+                                <span className="rg-role-desc">{r.desc}</span>
+                                {formData.role === r.value && (
+                                  <motion.span layoutId="rg-role-check" className="rg-role-check" aria-hidden="true"><Check size={13} strokeWidth={3} /></motion.span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="rg-field">
+                          <label className="rg-label" htmlFor="rg-name">Full name</label>
+                          <input id="rg-name" className={inputCls(validationErrors.name)} type="text" name="name" autoComplete="name"
+                            value={formData.name} placeholder="Enter your full name" required
+                            onChange={e => { handleInputChange(e); clearError('name'); }} />
+                          {validationErrors.name && <p className="rg-error">{validationErrors.name}</p>}
+                        </div>
+
+                        {/* Email + OTP */}
+                        <div className="rg-field">
+                          <label className="rg-label" htmlFor="rg-email">Email address</label>
+                          <div className="rg-inline">
+                            <input id="rg-email" type="email" name="email" autoComplete="email" required
+                              className={`${inputCls(emailError || validationErrors.email, emailVerified)}${!otpSent || emailVerified ? ' has-action' : ''}`}
+                              value={formData.email} placeholder="you@example.com" disabled={emailVerified}
+                              onChange={e => { handleEmailChange(e); clearError('email'); }}
+                              onBlur={e => validateEmail(e.target.value)} />
+                            {emailVerified ? (
+                              <span className="rg-verified">
+                                <CheckCircle2 size={15} /> Verified
+                                {!isGoogleUser && (
+                                  <button type="button" className="rg-link-btn" onClick={() => { setEmailVerified(false); setVerifiedEmail(''); setOtpSent(false); setVerificationOTP(''); }}>Change</button>
+                                )}
+                              </span>
+                            ) : !otpSent && (
+                              <button type="button" className="rg-send" onClick={sendRegistrationOtp} disabled={otpSending || !!emailError || !formData.email}>
+                                {otpSending ? 'Sending…' : 'Send code'}
+                              </button>
+                            )}
+                          </div>
+                          {(emailError || validationErrors.email) && (
+                            <p className="rg-error" role={accountExists === 'email' ? 'alert' : undefined}>
+                              {emailError || validationErrors.email}
+                              {accountExists === 'email' && (
+                                <> <button type="button" className="rg-link-btn" onClick={() => navigate('/login')}>Sign in instead</button></>
+                              )}
+                            </p>
+                          )}
+                          <AnimatePresence initial={false}>
+                            {otpSent && !emailVerified && (
+                              <motion.div className="rg-otp" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3, ease: EASE }}>
+                                <div className="rg-otp-inner">
+                                  <p className="rg-otp-hint">Enter the 6-digit code sent to <strong>{formData.email}</strong></p>
+                                  <div className="rg-otp-row">
+                                    <input className={`rg-input rg-otp-input${otpError ? ' has-error' : ''}`} inputMode="numeric" autoComplete="one-time-code"
+                                      aria-label="Email verification code" placeholder="••••••" maxLength={6} value={verificationOTP}
+                                      onChange={e => { setVerificationOTP(e.target.value.replace(/\D/g, '').slice(0, 6)); setOtpError(''); }} />
+                                    <button type="button" className="rg-btn rg-btn-primary rg-btn-sm" onClick={verifyRegistrationOtp} disabled={loading || verificationOTP.length !== 6}>Verify</button>
+                                  </div>
+                                  {otpError && <p className="rg-error">{otpError}</p>}
+                                  <button type="button" className="rg-link-btn" onClick={() => { setVerificationOTP(''); setOtpError(''); sendRegistrationOtp(); }} disabled={otpSending}>
+                                    {otpSending ? 'Resending…' : 'Resend code'}
+                                  </button>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        {/* Password — hidden for Google users */}
+                        {!isGoogleUser && (
+                          <div className="rg-field">
+                            <label className="rg-label" htmlFor="rg-password">Password</label>
+                            <div className="rg-inline">
+                              <input id="rg-password" name="password" autoComplete="new-password" required
+                                className={inputCls(validationErrors.password)} style={{ paddingRight: '3rem' }}
+                                type={showPassword ? 'text' : 'password'} value={formData.password} placeholder="Create a strong password"
+                                onChange={e => { handleInputChange(e); clearError('password'); }} />
+                              <button type="button" className="rg-eye" onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                              </button>
+                            </div>
+                            {validationErrors.password && <p className="rg-error">{validationErrors.password}</p>}
+                            <div className="rg-strength" aria-hidden="true"><span className={`lvl-${pwMet}`} style={{ width: `${(pwMet / passwordRequirements.length) * 100}%` }} /></div>
+                            <ul className="rg-reqs">
+                              {passwordRequirements.map(req => {
+                                const met = req.test(formData.password);
+                                return (
+                                  <li key={req.label} className={met ? 'is-met' : ''}>
+                                    {met ? <Check size={12} strokeWidth={3} /> : <span className="rg-dot" />} {req.label}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Phone + OTP */}
+                        <div className="rg-field">
+                          <label className="rg-label" htmlFor="rg-phone">Mobile number</label>
+                          <div className="rg-inline">
+                            <span className="rg-prefix" aria-hidden="true">+91</span>
+                            <input id="rg-phone" type="tel" name="phone" autoComplete="tel-national" required maxLength={10} inputMode="numeric"
+                              className={`${inputCls(phoneError || validationErrors.phone, phoneVerified)} rg-input--prefixed${!phoneOtpSent || phoneVerified ? ' has-action' : ''}`}
+                              value={formData.phone} placeholder="10-digit mobile number" disabled={phoneVerified}
+                              onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); handleInputChange({ target: { name: 'phone', value: v } }); validatePhone(v); clearError('phone'); }}
+                              onBlur={e => validatePhone(e.target.value)} />
+                            {phoneVerified ? (
+                              <span className="rg-verified">
+                                <CheckCircle2 size={15} /> Verified
+                                <button type="button" className="rg-link-btn" onClick={() => { setPhoneVerified(false); setVerifiedPhone(''); setPhoneOtpSent(false); setPhoneOtpCode(''); setPhoneVerificationToken(''); }}>Change</button>
+                              </span>
+                            ) : !phoneOtpSent && (
+                              <button type="button" className="rg-send" onClick={sendPhoneOtp} disabled={phoneOtpSending || !!phoneError || !formData.phone}>
+                                {phoneOtpSending ? 'Sending…' : 'Send code'}
+                              </button>
+                            )}
+                          </div>
+                          {(phoneError || validationErrors.phone) && <p className="rg-error">{phoneError || validationErrors.phone}</p>}
+                          <AnimatePresence initial={false}>
+                            {phoneOtpSent && !phoneVerified && (
+                              <motion.div className="rg-otp" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3, ease: EASE }}>
+                                <div className="rg-otp-inner">
+                                  <p className="rg-otp-hint">Enter the 6-digit code sent by SMS to <strong>+91 {formData.phone}</strong></p>
+                                  <div className="rg-otp-row">
+                                    <input className={`rg-input rg-otp-input${phoneOtpError ? ' has-error' : ''}`} inputMode="numeric" autoComplete="one-time-code"
+                                      aria-label="Phone verification code" placeholder="••••••" maxLength={6} value={phoneOtpCode}
+                                      onChange={e => { setPhoneOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setPhoneOtpError(''); }} />
+                                    <button type="button" className="rg-btn rg-btn-primary rg-btn-sm" onClick={verifyPhoneOtp} disabled={loading || phoneOtpCode.length !== 6}>Verify</button>
+                                  </div>
+                                  {phoneOtpError && <p className="rg-error">{phoneOtpError}</p>}
+                                  <button type="button" className="rg-link-btn" onClick={() => { setPhoneOtpCode(''); setPhoneOtpError(''); sendPhoneOtp(); }} disabled={phoneOtpSending}>
+                                    {phoneOtpSending ? 'Resending…' : 'Resend code'}
+                                  </button>
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        <div className="rg-field">
+                          <label className={`rg-check-row${ageConfirmed ? ' is-on' : ''}${validationErrors.ageConfirmed ? ' has-error' : ''}`}>
+                            <input type="checkbox" id="ageConfirm" className="rg-check" checked={ageConfirmed}
+                              onChange={e => { setAgeConfirmed(e.target.checked); clearError('ageConfirmed'); }} />
+                            <span>I confirm I am at least <strong>18 years old</strong> and can enter legally binding agreements.</span>
+                          </label>
+                          {validationErrors.ageConfirmed && <p className="rg-error">{validationErrors.ageConfirmed}</p>}
+                        </div>
+
+                        <div className="rg-actions">
+                          <button type="button" className="rg-btn rg-btn-primary" onClick={nextFromAccount}>
+                            Next: Profile <ArrowRight size={18} />
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* ── Step 2: Profile ── */}
+                    {currentStep === 2 && (
+                      <motion.div key="step2" {...stepMotion}>
+                        <div className="rg-field">
+                          <span className="rg-label">Which state do you live in?</span>
+                          <div className="rg-chips rg-chips--scroll">
+                            {Object.keys(locationData || {}).map(state => (
+                              <button key={state} type="button" className={`rg-chip-btn${formData.state === state ? ' is-on' : ''}`} aria-pressed={formData.state === state}
+                                onClick={() => { setFormData(prev => ({ ...prev, state, city: '' })); clearError('state'); }}>
+                                {state}
+                              </button>
+                            ))}
+                          </div>
+                          {validationErrors.state && <p className="rg-error">{validationErrors.state}</p>}
+                        </div>
+
+                        {formData.state && (
+                          <div className="rg-field">
+                            <span className="rg-label">City</span>
+                            <div className="rg-chips rg-chips--scroll">
+                              {(locationData[formData.state] || []).map(city => (
+                                <button key={city} type="button" className={`rg-chip-btn${formData.city === city ? ' is-on' : ''}`} aria-pressed={formData.city === city}
+                                  onClick={() => { setFormData(prev => ({ ...prev, city })); clearError('city'); }}>
+                                  {city}
+                                </button>
+                              ))}
+                            </div>
+                            {validationErrors.city && <p className="rg-error">{validationErrors.city}</p>}
+                          </div>
+                        )}
+
+                        {formData.city === 'Other' && (
+                          <div className="rg-field">
+                            <label className="rg-label" htmlFor="rg-other-city">Your city name</label>
+                            <input id="rg-other-city" className="rg-input" type="text" name="otherCity" value={formData.otherCity} onChange={handleInputChange} placeholder="Enter city name" />
+                          </div>
+                        )}
+
+                        <div className="rg-field">
+                          <label className="rg-label" htmlFor="rg-bio">{isHost ? 'What you offer as a host' : "What you're looking for"}</label>
+                          <textarea id="rg-bio" name="bio" className={`${inputCls(validationErrors.bio)} rg-textarea`} required rows={3} maxLength={250}
+                            value={formData.bio}
+                            placeholder={isHost ? 'Describe what you offer to travelers (a room, local guidance, help getting around…)' : 'Tell hosts why you are travelling (an interview, a hospital visit, an exam…)'}
+                            onChange={e => { handleInputChange(e); clearError('bio'); }} />
+                          {validationErrors.bio && <p className="rg-error">{validationErrors.bio}</p>}
+                          <p className="rg-counter">{formData.bio.length}/250</p>
+                        </div>
+
+                        {isHost && (
+                          <div className="rg-field">
+                            <span className="rg-label">Areas where you can host <small>(up to 3 states)</small></span>
+                            <button type="button" className={`rg-area-btn${validationErrors.hostingAreas ? ' has-error' : ''}`} onClick={openHostingModal}>
+                              <MapIcon size={18} /> Choose hosting areas
+                              <span className="rg-area-count">{selectedCityCount} {selectedCityCount === 1 ? 'city' : 'cities'}</span>
+                            </button>
+                            {validationErrors.hostingAreas && <p className="rg-error">{validationErrors.hostingAreas}</p>}
+                            {formData.hostingAreas.some(a => a.cities.length > 0) && (
+                              <div className="rg-areas-sum">
+                                {formData.hostingAreas.filter(a => a.cities.length > 0).map(area => (
+                                  <div key={area.state}><strong>{area.state}:</strong> {area.cities.join(', ')}</div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="rg-field">
+                          <label className="rg-label" htmlFor="rg-ref">Referral code <small>(optional)</small></label>
+                          <div className="rg-inline">
+                            <span className="rg-input-icon" aria-hidden="true"><Gift size={17} /></span>
+                            <input id="rg-ref" className="rg-input rg-input--iconed" type="text" name="ReferredBy" value={formData.ReferredBy || ''}
+                              placeholder="Friend's referral code"
+                              onChange={e => setFormData(prev => ({ ...prev, ReferredBy: e.target.value.toUpperCase() }))} />
+                          </div>
+                          {formData.ReferredBy && <p className="rg-note">✓ Referral code applied: {formData.ReferredBy}</p>}
+                        </div>
+
+                        <div className="rg-actions">
+                          <button type="button" className="rg-btn rg-btn-ghost" onClick={() => setCurrentStep(1)}><ArrowLeft size={17} /> Back</button>
+                          <button type="button" className="rg-btn rg-btn-primary" onClick={nextFromProfile}>Next: Confirm <ArrowRight size={18} /></button>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* ── Step 3: Confirm ── */}
+                    {currentStep === 3 && (
+                      <motion.div key="step3" {...stepMotion}>
+                        <dl className="rg-review">
+                          {[
+                            { label: 'Name', value: formData.name },
+                            { label: 'Email', value: verifiedEmail + ' ✓' },
+                            { label: 'Phone', value: formData.phone },
+                            { label: 'Joining as', value: isHost ? '🏡 Local host' : '🧳 Guest' },
+                            { label: 'Location', value: place || '—' },
+                          ].map(row => (
+                            <div key={row.label} className="rg-review-row"><dt>{row.label}</dt><dd>{row.value}</dd></div>
+                          ))}
+                        </dl>
+
+                        <div className="rg-review-ok">
+                          <CheckCircle2 size={16} />
+                          <span>Age confirmed (18+) · Terms &amp; Privacy accepted · Email verified</span>
+                        </div>
+
+                        <div className="rg-actions">
+                          <button type="button" className="rg-btn rg-btn-ghost" onClick={() => setCurrentStep(2)}><ArrowLeft size={17} /> Back</button>
+                          <button type="submit" className="rg-btn rg-btn-primary" disabled={loading || registrationSuccessCountdown > 0}>
+                            {loading ? <><span className="rg-spinner" /> Creating account…</> : <>Create account <CheckCircle2 size={18} /></>}
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </form>
+
+                <div className="rg-signin">
+                  Already have an account?
+                  <button type="button" className="rg-link-btn" onClick={() => navigate('/login')}>Sign in →</button>
+                </div>
+              </>
+            )}
+          </motion.section>
+        </div>
+
+        {/* Toast + hosting-areas dialog render into <body> so they sit above everything. */}
+        {createPortal(
+          <AnimatePresence>
+            {toast && (
+              <motion.div
+                key="toast"
+                className={`rg-toast is-${toast.type}`}
+                role={toast.type === 'error' ? 'alert' : 'status'}
+                initial={{ x: 120, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 120, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+              >
+                <span className="rg-toast-icon">{toast.type === 'success' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}</span>
+                <span>
+                  {toast.message}
+                  {registrationSuccessCountdown > 0 && <small>Redirecting in {registrationSuccessCountdown}s…</small>}
+                </span>
+                {toast.type !== 'success' && (
+                  <button type="button" className="rg-toast-close" onClick={() => setToast(null)} aria-label="Dismiss"><X size={16} /></button>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body,
+        )}
+
+        {showHostingModal && createPortal(
+          <div className="rg-modal-overlay rg-portal" onMouseDown={e => { if (e.target === e.currentTarget) setShowHostingModal(false); }}>
+            <motion.div className="rg-modal" role="dialog" aria-modal="true" aria-labelledby="rg-areas-title"
+              initial={{ opacity: 0, y: 30, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.35, ease: EASE }}>
+              <header className="rg-modal-head">
+                <h3 id="rg-areas-title"><MapIcon size={19} /> Where can you host?</h3>
+                <p>Pick the cities you can host in — up to 3 states.</p>
+                <button type="button" className="rg-icon-btn" onClick={() => setShowHostingModal(false)} aria-label="Close"><X size={18} /></button>
+              </header>
+              <div className="rg-modal-body">
+                {Object.entries(locationData || {}).map(([state, cities]) => {
+                  const selectedCities = tempHostingAreas.find(a => a.state === state)?.cities || [];
+                  return (
+                    <div key={state} className="rg-area-state">
+                      <h4>{state}{selectedCities.length > 0 && <span>{selectedCities.length} selected</span>}</h4>
+                      <div className="rg-chips">
+                        {cities.map(city => {
+                          const selected = selectedCities.includes(city);
+                          return (
+                            <button key={city} type="button" className={`rg-chip-btn${selected ? ' is-on' : ''}`} aria-pressed={selected}
+                              onClick={() => toggleHostingCity(state, city, selected)}>
+                              {city}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <footer className="rg-modal-foot">
+                <span>{tempCityCount} {tempCityCount === 1 ? 'city' : 'cities'} selected</span>
+                <button type="button" className="rg-btn rg-btn-primary"
+                  onClick={() => { setFormData(prev => ({ ...prev, hostingAreas: tempHostingAreas })); setShowHostingModal(false); }}>
+                  <Check size={17} /> Done
+                </button>
+              </footer>
+            </motion.div>
+          </div>,
+          document.body,
+        )}
+      </div>
+    </MotionConfig>
   );
 };
 

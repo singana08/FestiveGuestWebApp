@@ -6,15 +6,16 @@ test.describe('Homepage', () => {
     await page.goto('/');
     await waitForAppShell(page);
 
-    await expect(page.getByRole('heading', { name: /find a trusted local host/i })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Join as Guest' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Join as Host' })).toBeVisible();
+    // The hero's visible headline rotates through trip purposes; its
+    // accessible name is a fixed full sentence, which is what's matched here.
+    await expect(page.getByRole('heading', { level: 1, name: /stay with a trusted local/i })).toBeVisible();
+    // `exact`: the final CTA cards repeat these phrases inside longer labels.
+    await expect(page.getByRole('button', { name: 'I need a place to stay', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'I can host someone', exact: true })).toBeVisible();
 
-    // Trust/stat strip should render real numbers, not placeholders. Scoped
-    // to .exact match — "Verified Hosts" also appears (differently cased,
-    // with an emoji) in an unrelated badge elsewhere on the page.
-    await expect(page.getByText('20+')).toBeVisible();
-    await expect(page.getByText('Verified Hosts', { exact: true })).toBeVisible();
+    // The purpose section is what tells first-time visitors what the site is for.
+    await expect(page.getByRole('heading', { name: 'Made for the trips that matter' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Hospital visits' })).toBeVisible();
   });
 
   test('has no console errors on initial load', async ({ page }) => {
@@ -60,11 +61,11 @@ test.describe('Homepage', () => {
     await page.getByRole('button', { name: 'తెలుగు' }).click();
 
     // Hero heading text changes once translated.
-    await expect(page.locator('body')).not.toContainText('Find a Trusted Local Host', { timeout: 10_000 });
+    await expect(page.locator('body')).not.toContainText('Stay with a trusted local', { timeout: 10_000 });
 
     await openNavMenu(page);
     await page.getByText('English', { exact: true }).click();
 
-    await expect(page.getByRole('heading', { name: /find a trusted local host/i })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: /stay with a trusted local/i })).toBeVisible();
   });
 });

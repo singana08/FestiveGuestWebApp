@@ -10,7 +10,7 @@ import InviteFriendsModal from './components/InviteFriendsModal';
 import './styles/App.css';
 
 // ── Lazy-loaded pages (code splitting for faster initial load) ──
-const LandingPage     = lazy(() => import('./pages/LandingPage'));
+const Home            = lazy(() => import('./pages/Home'));
 const Login           = lazy(() => import('./pages/Login'));
 const Registration    = lazy(() => import('./pages/Registration'));
 const GuestDashboard  = lazy(() => import('./pages/GuestDashboard'));
@@ -31,6 +31,9 @@ const SafetyGuidelines = lazy(() => import('./pages/SafetyGuidelines'));
 const ApiTest         = lazy(() => import('./components/ApiTest'));
 const ChatDebug       = lazy(() => import('./components/ChatDebug'));
 const NotFound        = lazy(() => import('./pages/NotFound'));
+
+// Routes drawn on the dark glass theme; the shell and navbar switch to match.
+const DARK_ROUTES = new Set(['/', '/home', '/register']);
 
 // ── Static ambient background (CSS-only — no scroll-time repaint cost) ──
 const AppBackground = () => (
@@ -142,6 +145,7 @@ const AppContent = () => {
   // that effect already ran, so it was already un-guarding by then.
   const [bootLocationKey] = useState(() => location.key);
   const backgroundLocation = location.key === bootLocationKey ? undefined : location.state?.backgroundLocation;
+  const isDarkPage = DARK_ROUTES.has((backgroundLocation || location).pathname);
 
   useEffect(() => {
     document.body.setAttribute('lang', language);
@@ -241,10 +245,10 @@ const AppContent = () => {
   if (loading) return <Loader />;
 
   return (
-    <div className="app-container">
+    <div className={`app-container${isDarkPage ? ' theme-dark' : ''}`}>
       <AppBackground />
       {/* ── Navbar ── */}
-      <nav className="navbar">
+      <nav className={`navbar${isDarkPage ? ' navbar--glass' : ''}`}>
         <Link to="/" className="nav-logo">
           <Logo className="nav-logo-img" style={{ height: '52px' }} />
         </Link>
@@ -277,14 +281,10 @@ const AppContent = () => {
               <Link to="/login" className={`nav-item ${isActive('/login') ? 'active' : ''}`}>
                 {t('login')}
               </Link>
-              <Link
-                to="/?register=true"
-                className="nav-item btn-primary"
-                style={{ background: 'var(--gradient-primary)', color: 'white', borderRadius: '0.625rem', padding: '0.45rem 1rem', fontWeight: 600, fontSize: '0.875rem', boxShadow: '0 4px 12px rgba(255,107,53,0.3)' }}
-              >
+              <Link to="/?register=true" className="nav-item nav-cta">
                 {t('register')}
               </Link>
-              <button onClick={toggleLanguage} className="nav-item">
+              <button onClick={toggleLanguage} className="nav-item nav-lang">
                 <Globe size={17} /> {language === 'en' ? 'తెలుగు' : 'English'}
               </button>
             </>
@@ -374,7 +374,7 @@ const AppContent = () => {
                 <Link to="/help" className={`nav-item ${isActive('/help') ? 'active' : ''}`}>
                   <HelpCircle size={17} /> {t('help')}
                 </Link>
-                <button onClick={toggleLanguage} className="nav-item">
+                <button onClick={toggleLanguage} className="nav-item nav-lang">
                   <Globe size={17} /> {language === 'en' ? 'తెలుగు' : 'English'}
                 </button>
                 <button onClick={() => setShowLogoutModal(true)} className="nav-item logout-btn">
@@ -471,8 +471,8 @@ const AppContent = () => {
       <main className="content full-width">
         <Suspense fallback={<PageLoader />}>
             <Routes location={backgroundLocation || location}>
-              <Route path="/" element={<PageTransition><LandingPage user={user} /></PageTransition>} />
-              <Route path="/home" element={<PageTransition><LandingPage user={user} /></PageTransition>} />
+              <Route path="/" element={<PageTransition><Home user={user} /></PageTransition>} />
+              <Route path="/home" element={<PageTransition><Home user={user} /></PageTransition>} />
               <Route path="/r/:code" element={<PageTransition><ReferralRedirect /></PageTransition>} />
               <Route path="/login" element={!user ? <PageTransition><Login setUser={setUser} /></PageTransition> : <Navigate to={postLoginRedirect} />} />
               <Route path="/register" element={!user ? <PageTransition><Registration setUser={setUser} /></PageTransition> : <Navigate to="/home" />} />

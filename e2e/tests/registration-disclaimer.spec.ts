@@ -12,12 +12,14 @@ import { waitForAppShell } from './utils';
  * gated behind explicit opt-in env vars — see that file and the README.
  */
 test.describe('Registration disclaimer gate', () => {
-  for (const trigger of ['Join as Guest', 'Join as Host'] as const) {
+  // Hero buttons on the home page. `exact` because the final CTA cards repeat
+  // the same phrase inside a longer accessible name.
+  for (const trigger of ['I need a place to stay', 'I can host someone'] as const) {
     test(`"${trigger}" opens the disclaimer before registration`, async ({ page }) => {
       await page.goto('/');
       await waitForAppShell(page);
 
-      await page.getByRole('button', { name: trigger }).click();
+      await page.getByRole('button', { name: trigger, exact: true }).click();
       await expect(page.getByRole('heading', { name: /Important Disclaimer/i })).toBeVisible({ timeout: 10_000 });
 
       const agreeButton = page.getByRole('button', { name: 'Agree & Continue' });
@@ -54,7 +56,9 @@ test.describe('Registration disclaimer gate', () => {
     await waitForAppShell(page);
     await expect(page.getByRole('heading', { name: /Important Disclaimer/i })).toBeVisible({ timeout: 10_000 });
 
-    await expect(page.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', /privacy-policy/);
-    await expect(page.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute('href', /terms-of-service/);
+    // Scoped to the dialog: the page footer has links with the same names.
+    const dialog = page.getByRole('dialog');
+    await expect(dialog.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', /privacy-policy/);
+    await expect(dialog.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute('href', /terms-of-service/);
   });
 });
