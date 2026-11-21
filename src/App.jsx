@@ -33,8 +33,10 @@ const ApiTest         = lazy(() => import('./components/ApiTest'));
 const ChatDebug       = lazy(() => import('./components/ChatDebug'));
 const NotFound        = lazy(() => import('./pages/NotFound'));
 
-// Routes drawn on the dark glass theme; the shell and navbar switch to match.
-const DARK_ROUTES = new Set(['/', '/home', '/register']);
+// Every page uses the dark glass theme except these legacy ones (matched as
+// the path or a sub-path). Keep in sync with public/boot-theme.js.
+const LIGHT_PAGES = ['/admin', '/browse', '/guest-dashboard', '/host-dashboard', '/subscription', '/chat', '/api-test', '/chat-debug'];
+const isLightPage = (path) => LIGHT_PAGES.some((p) => path === p || path.startsWith(`${p}/`));
 
 // ── Static ambient background (CSS-only — no scroll-time repaint cost) ──
 const AppBackground = () => (
@@ -131,7 +133,7 @@ const AppContent = () => {
   // once) and ignore backgroundLocation until location.key moves past it.
   const [bootLocationKey] = useState(() => location.key);
   const backgroundLocation = location.key === bootLocationKey ? undefined : location.state?.backgroundLocation;
-  const isDarkPage = DARK_ROUTES.has((backgroundLocation || location).pathname);
+  const isDarkPage = !isLightPage((backgroundLocation || location).pathname);
 
   useEffect(() => {
     document.body.setAttribute('lang', language);
@@ -221,7 +223,7 @@ const AppContent = () => {
       {/* ── Navbar ── */}
       <nav className={`navbar${isDarkPage ? ' navbar--glass' : ''}`}>
         <Link to="/" className="nav-logo">
-          <Logo className="nav-logo-img" style={{ height: '52px' }} />
+          <Logo className="nav-logo-img" />
         </Link>
 
         <button
@@ -396,7 +398,7 @@ const AppContent = () => {
           >
             <div style={{
               background: 'linear-gradient(90deg, #7C3AED 0%, #FF6B35 50%, #F59E0B 100%)',
-              padding: '0.55rem 1.5rem',
+              padding: '0.38rem 1.5rem',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -414,8 +416,8 @@ const AppContent = () => {
                 }}
               />
               <span style={{ fontSize: '1rem' }}>🎁</span>
-              <p style={{ margin: 0, color: 'white', fontSize: '0.85rem', fontWeight: 500, letterSpacing: '0.01em' }}>
-                <strong style={{ fontWeight: 700 }}>Limited-time offer</strong> — Premium features are free during our launch period!
+              <p style={{ margin: 0, color: 'white', fontSize: '0.8rem', fontWeight: 500, letterSpacing: '0.01em' }}>
+                <strong style={{ fontWeight: 700 }}>FestiveGuest is completely free</strong> during our launch — no subscriptions, no fees.
               </p>
               <button
                 onClick={() => { setPromoDismissed(true); localStorage.setItem('promoDismissed', 'true'); }}

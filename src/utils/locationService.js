@@ -3,33 +3,21 @@ import api from './api';
 class LocationService {
   constructor() {
     this.locations = null;
-    this.loading = false;
+    this.pending = null;
   }
 
-  async getLocations() {
-    if (this.locations) {
-      return this.locations;
-    }
-
-    if (this.loading) {
-      while (this.loading) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-      return this.locations;
-    }
-
-    this.loading = true;
-    try {
-      // Use the same API instance as the rest of the app
-      const response = await api.get('location/states-with-cities');
-      this.locations = response.data;
-      return this.locations;
-    } catch (error) {
-      console.error('DEBUG: Failed to fetch locations from API:', error);
-      throw new Error('Unable to load location data (API Error). Please try again later.');
-    } finally {
-      this.loading = false;
-    }
+  // Concurrent callers share one request, so a failure rejects for all of
+  // them (polling a loading flag used to hand later callers null).
+  getLocations() {
+    if (this.locations) return Promise.resolve(this.locations);
+    this.pending ||= api.get('location/states-with-cities')
+      .then((response) => (this.locations = response.data))
+      .catch((error) => {
+        console.error('Failed to fetch locations from API:', error);
+        throw new Error('Unable to load location data (API Error). Please try again later.');
+      })
+      .finally(() => { this.pending = null; });
+    return this.pending;
   }
 
   async seedLocations() {

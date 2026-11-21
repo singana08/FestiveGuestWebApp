@@ -730,17 +730,22 @@ const Registration = ({ setUser }) => {
                               </button>
                             </div>
                             {validationErrors.password && <p className="rg-error">{validationErrors.password}</p>}
-                            <div className="rg-strength" aria-hidden="true"><span className={`lvl-${pwMet}`} style={{ width: `${(pwMet / passwordRequirements.length) * 100}%` }} /></div>
-                            <ul className="rg-reqs">
-                              {passwordRequirements.map(req => {
-                                const met = req.test(formData.password);
-                                return (
-                                  <li key={req.label} className={met ? 'is-met' : ''}>
-                                    {met ? <Check size={12} strokeWidth={3} /> : <span className="rg-dot" />} {req.label}
-                                  </li>
-                                );
-                              })}
-                            </ul>
+                            {/* Rules appear once typing starts (or on a validation error), keeping the empty form short. */}
+                            {(formData.password || validationErrors.password) && (
+                              <>
+                                <div className="rg-strength" aria-hidden="true"><span className={`lvl-${pwMet}`} style={{ width: `${(pwMet / passwordRequirements.length) * 100}%` }} /></div>
+                                <ul className="rg-reqs">
+                                  {passwordRequirements.map(req => {
+                                    const met = req.test(formData.password);
+                                    return (
+                                      <li key={req.label} className={met ? 'is-met' : ''}>
+                                        {met ? <Check size={12} strokeWidth={3} /> : <span className="rg-dot" />} {req.label}
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              </>
+                            )}
                           </div>
                         )}
 

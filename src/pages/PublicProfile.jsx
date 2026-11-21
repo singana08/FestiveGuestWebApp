@@ -1,9 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Star, Calendar, MapPin, MessageCircle } from 'lucide-react';
+import { motion, MotionConfig } from 'framer-motion';
+import { ArrowLeft, Star, CalendarDays, MapPin, MessageCircle, UserX, ShieldCheck } from 'lucide-react';
 import api from '../utils/api';
 import ImageWithSas from '../components/ImageWithSas';
+import ChatWidget from '../components/ChatWidget';
 import useSEO from '../hooks/useSEO';
+import '../styles/Register.css';
+import '../styles/PostsBoard.css';
+import '../styles/Profile.css';
+
+const EASE = [0.22, 1, 0.36, 1];
+const rise = (delay = 0) => ({ initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.45, ease: EASE, delay } });
+const Stars = ({ value, size = 14 }) => (
+  <span className="pb-stars" aria-label={`${value} out of 5`}>
+    {Array.from({ length: 5 }, (_, i) => <Star key={i} size={size} className={i < Math.round(value) ? 'is-on' : ''} />)}
+  </span>
+);
+const monthYear = (d) => new Date(d).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
 
 function PublicProfile() {
   const { userName } = useParams();
@@ -11,6 +25,8 @@ function PublicProfile() {
   const [profile, setProfile] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [chatOpen, setChatOpen] = useState(false);
+  const me = (() => { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } })();
 
   useSEO({
     title: `${userName}'s Profile`,
@@ -19,26 +35,21 @@ function PublicProfile() {
 
   useEffect(() => {
     fetchPublicProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userName]);
 
   const fetchPublicProfile = async () => {
     try {
-      console.log('Fetching profile for userName:', userName);
       const [profileRes, reviewsRes] = await Promise.all([
         api.get(`user/public-profile-by-name/${encodeURIComponent(userName)}`),
-        api.get(`user/reviews-by-name/${encodeURIComponent(userName)}`)
+        api.get(`user/reviews-by-name/${encodeURIComponent(userName)}`),
       ]);
-      
       setProfile(profileRes.data);
       setReviews(reviewsRes.data || []);
     } catch (error) {
       console.error('Failed to fetch profile:', error);
-      console.error('Error details:', error.response?.data);
-      console.error('Requested userName:', userName);
-      // The backend requires auth for these endpoints, so a logged-out
-      // visitor gets a 401 here rather than actual profile data — send
-      // them to log in (and back to this profile afterward) instead of
-      // showing a misleading "Profile not found".
+      // The backend requires auth for these endpoints, so a logged-out visitor
+      // gets a 401 — send them to log in and back here afterwards.
       if (error.response?.status === 401) {
         navigate(`/login?redirect=${encodeURIComponent(`/profile/${userName}`)}`);
         return;
@@ -48,155 +59,142 @@ function PublicProfile() {
     }
   };
 
-  const renderStars = (rating) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star 
-        key={i} 
-        size={16} 
-        fill={i < rating ? '#fbbf24' : 'none'} 
-        color={i < rating ? '#fbbf24' : '#d1d5db'} 
-      />
-    ));
-  };
+  // Opened from a shared link there's no in-app history to go back to.
+  const goBack = () => (window.history.state?.idx > 0 ? navigate(-1) : navigate('/posts'));
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long'
-    });
-  };
-
-  if (loading) {
-    return (
-      <div className="profile-container text-center" style={{ padding: '3rem' }}>
-        <div className="loading">Loading profile...</div>
+  const shell = (children) => (
+    <MotionConfig reducedMotion="user">
+      <div className="pf">
+        <div className="rg-aurora" aria-hidden="true"><span className="a1" /><span className="a2" /><span className="a3" /></div>
+        <div className="pf-shell">{children}</div>
       </div>
-    );
-  }
+    </MotionConfig>
+  );
+
+  if (loading) return shell(<div className="pf-state"><span className="rg-spinner pb-spinner-light" /> Loading profile…</div>);
 
   if (!profile) {
-    return (
-      <div className="profile-container text-center" style={{ padding: '3rem' }}>
-        <h3>Profile not found</h3>
-        <button onClick={() => navigate(-1)} className="btn btn-primary">
-          Go Back
-        </button>
-      </div>
+    return shell(
+      <div className="pf-state pf-card">
+        <span className="pf-state-icon"><UserX size={24} /></span>
+        <h1>Profile not found</h1>
+        <p>This member may have changed their name or left FestiveGuest.</p>
+        <button type="button" className="rg-btn rg-btn-primary pf-btn" onClick={goBack}><ArrowLeft size={15} /> Go back</button>
+      </div>,
     );
   }
 
-  const averageRating = reviews.length > 0 
-    ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length 
-    : 0;
+  const isHost = profile.userType === 'Host';
+  const isMe = me && (me.userId === profile.userId || me.name === profile.name);
+  const average = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+  const byStar = [5, 4, 3, 2, 1].map((n) => ({ n, count: reviews.filter((r) => Math.round(r.rating) === n).length }));
+  const areas = (profile.hostingAreas || []).filter((a) => a.state && a.cities?.length > 0);
+  const firstName = (profile.name || '').split(' ')[0];
 
-  return (
-    <div className="profile-container">
-      <div style={{ marginBottom: '2rem' }}>
-        <button 
-          onClick={() => navigate(-1)}
-          className="btn btn-secondary"
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}
-        >
-          <ArrowLeft size={16} /> Back
-        </button>
-        
-        <div style={{ textAlign: 'center' }}>
-          <h1 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', margin: '0 0 0.5rem 0', fontSize: '1.5rem' }}>
-            {profile.userType === 'Host' ? '🏠' : '🎉'} {profile.name}
-          </h1>
-          <p style={{ color: '#64748b', margin: '0' }}>
-            {profile.userType} • Joined {formatDate(profile.createdAt)}
-          </p>
-        </div>
-      </div>
-      
-      <div className="profile-card">
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <ImageWithSas 
-            src={profile.profileImageUrl}
-            alt={profile.name}
-            style={{ 
-              width: '150px', 
-              height: '150px', 
-              borderRadius: '50%', 
-              objectFit: 'cover',
-              border: '4px solid var(--border)',
-              marginBottom: '1rem'
-            }}
-            fallbackText="Profile"
-          />
-          
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-            <MapPin size={16} color="#64748b" />
-            <span style={{ color: '#64748b' }}>{profile.location}</span>
+  return shell(
+    <>
+      <button type="button" className="pf-back" onClick={goBack}><ArrowLeft size={15} /> Back</button>
+
+      <motion.section className="pf-hero" {...rise()}>
+        <div className="pf-cover" aria-hidden="true"><span className="pf-cover-lights" /></div>
+        <div className="pf-hero-body">
+          <div className="pf-avatar-wrap">
+            {profile.profileImageUrl
+              ? <ImageWithSas src={profile.profileImageUrl} alt={profile.name} className="pf-avatar" fallbackText={profile.name?.charAt(0) || 'U'} />
+              : <span className={`pf-avatar pf-avatar--initial pf-avatar--${isHost ? 'host' : 'guest'}`} aria-hidden="true">{(profile.name || '?').charAt(0).toUpperCase()}</span>}
           </div>
-          
-          {reviews.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', gap: '2px' }}>
-                {renderStars(Math.round(averageRating))}
-              </div>
-              <span style={{ fontWeight: '600' }}>{averageRating.toFixed(1)}</span>
-              <span style={{ color: '#64748b' }}>({reviews.length} reviews)</span>
+          <div className="pf-id">
+            <h1>{profile.name}</h1>
+            <p className="pf-meta">
+              <span className={`pf-role pf-role--${isHost ? 'host' : 'guest'}`}>{isHost ? '🏡 Local host' : '🧳 Traveller'}</span>
+              {profile.location && <span><MapPin size={13} /> {profile.location}</span>}
+              {profile.createdAt && <span><CalendarDays size={13} /> Joined {monthYear(profile.createdAt)}</span>}
+            </p>
+            <p className="pf-chips">
+              {reviews.length > 0
+                ? <span className="pf-chip is-gold"><Star size={12} /> {average.toFixed(1)} · {reviews.length} review{reviews.length === 1 ? '' : 's'}</span>
+                : <span className="pf-chip">No reviews yet</span>}
+            </p>
+          </div>
+          {me && !isMe && (
+            <div className="pf-hero-actions">
+              <button type="button" className="rg-btn rg-btn-primary pf-btn" onClick={() => setChatOpen(true)}><MessageCircle size={15} /> Message {firstName}</button>
             </div>
           )}
         </div>
-        
-        <div style={{ marginBottom: '2rem' }}>
-          <h4 style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            {profile.userType === 'Host' ? '🏠 About My Hosting' : '✨ About Me'}
-          </h4>
-          <p style={{ 
-            color: '#475569', 
-            lineHeight: '1.6',
-            background: '#f8fafc',
-            padding: '1rem',
-            borderRadius: '0.75rem',
-            borderLeft: '4px solid var(--primary)'
-          }}>
-            {profile.bio || 'No description provided.'}
-          </p>
+      </motion.section>
+
+      <div className="pf-grid">
+        <div className="pf-col">
+          <motion.section className="pf-card" {...rise(0.05)}>
+            <header className="pf-card-head"><h2>{isHost ? 'About my hosting' : 'About me'}</h2></header>
+            {profile.bio ? <p className="pf-bio">{profile.bio}</p> : <p className="pf-empty">{firstName} hasn’t written a bio yet.</p>}
+          </motion.section>
+
+          {isHost && areas.length > 0 && (
+            <motion.section className="pf-card" {...rise(0.1)}>
+              <header className="pf-card-head"><h2>Hosts in</h2><span className="pf-count">{areas.reduce((s, a) => s + a.cities.length, 0)} cities</span></header>
+              <div className="pf-areas">
+                {areas.map((area) => (
+                  <div key={area.state} className="pf-area"><strong>{area.state}</strong><div>{area.cities.map((city) => <span key={city} className="pb-area">{city}</span>)}</div></div>
+                ))}
+              </div>
+            </motion.section>
+          )}
+
+          <motion.section className="pf-card" {...rise(0.15)}>
+            <header className="pf-card-head"><h2><Star size={16} /> Reviews</h2><span className="pf-count">{reviews.length}</span></header>
+            {reviews.length === 0 ? (
+              <p className="pf-empty">No reviews yet. Reviews appear after members have met through FestiveGuest.</p>
+            ) : (
+              <ul className="pb-reviews pf-reviews">
+                {reviews.map((review, i) => (
+                  <li key={i}>
+                    <div className="pb-review-head"><strong>{review.reviewerName}</strong><Stars value={review.rating} size={13} /></div>
+                    <p>{review.comment}</p>
+                    {review.createdAt && <small>{monthYear(review.createdAt)}</small>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </motion.section>
+        </div>
+
+        <div className="pf-col">
+          <motion.section className="pf-card pf-rating" {...rise(0.08)}>
+            <header className="pf-card-head"><h2>Rating</h2></header>
+            <div className="pf-rating-top">
+              <strong>{reviews.length ? average.toFixed(1) : '–'}</strong>
+              <div><Stars value={average} size={16} /><small>{reviews.length} review{reviews.length === 1 ? '' : 's'}</small></div>
+            </div>
+            <ul className="pf-bars">
+              {byStar.map(({ n, count }) => (
+                <li key={n}>
+                  <span>{n}★</span>
+                  <span className="pf-bar"><span style={{ width: `${reviews.length ? (count / reviews.length) * 100 : 0}%` }} /></span>
+                  <span>{count}</span>
+                </li>
+              ))}
+            </ul>
+          </motion.section>
+
+          <motion.section className="pf-card" {...rise(0.12)}>
+            <header className="pf-card-head"><h2><ShieldCheck size={16} /> Before you meet</h2></header>
+            <ul className="pf-tips">
+              <li>Keep chatting inside FestiveGuest until you’re comfortable.</li>
+              <li>Meet in a public place first and share plans with family.</li>
+              <li>Never pay outside the app or share OTPs.</li>
+            </ul>
+          </motion.section>
         </div>
       </div>
-      
-      {reviews.length > 0 && (
-        <div className="profile-card" style={{ marginTop: '2rem' }}>
-          <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Star size={20} color="#fbbf24" />
-            Reviews ({reviews.length})
-          </h3>
-          
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {reviews.map((review, index) => (
-              <div 
-                key={index}
-                style={{ 
-                  background: '#f8fafc',
-                  padding: '1rem',
-                  borderRadius: '0.75rem',
-                  border: '1px solid var(--border)'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <strong>{review.reviewerName}</strong>
-                    <div style={{ display: 'flex', gap: '2px' }}>
-                      {renderStars(review.rating)}
-                    </div>
-                  </div>
-                  <span style={{ color: '#64748b', fontSize: '0.875rem' }}>
-                    {formatDate(review.createdAt)}
-                  </span>
-                </div>
-                <p style={{ margin: '0', color: '#475569', lineHeight: '1.5' }}>
-                  {review.comment}
-                </p>
-              </div>
-            ))}
-          </div>
+
+      {chatOpen && (
+        <div className="pb-chat-window">
+          <ChatWidget recipientId={profile.userId} recipientName={profile.name} recipientImageUrl={profile.profileImageUrl} onClose={() => setChatOpen(false)} />
         </div>
       )}
-    </div>
+    </>,
   );
 }
 

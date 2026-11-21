@@ -91,8 +91,8 @@
 /* ── Buttons ── */
 .hm-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 0.6rem;
-  padding: 0.95rem 1.55rem; border-radius: 999px; border: 0;
-  font: 700 1rem/1.2 'Plus Jakarta Sans', sans-serif;
+  padding: 0.66rem 1.25rem; border-radius: 999px; border: 0;
+  font: 700 0.9rem/1.2 'Plus Jakarta Sans', sans-serif;
   text-decoration: none; cursor: pointer;
   transition: transform 0.2s var(--hm-ease), box-shadow 0.2s var(--hm-ease), background-color 0.2s;
 }
@@ -122,7 +122,7 @@
   position: relative;
   min-height: calc(100svh - var(--nav-height, 68px));
   display: flex; align-items: center;
-  padding: clamp(2.5rem, 6vw, 4.5rem) 0 clamp(3rem, 6vw, 5rem);
+  padding: clamp(2rem, 4.5vw, 3.25rem) 0 clamp(2.5rem, 4.5vw, 3.75rem);
 }
 .hm-hero-grid {
   display: grid;
@@ -152,8 +152,8 @@
 
 .hm-eyebrow {
   display: inline-flex; align-items: center; gap: 0.5rem;
-  padding: 0.45rem 1rem; border-radius: 999px;
-  font-size: 0.8rem; font-weight: 600; color: var(--hm-ink);
+  padding: 0.35rem 0.85rem; border-radius: 999px;
+  font-size: 0.78rem; font-weight: 600; color: var(--hm-ink);
 }
 .hm-eyebrow svg { color: var(--hm-amber); flex-shrink: 0; }
 
@@ -162,7 +162,7 @@
      so the headline doesn't jump as the phrase changes. */
   font-size: clamp(1.85rem, 8vw, 4.05rem);
   line-height: 1.07; font-weight: 800; letter-spacing: -0.03em;
-  margin: 1.35rem 0 1.35rem;
+  margin: 0.9rem 0 0.9rem;
 }
 .hm-h1-line { display: block; text-wrap: balance; }
 .hm-h1-rot-line { display: block; min-height: 1.1em; white-space: nowrap; }
@@ -171,28 +171,32 @@
   font-size: 0.5em; font-weight: 700; letter-spacing: -0.01em;
   color: var(--hm-ink-soft);
 }
-@media (min-width: 1021px) { .hm .hm-h1 { font-size: clamp(2.6rem, 4.6vw, 4.05rem); } }
+@media (min-width: 1021px) { .hm .hm-h1 { font-size: clamp(2rem, 2.8vw, 2.5rem); } }
 
 /* Telugu glyphs run ~25% wider than Latin and stack vowel signs above and
    below, so the headline needs a smaller size and looser leading to keep
    the longest rotating phrase on one line without clipping. */
 body[lang='te'] .hm .hm-h1 { font-size: clamp(1.45rem, 6vw, 3rem); line-height: 1.32; letter-spacing: -0.01em; }
-@media (min-width: 1021px) { body[lang='te'] .hm .hm-h1 { font-size: clamp(2rem, 3.3vw, 3rem); } }
+@media (min-width: 1021px) { body[lang='te'] .hm .hm-h1 { font-size: clamp(1.55rem, 2.1vw, 2rem); } }
 
 .hm-rot { display: inline-grid; }
 .hm-rot-word { grid-area: 1 / 1; padding-bottom: 0.06em; }
 .hm-rot-suffix { color: var(--hm-ink); -webkit-text-fill-color: var(--hm-ink); }
 
-.hm-sub { font-size: clamp(1rem, 1.35vw, 1.13rem); line-height: 1.72; max-width: 35rem; }
-.hm-cta-row { display: flex; flex-wrap: wrap; gap: 0.85rem; margin-top: 2rem; }
+.hm-sub { font-size: clamp(0.95rem, 1.2vw, 1.05rem); line-height: 1.72; max-width: 35rem; }
+.hm-cta-row { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.4rem; }
 
-.hm-trust { display: flex; flex-wrap: wrap; gap: 0.55rem 1.4rem; margin: 1.75rem 0 0; padding: 0; list-style: none; }
+.hm-trust { display: flex; flex-wrap: wrap; gap: 0.55rem 1.4rem; margin: 1.5rem 0 0; padding: 0; list-style: none; }
 .hm-trust li { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.86rem; color: var(--hm-ink-soft); font-weight: 500; }
 .hm-trust svg { color: #6ee7b7; flex-shrink: 0; }
 
 /* ── 3D scene ── */
 .hm-stage { display: flex; justify-content: center; }
 .hm-scale { perspective: 1400px; perspective-origin: 50% 35%; }
+@media (min-width: 1021px) {
+  .hm-hero { min-height: 0; }
+  .hm-scale { transform: scale(0.8); margin: -48px -52px; }
+}
 .hm-scene {
   position: relative; width: 520px; height: 480px;
   transform-style: preserve-3d;
@@ -308,15 +312,15 @@ body[lang='te'] .hm .hm-h1 { font-size: clamp(1.45rem, 6vw, 3rem); line-height: 
 }
 
 /* ═══════════════ SECTIONS ═══════════════ */
-.hm-section { position: relative; padding: clamp(4rem, 9vw, 7rem) 0; }
+.hm-section { position: relative; padding: clamp(2.5rem, 5vw, 3.75rem) 0; }
 .hm-head { text-align: center; max-width: 44rem; margin: 0 auto clamp(2.25rem, 5vw, 3.5rem); }
-.hm .hm-h2 { font-size: clamp(1.9rem, 3.8vw, 3rem); font-weight: 800; letter-spacing: -0.025em; line-height: 1.12; }
-.hm .hm-lead { margin-top: 0.9rem; font-size: 1.05rem; line-height: 1.7; }
+.hm .hm-h2 { font-size: clamp(1.5rem, 2.2vw, 1.85rem); font-weight: 800; letter-spacing: -0.025em; line-height: 1.12; }
+.hm .hm-lead { margin-top: 0.8rem; font-size: 1rem; line-height: 1.7; }
 
 /* Purpose tiles */
 .hm-purpose-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
 .hm-pc {
-  height: 100%; padding: 1.6rem;
+  height: 100%; padding: 1.35rem;
   transform-style: preserve-3d;
   transition: border-color 0.3s, box-shadow 0.3s;
 }
@@ -360,7 +364,7 @@ body[lang='te'] .hm .hm-h1 { font-size: clamp(1.45rem, 6vw, 3rem); line-height: 
   background: linear-gradient(90deg, transparent, rgba(255, 193, 99, 0.7), rgba(255, 79, 139, 0.7), transparent);
 }
 .hm-steps-grid { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
-.hm-step { padding: 1.75rem 1.5rem 1.6rem; }
+.hm-step { padding: 1.4rem 1.3rem 1.3rem; }
 .hm-step-num {
   display: inline-block; margin-bottom: 0.9rem;
   font: 800 3.5rem/1 'Plus Jakarta Sans', sans-serif;
@@ -397,7 +401,7 @@ body[lang='te'] .hm .hm-h1 { font-size: clamp(1.45rem, 6vw, 3rem); line-height: 
 /* Stories */
 .hm-stories { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; align-items: start; }
 .hm-stories > :nth-child(even) { margin-top: 2.5rem; }
-.hm-story { padding: 1.75rem 1.75rem 1.5rem; }
+.hm-story { padding: 1.4rem 1.4rem 1.25rem; }
 .hm-story-mark { font: 700 2.8rem/0.8 Georgia, serif; color: var(--hm-amber); opacity: 0.85; }
 .hm .hm-story p { margin-top: 0.6rem; font-size: 0.98rem; line-height: 1.7; color: var(--hm-ink); }
 .hm-story-author { margin-top: 1rem; font-size: 0.85rem; font-weight: 600; color: var(--hm-ink-mute); }
@@ -406,7 +410,7 @@ body[lang='te'] .hm .hm-h1 { font-size: clamp(1.45rem, 6vw, 3rem); line-height: 
 .hm-final-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; max-width: 820px; margin: 0 auto; }
 .hm .hm-choice {
   display: flex; flex-direction: column; align-items: flex-start; gap: 0.55rem;
-  width: 100%; height: 100%; padding: 1.85rem; text-align: left;
+  width: 100%; height: 100%; padding: 1.5rem; text-align: left;
   color: inherit; font: inherit; cursor: pointer;
   transition: transform 0.3s var(--hm-ease), box-shadow 0.3s var(--hm-ease), border-color 0.3s;
 }

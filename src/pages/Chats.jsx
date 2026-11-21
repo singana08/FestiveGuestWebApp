@@ -1,9 +1,35 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
+import { Link } from 'react-router-dom';
+import { MessageCircle, Send, ArrowLeft, Search, Lock, UserRound, ShieldCheck, X, ArrowRight } from 'lucide-react';
 import useSEO from '../hooks/useSEO';
-import { MessageCircle, Send, X, ArrowLeft } from 'lucide-react';
 import api from '../utils/api';
 import ImageWithSas from '../components/ImageWithSas';
+import ProfileModal from '../components/posts/ProfileModal';
 import { useNotifications } from '../contexts/NotificationContext';
+import '../styles/Register.css';
+import '../styles/PostsBoard.css';
+import '../styles/Chats.css';
+
+// Tapping one fills the box (not sent), so it can be edited first.
+const QUICK_REPLIES = ['Thank you! 🙏', 'Sounds good 👍', 'Can you share a few more details?', "I'll get back to you shortly."];
+
+const Avatar = ({ url, name, size = 'md' }) => (
+  <span className={`ch-avatar ch-avatar--${size}`} aria-hidden="true">
+    {url ? <ImageWithSas src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (name || '?').charAt(0).toUpperCase()}
+  </span>
+);
+
+const sameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString();
+const dayLabel = (d) => {
+  const day = new Date(d);
+  const today = new Date();
+  const diff = Math.round((new Date(today.toDateString()) - new Date(day.toDateString())) / 864e5);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return day.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', ...(day.getFullYear() !== today.getFullYear() && { year: 'numeric' }) });
+};
+const timeOf = (d) => new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const listTime = (d) => (sameDay(d, new Date()) ? timeOf(d) : dayLabel(d));
 
 const Chats = () => {
   useSEO({ title: 'Messages', noindex: true });
@@ -14,8 +40,8 @@ const Chats = () => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [showChatView, setShowChatView] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState(null);
-  const [profileLoading, setProfileLoading] = useState(false);
+  const [profile, setProfile] = useState(null);
+  const [query, setQuery] = useState('');
 
   const getUserId = () => {
     const storedUserId = localStorage.getItem('userId');
@@ -30,59 +56,52 @@ const Chats = () => {
 
   const userId = getUserId();
   const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
   const selectedChatRef = useRef(null);
   const lastMessageCountRef = useRef(0);
   const { fetchUnreadCount, setActiveConversation, clearActiveConversation } = useNotifications();
 
-  // Lock body scroll while chat is open — prevents page scroll interfering with message scroll
+  // Lock the page to the viewport so only the message list scrolls (App.css "body.chat-active").
   useEffect(() => {
     document.body.classList.add('chat-active');
     return () => {
       document.body.classList.remove('chat-active');
       clearActiveConversation();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Keep ref in sync
-  useEffect(() => {
-    selectedChatRef.current = selectedChat;
-  }, [selectedChat]);
+  useEffect(() => { selectedChatRef.current = selectedChat; }, [selectedChat]);
 
   // Auto-scroll only when new messages arrive
   useEffect(() => {
-    if (messages.length > lastMessageCountRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
+    if (messages.length > lastMessageCountRef.current) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     lastMessageCountRef.current = messages.length;
   }, [messages]);
 
   // Single poll: refresh conversations + active chat messages
   useEffect(() => {
     fetchConversations(true);
-
     const poll = setInterval(() => {
       fetchConversations(false);
       const current = selectedChatRef.current;
-      if (current?.otherUserId) {
-        refreshMessages(current.otherUserId);
-      }
+      if (current?.otherUserId) refreshMessages(current.otherUserId);
     }, 5000);
-
     return () => clearInterval(poll);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchConversations = async (showLoader) => {
     try {
       if (showLoader) setLoading(true);
       const response = await api.get('chat/conversations');
-      const validConversations = (response.data || []).map(conv => ({
+      setConversations((response.data || []).map((conv) => ({
         ...conv,
         otherUserName: conv.otherUserName || 'Unknown User',
         lastMessage: conv.lastMessage || '',
         timestamp: conv.timestamp || new Date().toISOString(),
-        unreadCount: conv.unreadCount || 0
-      }));
-      setConversations(validConversations);
+        unreadCount: conv.unreadCount || 0,
+      })));
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
     } finally {
@@ -91,52 +110,30 @@ const Chats = () => {
   };
 
   const markAllRead = async (otherUserId) => {
-    try {
-      await api.post(`chat/mark-read-all/${otherUserId}`);
-    } catch {
-      // Silently fail if endpoint not deployed yet
-    }
+    try { await api.post(`chat/mark-read-all/${otherUserId}`); } catch { /* endpoint may not be deployed yet */ }
   };
+
+  const toMessages = (data) => data.map((msg) => ({
+    id: msg.id,
+    sender: msg.senderId === userId ? 'Me' : 'Recipient',
+    text: msg.message || '',
+    timestamp: new Date(msg.timestamp),
+    status: msg.status || 'sent',
+  }));
 
   const refreshMessages = async (recipientId) => {
     try {
       const response = await api.get(`chat/messages/${recipientId}`);
-      if (!response.data || !Array.isArray(response.data)) return;
-
-      const serverMessages = response.data.map(msg => ({
-        id: msg.id,
-        sender: msg.senderId === userId ? 'Me' : 'Recipient',
-        text: msg.message || '',
-        timestamp: new Date(msg.timestamp),
-        status: msg.status || 'sent'
-      }));
-
-      setMessages(prev => {
-        if (serverMessages.length >= prev.length) {
-          return serverMessages;
-        }
-        return prev;
-      });
-    } catch {
-      // Silently fail on poll refresh
-    }
+      if (!Array.isArray(response.data)) return;
+      const serverMessages = toMessages(response.data);
+      setMessages((prev) => (serverMessages.length >= prev.length ? serverMessages : prev));
+    } catch { /* silent on poll */ }
   };
 
   const loadMessages = async (recipientId) => {
     try {
       const response = await api.get(`chat/messages/${recipientId}`);
-      if (!response.data || !Array.isArray(response.data)) {
-        setMessages([]);
-        return;
-      }
-      const formattedMessages = response.data.map(msg => ({
-        id: msg.id,
-        sender: msg.senderId === userId ? 'Me' : 'Recipient',
-        text: msg.message || '',
-        timestamp: new Date(msg.timestamp),
-        status: msg.status || 'sent'
-      }));
-      setMessages(formattedMessages);
+      setMessages(Array.isArray(response.data) ? toMessages(response.data) : []);
     } catch (error) {
       console.error('Failed to load messages:', error);
       setMessages([]);
@@ -144,17 +141,13 @@ const Chats = () => {
   };
 
   const handleConversationClick = async (conversation) => {
+    if (selectedChat?.otherUserId !== conversation.otherUserId) setMessages([]);
     setSelectedChat(conversation);
     if (!conversation.otherUserId) return;
-
     await loadMessages(conversation.otherUserId);
     setShowChatView(true);
-
-    // Mark all messages from this user as read on the server
     await markAllRead(conversation.otherUserId);
     setActiveConversation(conversation.otherUserId);
-
-    // Refresh conversations + nav badge to reflect the read state
     await fetchConversations(false);
     fetchUnreadCount();
   };
@@ -170,236 +163,162 @@ const Chats = () => {
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedChat || sending) return;
-
     const content = newMessage.trim();
     const tempId = 'temp-' + Date.now();
     setNewMessage('');
     setSending(true);
-
-    setMessages(prev => [...prev, {
-      id: tempId,
-      sender: 'Me',
-      text: content,
-      timestamp: new Date(),
-      status: 'Sending...'
-    }]);
-
+    setMessages((prev) => [...prev, { id: tempId, sender: 'Me', text: content, timestamp: new Date(), status: 'Sending…' }]);
     try {
-      await api.post('chat/send', {
-        recipientId: selectedChat.otherUserId,
-        message: content
-      });
+      await api.post('chat/send', { recipientId: selectedChat.otherUserId, message: content });
       await refreshMessages(selectedChat.otherUserId);
       fetchConversations(false);
     } catch (error) {
       console.error('Failed to send message:', error);
-      // On success refreshMessages() replaces the whole list (dropping this
-      // temp entry); on failure that never runs, so without this the
-      // "Sending..." status next to it would just sit there forever with
-      // no indication it actually failed.
-      setMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'Failed to send' } : m));
+      // A successful refresh replaces the temp entry; on failure mark it so it doesn't sit on "Sending…".
+      setMessages((prev) => prev.map((m) => (m.id === tempId ? { ...m, status: 'Failed to send' } : m)));
     } finally {
       setSending(false);
     }
   };
 
-  const handleProfileClick = async (profileUserId) => {
-    setProfileLoading(true);
-    try {
-      const profileRes = await api.post('user/public-profile', { userId: profileUserId });
-      setSelectedProfile(profileRes.data);
-    } catch (error) {
-      console.error('Failed to fetch profile:', error);
-      // selectedProfile is never set on failure, so the modal (gated on it)
-      // never opens — without this there was no loading indicator to begin
-      // with, so a click here previously did nothing visible at all.
-      alert('Failed to load profile. Please try again.');
-    } finally {
-      setProfileLoading(false);
-    }
-  };
+  const applyQuickReply = (text) => { setNewMessage(text); inputRef.current?.focus(); };
 
-  const formatTime = (timestamp) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    if (hours < 24) {
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-  };
+  const q = query.trim().toLowerCase();
+  const shown = q ? conversations.filter((cv) => cv.otherUserName.toLowerCase().includes(q)) : conversations;
+  const unreadTotal = conversations.reduce((s, cv) => s + (cv.unreadCount || 0), 0);
+  const lastMsg = messages[messages.length - 1];
+  const showQuick = !newMessage && lastMsg && lastMsg.sender !== 'Me';
 
   return (
-    <div className="chats-container">
-      <div className={`conversations-sidebar ${showChatView ? 'mobile-hidden' : ''}`}>
-        <div className="sidebar-header">
-          <h3>💬 Messages</h3>
-        </div>
-        
-        <div className="conversations-list">
+    <div className="ch">
+      <div className="rg-aurora" aria-hidden="true"><span className="a1" /><span className="a2" /><span className="a3" /></div>
+
+      {/* ═════ Inbox ═════ */}
+      <aside className={`ch-inbox${showChatView ? ' is-hidden-mobile' : ''}`} aria-label="Conversations">
+        <header className="ch-inbox-head">
+          <h1>Messages {unreadTotal > 0 && <span className="ch-unread-total">{unreadTotal} new</span>}</h1>
+          <label className="ch-search">
+            <Search size={15} aria-hidden="true" />
+            <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search chats" aria-label="Search chats" />
+            {query && <button type="button" onClick={() => setQuery('')} aria-label="Clear search"><X size={14} /></button>}
+          </label>
+        </header>
+
+        <div className="ch-list">
           {loading ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>Loading...</div>
-          ) : conversations.length === 0 ? (
-            <div className="no-conversations">
-              <p>No conversations yet</p>
-            </div>
-          ) : (
-            conversations.map(conv => (
-              <div 
-                key={conv.chatRoom} 
-                className={`conversation-item ${selectedChat?.otherUserId === conv.otherUserId ? 'active' : ''}`}
-                onClick={() => handleConversationClick(conv)}
-              >
-                <div className="conversation-avatar">
-                  <ImageWithSas 
-                    src={conv.profileImageUrl}
-                    alt={conv.otherUserName}
-                    style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
-                    fallbackText="User"
-                  />
-                </div>
-                <div className="conversation-content">
-                  <div className="conversation-header">
-                    <div className="conversation-name">{conv.otherUserName || 'Unknown User'}</div>
-                    <div className="conversation-time">{formatTime(conv.timestamp)}</div>
-                  </div>
-                  <div className="conversation-preview">
-                    {conv.lastSenderId === userId ? 'You: ' : ''}{conv.lastMessage || 'Start chatting'}
-                  </div>
-                </div>
-                {conv.unreadCount > 0 && (
-                  <div style={{
-                    minWidth: '20px',
-                    height: '20px',
-                    borderRadius: '10px',
-                    background: '#6366f1',
-                    color: 'white',
-                    fontSize: '11px',
-                    fontWeight: '600',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '0 6px'
-                  }}>
-                    {conv.unreadCount}
-                  </div>
-                )}
-              </div>
+            [0, 1, 2, 3].map((i) => (
+              <div key={i} className="ch-conv-sk" aria-hidden="true"><span className="pb-sk ch-sk-avatar" /><span className="ch-sk-lines"><span className="pb-sk pb-sk--line" /><span className="pb-sk pb-sk--line pb-sk--short" /></span></div>
             ))
+          ) : conversations.length === 0 ? (
+            <div className="ch-list-empty">
+              <span className="ch-empty-icon"><MessageCircle size={22} /></span>
+              <strong>No conversations yet</strong>
+              <p>Message a host or offer to host from the Posts board — your chats appear here.</p>
+              <Link to="/posts" className="rg-btn rg-btn-primary ch-inline-btn">Browse posts <ArrowRight size={15} /></Link>
+            </div>
+          ) : shown.length === 0 ? (
+            <p className="ch-list-none">No chats match “{query}”.</p>
+          ) : (
+            <ul>
+              {shown.map((conv) => {
+                const active = selectedChat?.otherUserId === conv.otherUserId;
+                return (
+                  <li key={conv.chatRoom || conv.otherUserId}>
+                    <button type="button" className={`ch-conv${active ? ' is-active' : ''}${conv.unreadCount > 0 ? ' is-unread' : ''}`}
+                      aria-current={active ? 'true' : undefined} onClick={() => handleConversationClick(conv)}>
+                      <Avatar url={conv.profileImageUrl} name={conv.otherUserName} />
+                      <span className="ch-conv-text">
+                        <span className="ch-conv-top">
+                          <strong>{conv.otherUserName}</strong>
+                          <time>{listTime(conv.timestamp)}</time>
+                        </span>
+                        <span className="ch-conv-bottom">
+                          <span className="ch-preview">{conv.lastSenderId === userId ? 'You: ' : ''}{conv.lastMessage || 'Start chatting'}</span>
+                          {conv.unreadCount > 0 && <span className="ch-badge">{conv.unreadCount}</span>}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </div>
-      </div>
+      </aside>
 
-      <div className={`chat-window ${showChatView ? 'mobile-visible' : ''}`}>
+      {/* ═════ Conversation ═════ */}
+      <section className={`ch-pane${showChatView ? ' is-open-mobile' : ''}`} aria-label={selectedChat ? `Chat with ${selectedChat.otherUserName}` : 'Conversation'}>
         {selectedChat ? (
           <>
-            <div className="chat-header">
-              <button className="mobile-back-btn" onClick={handleBackToList}>
-                <ArrowLeft size={20} />
+            <header className="ch-pane-head">
+              <button type="button" className="ch-back" onClick={handleBackToList} aria-label="Back to conversations"><ArrowLeft size={18} /></button>
+              <button type="button" className="ch-who" onClick={() => setProfile({ userId: selectedChat.otherUserId, userName: selectedChat.otherUserName })}>
+                <Avatar url={selectedChat.profileImageUrl} name={selectedChat.otherUserName} />
+                <span>
+                  <strong>{selectedChat.otherUserName}</strong>
+                  <small><Lock size={11} /> Private chat · your number stays hidden</small>
+                </span>
               </button>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', cursor: 'pointer' }} onClick={() => handleProfileClick(selectedChat.otherUserId)}>
-                  <ImageWithSas 
-                    src={selectedChat.profileImageUrl}
-                    alt={selectedChat.otherUserName}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    fallbackText="User"
-                  />
-                </div>
-                <h4 style={{ margin: 0, cursor: 'pointer' }} onClick={() => handleProfileClick(selectedChat.otherUserId)}>{selectedChat.otherUserName}</h4>
-              </div>
-            </div>
-            
-            <div className="chat-messages">
-              {messages.map((msg, i) => (
-                <div key={msg.id || i} className={`message ${msg.sender === 'Me' ? 'sent' : 'received'}`}>
-                  <div className="message-content">{msg.text}</div>
-                  <div className="message-time">
-                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    {msg.sender === 'Me' && msg.status && (
-                      <span style={{ marginLeft: '4px', fontSize: '10px' }}>• {msg.status}</span>
-                    )}
-                  </div>
-                </div>
-              ))}
+              <button type="button" className="ch-head-btn" onClick={() => setProfile({ userId: selectedChat.otherUserId, userName: selectedChat.otherUserName })}>
+                <UserRound size={15} /> <span>View profile</span>
+              </button>
+            </header>
+
+            <div className="ch-msgs">
+              {messages.map((msg, i) => {
+                const prev = messages[i - 1];
+                const next = messages[i + 1];
+                const newDay = !prev || !sameDay(prev.timestamp, msg.timestamp);
+                const first = newDay || prev.sender !== msg.sender;
+                const last = !next || next.sender !== msg.sender || !sameDay(next.timestamp, msg.timestamp);
+                const mine = msg.sender === 'Me';
+                const failed = msg.status === 'Failed to send';
+                return (
+                  <Fragment key={msg.id || i}>
+                    {newDay && <div className="ch-day"><span>{dayLabel(msg.timestamp)}</span></div>}
+                    <div className={`ch-msg${mine ? ' is-me' : ''}${first ? ' is-first' : ''}${last ? ' is-last' : ''}`}>
+                      <div className="ch-bubble">{msg.text}</div>
+                      {(last || failed) && (
+                        <div className={`ch-meta${failed ? ' is-failed' : ''}`}>
+                          {timeOf(msg.timestamp)}{mine && msg.status && msg.status !== 'sent' && ` · ${msg.status}`}
+                        </div>
+                      )}
+                    </div>
+                  </Fragment>
+                );
+              })}
               <div ref={messagesEndRef} />
             </div>
 
-            <form onSubmit={sendMessage} className="chat-input">
-              <input 
-                type="text" 
-                value={newMessage} 
-                onChange={(e) => setNewMessage(e.target.value)} 
-                placeholder="Type a message..."
-                className="message-input"
-              />
-              <button type="submit" className="send-btn" disabled={sending}>
-                <Send size={16} />
-              </button>
+            {showQuick && (
+              <div className="ch-quick" aria-label="Quick replies">
+                {QUICK_REPLIES.map((r) => <button key={r} type="button" className="pb-chip" onClick={() => applyQuickReply(r)}>{r}</button>)}
+              </div>
+            )}
+            <form onSubmit={sendMessage} className="ch-compose">
+              <input ref={inputRef} type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)}
+                placeholder={`Message ${selectedChat.otherUserName.split(' ')[0]}…`} aria-label="Message" />
+              <button type="submit" className="ch-send" disabled={sending || !newMessage.trim()} aria-label="Send"><Send size={17} /></button>
             </form>
           </>
         ) : (
-          <div className="no-chat-selected">
-            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>💬</div>
-            <h3>Select a conversation</h3>
-            <p>Choose a conversation from the list to start chatting</p>
+          <div className="ch-welcome">
+            <div className="ch-bubbles" aria-hidden="true">
+              <span className="ch-fb ch-fb--1">Hi! Is the room near the metro? 🚇</span>
+              <span className="ch-fb ch-fb--2">Yes — 5 min walk. Welcome! 🙏</span>
+            </div>
+            <h2>Pick a conversation</h2>
+            <p>Your chats with hosts and travellers stay private inside FestiveGuest.</p>
+            <ul className="ch-tips">
+              <li><MessageCircle size={15} /> Introduce yourself and why you’re travelling</li>
+              <li><ShieldCheck size={15} /> Meet in a public place first</li>
+            </ul>
+            <Link to="/safety-guidelines" className="pb-panel-link">Safety guidelines <ArrowRight size={15} /></Link>
           </div>
         )}
-      </div>
-      
-      {selectedProfile && (
-        <div className="modal-overlay" onClick={() => setSelectedProfile(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxHeight: '90vh', overflowY: 'auto' }}>
-            <div className="modal-header">
-              <h3>{selectedProfile.name}</h3>
-              <button onClick={() => setSelectedProfile(null)} className="modal-close">×</button>
-            </div>
-            <div className="modal-body">
-              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', alignItems: 'flex-start' }}>
-                <ImageWithSas 
-                  src={selectedProfile.profileImageUrl}
-                  alt={selectedProfile.name}
-                  className="modal-profile-image"
-                  fallbackText="Profile"
-                  style={{ flexShrink: 0, width: '100px', height: '100px' }}
-                />
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.25rem' }}>{selectedProfile.name}</h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <span style={{ color: '#64748b' }}>📍 {selectedProfile.location}</span>
-                  </div>
-                  <p style={{ color: '#64748b', fontSize: '0.9rem', margin: '0' }}>
-                    {selectedProfile.userType} • Joined {new Date(selectedProfile.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
-                  </p>
-                </div>
-              </div>
-              
-              <div style={{ marginBottom: '1.5rem' }}>
-                <h4 style={{ marginBottom: '0.75rem', color: 'var(--text)' }}>
-                  {selectedProfile.userType === 'Host' ? '🏠 About My Hosting' : '✨ About Me'}
-                </h4>
-                <p style={{ 
-                  color: '#475569', 
-                  lineHeight: '1.5',
-                  background: '#f8fafc',
-                  padding: '1rem',
-                  borderRadius: '0.5rem',
-                  margin: '0'
-                }}>
-                  {selectedProfile.bio || 'No description provided.'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      </section>
 
-      {profileLoading && (
-        <div className="modal-overlay">
-          <div className="loading" style={{ color: 'white' }}>Loading profile...</div>
-        </div>
-      )}
+      <ProfileModal key={profile?.userId || 'none'} open={!!profile} userId={profile?.userId} userName={profile?.userName} onClose={() => setProfile(null)} />
     </div>
   );
 };

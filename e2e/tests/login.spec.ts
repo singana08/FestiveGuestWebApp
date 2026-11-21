@@ -35,14 +35,10 @@ test.describe('Login page', () => {
     await passwordInput.fill('placeholder-value-for-ui-test');
     await expect(passwordInput).toHaveAttribute('type', 'password');
 
-    // The eye icon button carries no accessible name (a minor a11y gap
-    // worth fixing on its own) so it's targeted by DOM position: the first
-    // button following the password field, before "Forgot Password?".
-    const toggleButton = passwordInput.locator('xpath=following::button[1]');
-    await toggleButton.click();
+    await page.getByRole('button', { name: 'Show password' }).click();
     await expect(passwordInput).toHaveAttribute('type', 'text');
 
-    await toggleButton.click();
+    await page.getByRole('button', { name: 'Hide password' }).click();
     await expect(passwordInput).toHaveAttribute('type', 'password');
   });
 
@@ -69,13 +65,13 @@ test.describe('Login page', () => {
     await expect(forgotPassword).toBeVisible();
     await forgotPassword.click();
 
-    const modal = page.locator('.modal-content').filter({ hasText: 'Reset Password' });
+    const modal = page.getByRole('dialog', { name: 'Reset Password' });
     await expect(modal.getByRole('heading', { name: 'Reset Password' })).toBeVisible({ timeout: 5000 });
     await expect(modal.getByPlaceholder('your@email.com')).toBeVisible();
     await expect(modal.getByRole('button', { name: 'Send OTP' })).toBeVisible();
 
     // Close without submitting — never trigger a real OTP email.
-    await modal.getByRole('button', { name: '×' }).click();
+    await modal.getByRole('button', { name: 'Close' }).click();
     await expect(modal).toBeHidden();
   });
 

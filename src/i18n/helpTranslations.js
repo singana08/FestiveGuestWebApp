@@ -11,7 +11,7 @@ export const helpTranslations = {
     faqHowFindHostsAnswer: 'After logging in, go to your dashboard where you can browse profiles, filter by location, and view detailed information about other users. Use the chat feature to connect and arrange local experiences.',
     
     faqReferralSystem: 'How does the referral system work?',
-    faqReferralSystemAnswer: 'Share your referral code with friends. When they register using your code, both of you get special benefits. Invite 3 friends to unlock Premium features for 1 month including priority support and advanced filters!',
+    faqReferralSystemAnswer: 'Share your referral code (under My Profile → Invite friends) with people who could use a trusted local. They enter it when they register. FestiveGuest is completely free during our launch, so there are no rewards to unlock right now — every friend who joins simply makes the community stronger.',
     
     faqSafetyMeasures: 'What safety measures should I take?',
     faqSafetyMeasuresAnswer: 'Always meet in public places first, share your plans with trusted contacts, verify the other person\'s identity through video calls, keep emergency contacts handy, and trust your instincts. Never share personal financial information or make large advance payments.',
@@ -92,7 +92,7 @@ export const helpTranslations = {
     faqHowFindHostsAnswer: 'లాగిన్ అయిన తర్వాత, మీ డాష్‌బోర్డ్‌కు వెళ్లండి, అక్కడ మీరు ప్రొఫైల్‌లను బ్రౌజ్ చేయవచ్చు, స్థానం ద్వారా ఫిల్టర్ చేయవచ్చు మరియు ఇతర వినియోగదారుల గురించి వివరణాత్మక సమాచారాన్ని చూడవచ్చు. కనెక్ట్ అవ్వడానికి మరియు స్థానిక అనుభవాలను ఏర్పాటు చేసుకోవడానికి చాట్ ఫీచర్‌ను ఉపయోగించండి.',
     
     faqReferralSystem: 'రెఫరల్ సిస్టమ్ ఎలా పనిచేస్తుంది?',
-    faqReferralSystemAnswer: 'మీ రెఫరల్ కోడ్‌ను స్నేహితులతో పంచుకోండి. వారు మీ కోడ్‌ను ఉపయోగించి రిజిస్టర్ చేసుకున్నప్పుడు, మీరిద్దరూ ప్రత్యేక ప్రయోజనాలను పొందుతారు. ప్రాధాన్యత మద్దతు మరియు అధునాతన ఫిల్టర్‌లతో సహా 1 నెల పాటు ప్రీమియం ఫీచర్‌లను అన్‌లాక్ చేయడానికి 3 మంది స్నేహితులను ఆహ్వానించండి!',
+    faqReferralSystemAnswer: 'మీ రెఫరల్ కోడ్‌ను (నా ప్రొఫైల్ → స్నేహితులను ఆహ్వానించండి) నమ్మకమైన స్థానికుడి అవసరం ఉన్నవారితో పంచుకోండి. వారు రిజిస్టర్ చేసేటప్పుడు దాన్ని నమోదు చేస్తారు. ప్రారంభ దశలో FestiveGuest పూర్తిగా ఉచితం, కాబట్టి ప్రస్తుతం అన్‌లాక్ చేయాల్సిన బహుమతులు లేవు — చేరే ప్రతి స్నేహితుడు మన కమ్యూనిటీని మరింత బలంగా చేస్తారు.',
     
     faqSafetyMeasures: 'నేను ఏ భద్రతా చర్యలు తీసుకోవాలి?',
     faqSafetyMeasuresAnswer: 'ఎల్లప్పుడూ మొదట బహిరంగ ప్రదేశాలలో కలవండి, విశ్వసనీయ పరిచయస్థులతో మీ ప్రణాళికలను పంచుకోండి, వీడియో కాల్స్ ద్వారా ఇతర వ్యక్తి గుర్తింపును ధృవీకరించండి, అత్యవసర పరిచయాలను సిద్ధంగా ఉంచుకోండి మరియు మీ ప్రవృత్తిని విశ్వసించండి. వ్యక్తిగత ఆర్థిక సమాచారాన్ని ఎప్పుడూ పంచుకోకండి లేదా పెద్ద ముందస్తు చెల్లింపులు చేయకండి.',

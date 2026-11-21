@@ -1,85 +1,67 @@
-import React from 'react';
+import { Link } from 'react-router-dom';
+import { motion, MotionConfig } from 'framer-motion';
+import { ShieldCheck, AlertTriangle, LifeBuoy, ArrowRight } from 'lucide-react';
 import useSEO from '../hooks/useSEO';
+import '../styles/Register.css';
+import '../styles/InfoPages.css';
+
+const TIPS = [
+  ['📱', 'Share Your Plans', 'Always inform family/friends about your travel plans, host details, and expected return time. Share your location and keep them updated.'],
+  ['🌍', 'Meet in Public First', 'Arrange initial meetings in public places like cafes or restaurants before going to private locations. This helps build trust and ensures safety.'],
+  ['📞', 'Video Call Before Meeting', 'Have a video conversation to verify identity and get comfortable before meeting in person. This is an important step for both parties.'],
+  ['📲', 'Keep Emergency Contacts', 'Save local emergency numbers and keep your phone charged. Share live location with trusted contacts during your stay.'],
+  ['👥', 'Trust Your Instincts', "If something feels wrong, don't hesitate to leave. Your safety is more important than being polite. Listen to your gut feeling."],
+  ['💳', 'Secure Payment Methods', 'Use secure payment methods and avoid carrying large amounts of cash. Keep copies of important documents in a safe place.'],
+];
+const REMINDERS = [
+  'Never share sensitive personal information (bank details, passwords) with anyone',
+  "Verify the identity of the person you're meeting through video calls",
+  'Keep your family/friends informed about your whereabouts at all times',
+  'Report any suspicious behavior or safety concerns immediately',
+  'Use the in-app messaging system for all communications',
+  'Read reviews and check profiles carefully before making arrangements',
+];
 
 const SafetyGuidelines = () => {
   useSEO({ title: 'Safety Guidelines', description: 'Safety guidelines for staying with or becoming a trusted local host in India — verification, best practices, and guest safety tips.' });
   return (
-    <div className="container" style={{ padding: '2rem 1rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <h1 style={{ textAlign: 'center', marginBottom: '1rem' }}>🛡️ Safety Guidelines</h1>
-      <p style={{ textAlign: 'center', color: '#64748b', marginBottom: '3rem', fontSize: '1.1rem' }}>
-        Please read these guidelines carefully before meeting hosts or guests
-      </p>
+    <MotionConfig reducedMotion="user">
+      <div className="ip">
+        <div className="rg-aurora" aria-hidden="true"><span className="a1" /><span className="a2" /><span className="a3" /></div>
+        <div className="ip-shell">
+          <header className="ip-hero">
+            <span className="ip-hero-icon" aria-hidden="true"><ShieldCheck size={24} /></span>
+            <h1>Safety Guidelines</h1>
+            <p>Please read these guidelines carefully before meeting hosts or guests</p>
+          </header>
 
-      <div className="safety-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '2rem', marginBottom: '3rem' }}>
-        <div className="safety-card" style={{ background: 'var(--surface)', padding: '2rem', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)' }}>
-          <div className="feature-icon" style={{ fontSize: '3rem', marginBottom: '1rem' }}>📱</div>
-          <h3 style={{ marginBottom: '1rem' }}>Share Your Plans</h3>
-          <p style={{ color: '#64748b', lineHeight: '1.6' }}>
-            Always inform family/friends about your travel plans, host details, and expected return time. Share your location and keep them updated.
-          </p>
-        </div>
+          <ol className="ip-tips">
+            {TIPS.map(([emoji, title, text], i) => (
+              <motion.li key={title} initial={{ opacity: 0, y: 14 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }} transition={{ duration: 0.4, delay: (i % 3) * 0.06 }}>
+                <span className="ip-tip-emoji" aria-hidden="true">{emoji}</span>
+                <span className="ip-tip-num" aria-hidden="true">{String(i + 1).padStart(2, '0')}</span>
+                <h2>{title}</h2>
+                <p>{text}</p>
+              </motion.li>
+            ))}
+          </ol>
 
-        <div className="safety-card" style={{ background: 'var(--surface)', padding: '2rem', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)' }}>
-          <div className="feature-icon" style={{ fontSize: '3rem', marginBottom: '1rem' }}>🌍</div>
-          <h3 style={{ marginBottom: '1rem' }}>Meet in Public First</h3>
-          <p style={{ color: '#64748b', lineHeight: '1.6' }}>
-            Arrange initial meetings in public places like cafes or restaurants before going to private locations. This helps build trust and ensures safety.
-          </p>
-        </div>
+          <section className="ip-remind">
+            <h2><AlertTriangle size={18} /> Important Reminders</h2>
+            <ul>{REMINDERS.map((r) => <li key={r}>{r}</li>)}</ul>
+          </section>
 
-        <div className="safety-card" style={{ background: 'var(--surface)', padding: '2rem', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)' }}>
-          <div className="feature-icon" style={{ fontSize: '3rem', marginBottom: '1rem' }}>📞</div>
-          <h3 style={{ marginBottom: '1rem' }}>Video Call Before Meeting</h3>
-          <p style={{ color: '#64748b', lineHeight: '1.6' }}>
-            Have a video conversation to verify identity and get comfortable before meeting in person. This is an important step for both parties.
-          </p>
-        </div>
-
-        <div className="safety-card" style={{ background: 'var(--surface)', padding: '2rem', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)' }}>
-          <div className="feature-icon" style={{ fontSize: '3rem', marginBottom: '1rem' }}>📲</div>
-          <h3 style={{ marginBottom: '1rem' }}>Keep Emergency Contacts</h3>
-          <p style={{ color: '#64748b', lineHeight: '1.6' }}>
-            Save local emergency numbers and keep your phone charged. Share live location with trusted contacts during your stay.
-          </p>
-        </div>
-
-        <div className="safety-card" style={{ background: 'var(--surface)', padding: '2rem', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)' }}>
-          <div className="feature-icon" style={{ fontSize: '3rem', marginBottom: '1rem' }}>👥</div>
-          <h3 style={{ marginBottom: '1rem' }}>Trust Your Instincts</h3>
-          <p style={{ color: '#64748b', lineHeight: '1.6' }}>
-            If something feels wrong, don't hesitate to leave. Your safety is more important than being polite. Listen to your gut feeling.
-          </p>
-        </div>
-
-        <div className="safety-card" style={{ background: 'var(--surface)', padding: '2rem', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)' }}>
-          <div className="feature-icon" style={{ fontSize: '3rem', marginBottom: '1rem' }}>💳</div>
-          <h3 style={{ marginBottom: '1rem' }}>Secure Payment Methods</h3>
-          <p style={{ color: '#64748b', lineHeight: '1.6' }}>
-            Use secure payment methods and avoid carrying large amounts of cash. Keep copies of important documents in a safe place.
-          </p>
+          <section className="ip-cta">
+            <span className="ip-cta-icon" aria-hidden="true"><LifeBuoy size={20} /></span>
+            <div>
+              <h2>Need Help?</h2>
+              <p>If you experience any safety concerns or need assistance, please contact us immediately.</p>
+            </div>
+            <Link to="/help" className="rg-btn rg-btn-primary ip-cta-btn">Contact Support <ArrowRight size={16} /></Link>
+          </section>
         </div>
       </div>
-
-      <div style={{ background: '#fef3c7', padding: '2rem', borderRadius: 'var(--radius)', border: '2px solid #f59e0b', marginBottom: '2rem' }}>
-        <h2 style={{ marginBottom: '1rem', color: '#92400e' }}>⚠️ Important Reminders</h2>
-        <ul style={{ color: '#92400e', lineHeight: '1.8', paddingLeft: '1.5rem' }}>
-          <li>Never share sensitive personal information (bank details, passwords) with anyone</li>
-          <li>Verify the identity of the person you're meeting through video calls</li>
-          <li>Keep your family/friends informed about your whereabouts at all times</li>
-          <li>Report any suspicious behavior or safety concerns immediately</li>
-          <li>Use the in-app messaging system for all communications</li>
-          <li>Read reviews and check profiles carefully before making arrangements</li>
-        </ul>
-      </div>
-
-      <div style={{ textAlign: 'center', padding: '2rem', background: 'var(--surface)', borderRadius: 'var(--radius)' }}>
-        <h3 style={{ marginBottom: '1rem' }}>Need Help?</h3>
-        <p style={{ color: '#64748b', marginBottom: '1.5rem' }}>
-          If you experience any safety concerns or need assistance, please contact us immediately.
-        </p>
-        <a href="/help" className="btn btn-primary">Contact Support</a>
-      </div>
-    </div>
+    </MotionConfig>
   );
 };
 

@@ -1,5 +1,7 @@
 import React from 'react';
 import useSEO from '../hooks/useSEO';
+import LegalToc from '../components/LegalToc';
+import '../styles/InfoPages.css';
 import { Link } from 'react-router-dom';
 
 const PrivacyPolicy = () => {
@@ -9,6 +11,7 @@ const PrivacyPolicy = () => {
       <div className="container">
         <h1>Privacy Policy</h1>
         <p className="last-updated">Last Updated: 21 November 2026</p>
+        <LegalToc />
 
         <section>
           <h2>1. Introduction</h2>

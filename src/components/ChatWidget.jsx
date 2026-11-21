@@ -106,10 +106,10 @@ const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) 
   const sendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
-    
+    const messageText = newMessage.trim(); // outside try: the catch below restores it
+
     try {
       setSending(true);
-      const messageText = newMessage.trim();
       setNewMessage('');
       
       console.log('Sending message:', messageText, 'to:', recipientId);
@@ -179,12 +179,11 @@ const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) 
     <div className="chat-widget">
       <div className="chat-header">
         <div className="chat-user-info">
-          <ImageWithSas 
-            src={recipientImageUrl}
-            alt={recipientName}
-            className="user-avatar"
-            fallbackText="User"
-          />
+          {recipientImageUrl ? (
+            <ImageWithSas src={recipientImageUrl} alt={recipientName} className="user-avatar" fallbackText="User" />
+          ) : (
+            <span className="user-avatar user-avatar--initial" aria-hidden="true">{(recipientName || '?').charAt(0).toUpperCase()}</span>
+          )}
           <div>
             <div className="user-name">{recipientName || 'Chat'}</div>
             <div className="user-status">
@@ -199,49 +198,26 @@ const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) 
       
       <div className="chat-messages">
         {loading ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
-            <div style={{ marginBottom: '0.5rem' }}>💬</div>
-            Loading messages...
+          <div className="cw-state">
+            <span className="cw-state-icon">💬</span>
+            Loading messages…
           </div>
         ) : error ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
-            <div style={{ marginBottom: '0.5rem' }}>⚠️</div>
+          <div className="cw-state is-error">
+            <span className="cw-state-icon">⚠️</span>
             {error}
-            <button 
-              onClick={initChat}
-              style={{
-                display: 'block',
-                margin: '1rem auto 0',
-                padding: '0.5rem 1rem',
-                background: 'var(--primary)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '0.375rem',
-                cursor: 'pointer'
-              }}
-            >
-              Retry
-            </button>
+            <button type="button" className="cw-retry" onClick={initChat}>Retry</button>
           </div>
         ) : messages.length === 0 ? (
-          <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
-            <div style={{ marginBottom: '0.5rem' }}>👋</div>
-            Start a conversation with {recipientName}
+          <div className="cw-state">
+            <span className="cw-state-icon">👋</span>
+            Say hello to {recipientName} — introduce yourself and your plans.
           </div>
         ) : (
           messages.map((m, i) => (
             <div key={m.id || i} className={`message ${m.sender === 'Me' ? 'sent' : 'received'}`}>
               <div className="message-content">{m.text}</div>
-              <div style={{ 
-                fontSize: '11px', 
-                color: '#65676b', 
-                marginTop: '2px', 
-                textAlign: 'center',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.25rem'
-              }}>
+              <div className="message-time">
                 {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 {m.sender === 'Me' && (
                   <span className={`message-status ${m.status}`}>

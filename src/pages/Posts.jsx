@@ -1,2022 +1,556 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, MapPin, Users, Calendar, MessageCircle, MoreVertical, Edit, Trash2, Filter, Minus, Wifi } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
+import {
+  Plus, Search, X, LayoutGrid, Map as MapIcon, HelpCircle, MessageCircle, ShieldCheck,
+  ArrowRight, MapPin, Sparkles, RefreshCw, Trash2, CheckCircle2, AlertTriangle, Compass,
+} from 'lucide-react';
 import postsService from '../utils/postsService';
 import locationService from '../utils/locationService';
 import ChatWidget from '../components/ChatWidget';
 import api from '../utils/api';
 import { useLanguage } from '../i18n/LanguageContext';
-import '../styles/Posts.css';
-import '../styles/Dashboard.css';
+import { postsCopy } from '../i18n/postsCopy';
 import useSEO from '../hooks/useSEO';
+import PostCard from '../components/posts/PostCard';
+import CityMap from '../components/posts/CityMap';
+import PostFormModal from '../components/posts/PostFormModal';
+import ProfileModal from '../components/posts/ProfileModal';
+import GlassDialog from '../components/posts/GlassDialog';
+import { CITY_COORDS } from '../components/posts/cityCoords';
+import { fmt, daysUntil, citiesInLocation, splitCsv } from '../components/posts/postUtils';
+import '../styles/Register.css';
+import '../styles/PostsBoard.css';
 
-// Shared amenity list for the create/edit host-post modals — was duplicated
-// verbatim in both, and the two copies had drifted (Kitchen was missing the
-// zero-width joiner that makes 👨‍🍳 render as one emoji instead of two).
-const AMENITY_OPTIONS = [
-  { name: 'WiFi', icon: '📶' },
-  { name: 'Parking', icon: '🚗' },
-  { name: 'Meals', icon: '🍽️' },
-  { name: 'AC', icon: '❄️' },
-  { name: 'Kitchen', icon: '👨‍🍳' },
-  { name: 'Laundry', icon: '👕' },
-  { name: 'TV', icon: '📺' },
-  { name: 'Hot Water', icon: '🚿' }
-];
+const EASE = [0.22, 1, 0.36, 1];
+const toDate = (d) => new Date(`${d}T00:00:00.000Z`).toISOString();
+
+// API rows → the shape the cards use (unchanged from the previous page).
+const mapGuestPost = (post, fallbackName) => ({
+  id: post.rowKey, title: post.title, content: post.content, location: post.location,
+  planningDate: post.planningDate, visitors: post.visitors || 1, days: post.days || 1,
+  facilities: post.facilities ? post.facilities.split(',') : [],
+  userName: post.userName || fallbackName || 'Unknown', userId: post.userId, userType: 'Guest',
+  createdAt: new Date(post.createdAt), status: post.status,
+  needType: post.needType || 'stay', guideHelpWith: splitCsv(post.guideHelpWith), guideHours: post.guideHours || null,
+  guideLanguages: splitCsv(post.guideLanguages), guideBudgetPerHour: post.guideBudgetPerHour ?? null,
+});
+const mapHostPost = (post, fallbackName) => ({
+  id: post.rowKey, title: post.title, content: post.content, location: post.location,
+  maxGuests: post.maxGuests || 1, pricePerNight: post.pricePerNight,
+  amenities: post.amenities ? post.amenities.split(',') : [],
+  userName: post.userName || fallbackName || 'Unknown', userId: post.userId, userType: 'Host',
+  createdAt: new Date(post.createdAt), status: post.status, commenceDate: post.commenceDate,
+});
+
+// Upcoming trips by date, then flexible ones, then past trips (most recent first).
+const soonestKey = (p) => { const d = daysUntil(p.planningDate); return d === null ? [1, 0] : d >= 0 ? [0, d] : [2, -d]; };
+const SORTERS = {
+  soonest: (a, b) => { const [ga, da] = soonestKey(a); const [gb, db] = soonestKey(b); return ga - gb || da - db || b.createdAt - a.createdAt; },
+  newest: (a, b) => b.createdAt - a.createdAt,
+  price: (a, b) => ((a.pricePerNight > 0 ? a.pricePerNight : Infinity) - (b.pricePerNight > 0 ? b.pricePerNight : Infinity)) || b.createdAt - a.createdAt,
+};
+
+const SkeletonCard = () => (
+  <div className="pb-card pb-skeleton" aria-hidden="true">
+    <div className="pb-sk pb-sk--row"><span className="pb-sk pb-sk--tile" /><span className="pb-sk pb-sk--lines" /></div>
+    <span className="pb-sk pb-sk--line" /><span className="pb-sk pb-sk--line pb-sk--short" />
+    <span className="pb-sk pb-sk--btn" />
+  </div>
+);
 
 const Posts = () => {
   useSEO({ title: 'Browse Posts', noindex: true });
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const c = postsCopy[language] || postsCopy.en;
+  const locale = language === 'te' ? 'te-IN' : 'en-IN';
   const navigate = useNavigate();
   const location = useLocation();
+  const [user] = useState(() => { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } });
+  const isHost = user?.userType === 'Host';
+
   const [posts, setPosts] = useState([]);
-  const [filteredPosts, setFilteredPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [editingPost, setEditingPost] = useState(null);
-  const [deletingPost, setDeletingPost] = useState(null);
-  // Read synchronously (not in an effect) so `user` is already correct the
-  // very first time fetchPosts() runs. It used to be set via setUser() inside
-  // the mount effect below, but that update doesn't apply until after that
-  // same effect's fetchPosts() call already ran with user still null — for a
-  // Host, that made fetchPosts() take the "no user" branch (fetching host
-  // posts) instead of "Guest Posts", so the tab loaded empty until something
-  // else (e.g. switching tabs) re-ran fetchPosts() with user populated.
-  const [user, setUser] = useState(() => {
-    try {
-      const userData = localStorage.getItem('user');
-      return userData ? JSON.parse(userData) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [activeDropdown, setActiveDropdown] = useState(null);
-  const [activeChat, setActiveChat] = useState(null);
-  const [selectedLocations, setSelectedLocations] = useState([]);
-  // Single source of truth for the filter panel's mobile open/closed state.
-  // CSS (not JS) decides whether the panel is force-visible on wider
-  // screens, so there's no separate desktop-breakpoint state to keep in
-  // sync with the CSS media query anymore (that mismatch — JS at 1024px
-  // vs CSS at 768px — used to leave the panel's own header collapsed in
-  // the 769-1024px range while the outer toggle button showed alongside
-  // it, reading as a duplicated filter bar).
-  const [showFilters, setShowFilters] = useState(false);
-  const [expandedStates, setExpandedStates] = useState({});
-  const [locationData, setLocationData] = useState({});
-  const [hostingAreasByState, setHostingAreasByState] = useState({});
+  const [loadError, setLoadError] = useState(false);
   const [showMyPosts, setShowMyPosts] = useState(false);
+  const [locationData, setLocationData] = useState({});
+  const [conversations, setConversations] = useState(null);
+
+  const [query, setQuery] = useState('');
+  const [selectedLocations, setSelectedLocations] = useState([]);
+  const [timeFilter, setTimeFilter] = useState('any');
+  const [priceFilter, setPriceFilter] = useState(0);
+  const [guideOnly, setGuideOnly] = useState(false);
+  const [sort, setSort] = useState(null);
+  const [view, setView] = useState('cards');
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [activeSuggestion, setActiveSuggestion] = useState(0);
+
+  const [form, setForm] = useState({ open: false, key: 0 });
+  const [deletingPost, setDeletingPost] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
-  const [selectedProfile, setSelectedProfile] = useState(null);
-  const [profileLoading, setProfileLoading] = useState(false);
+  const [profile, setProfile] = useState(null);
+  const [activeChat, setActiveChat] = useState(null);
+  const [toast, setToast] = useState(null);
+  const fetchId = useRef(0);
+  const searchWrap = useRef(null);
+
+  // Trip requests (guest posts) are what hosts browse and what guests own.
+  const viewingTrips = showMyPosts ? !isHost : isHost;
+  const effectiveSort = sort || (viewingTrips ? 'soonest' : 'newest');
+
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type, id: Date.now() });
+  };
+  useEffect(() => {
+    if (!toast) return undefined;
+    const id = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(id);
+  }, [toast]);
+
+  const fetchPosts = async () => {
+    // Ignore responses from an earlier tab if the user switched tabs mid-load.
+    const id = ++fetchId.current;
+    setLoading(true); setLoadError(false);
+    try {
+      let rows;
+      if (showMyPosts) {
+        rows = isHost
+          ? (await postsService.getMyHostPosts()).map((p) => mapHostPost(p, user?.name))
+          : (await postsService.getMyGuestPosts()).map((p) => mapGuestPost(p, user?.name));
+      } else {
+        rows = isHost
+          ? (await postsService.getGuestPosts()).map((p) => mapGuestPost(p))
+          : (await postsService.getHostPosts()).map((p) => mapHostPost(p));
+      }
+      if (id === fetchId.current) setPosts(rows);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      if (id === fetchId.current) { setPosts([]); setLoadError(true); }
+    } finally {
+      if (id === fetchId.current) setLoading(false);
+    }
+  };
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchPosts(); }, [showMyPosts]);
 
   useEffect(() => {
-    fetchPosts();
+    locationService.getLocations().then(setLocationData).catch(() => {});
+    if (user) {
+      api.get('chat/conversations')
+        .then((res) => setConversations([...(res.data || [])].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5)))
+        .catch(() => setConversations([]));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Browser back/forward doesn't go through the modal's own onClose handler.
-  // Posts is rendered here via App.jsx's backgroundLocation override, so its
-  // own useLocation() reflects that background (/posts), not the real
-  // address bar — a native popstate listener is what actually sees the URL
-  // change and closes the popup to match.
+  // Browser back closes the profile popup (its URL is pushed on open).
   useEffect(() => {
-    const handlePopState = () => {
-      if (!window.location.pathname.startsWith('/profile/')) {
-        setShowProfileModal(false);
-        setSelectedProfile(null);
-      }
-    };
+    const handlePopState = () => { if (!window.location.pathname.startsWith('/profile/')) setProfile(null); };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  const anyDialogOpen = form.open || !!deletingPost || showHowItWorks || !!profile;
   useEffect(() => {
-    if (user) {
-      if (user.userType === 'Host' && user.hostingAreas) {
-        const areasByState = {};
-        user.hostingAreas
-          .filter(area => area.state && area.cities && area.cities.length > 0)
-          .forEach(area => {
-            areasByState[area.state] = area.cities;
-          });
-        setHostingAreasByState(areasByState);
-      } else {
-        fetchLocations();
+    document.body.style.overflow = anyDialogOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [anyDialogOpen]);
+
+  useEffect(() => {
+    const close = (e) => { if (!searchWrap.current?.contains(e.target)) setSuggestOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, []);
+
+  // ── Derived lists ──
+  const hostingCities = useMemo(() => (user?.hostingAreas || []).flatMap((a) => a.cities || []), [user]);
+
+  const baseFiltered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return posts.filter((p) => {
+      if (q && ![p.title, p.content, p.location, p.userName].some((v) => v?.toLowerCase().includes(q))) return false;
+      if (viewingTrips && guideOnly && p.needType === 'stay') return false;
+      if (viewingTrips && timeFilter !== 'any') {
+        const d = daysUntil(p.planningDate);
+        if (d === null || d < 0) return false;
+        if (timeFilter === 'week' && d > 6) return false;
+        if (timeFilter === 'month' && d > 30) return false;
+        if (timeFilter === 'later' && d <= 30) return false;
       }
+      if (!viewingTrips && priceFilter && !(p.pricePerNight > 0 && p.pricePerNight <= priceFilter)) return false;
+      return true;
+    });
+  }, [posts, query, viewingTrips, timeFilter, priceFilter, guideOnly]);
+
+  const results = useMemo(() => {
+    const list = selectedLocations.length
+      ? baseFiltered.filter((p) => selectedLocations.some((loc) => p.location?.toLowerCase().includes(loc.toLowerCase())))
+      : baseFiltered;
+    return [...list].sort(SORTERS[effectiveSort]);
+  }, [baseFiltered, selectedLocations, effectiveSort]);
+
+  const cityCounts = useMemo(() => {
+    const counts = {};
+    for (const p of baseFiltered) for (const city of new Set(citiesInLocation(p.location))) if (CITY_COORDS[city]) counts[city] = (counts[city] || 0) + 1;
+    return counts;
+  }, [baseFiltered]);
+
+  const stats = useMemo(() => {
+    const weekAgo = Date.now() - 7 * 86400000;
+    const cities = new Set(posts.flatMap((p) => citiesInLocation(p.location)).filter((ci) => CITY_COORDS[ci]));
+    return { total: posts.length, fresh: posts.filter((p) => p.createdAt.getTime() > weekAgo).length, cities: cities.size };
+  }, [posts]);
+
+  const suggestions = useMemo(() => {
+    const all = [...new Set([...hostingCities, ...Object.values(locationData).flat()])].filter((ci) => ci && ci !== 'Other' && !selectedLocations.includes(ci));
+    const q = query.trim().toLowerCase();
+    const list = q
+      ? all.filter((ci) => ci.toLowerCase().includes(q))
+      : all.filter((ci) => cityCounts[ci]).sort((a, b) => cityCounts[b] - cityCounts[a]);
+    return list.slice(0, 6);
+  }, [hostingCities, locationData, selectedLocations, query, cityCounts]);
+
+  const filtersActive = query || selectedLocations.length || timeFilter !== 'any' || priceFilter || guideOnly;
+
+  // ── Actions ──
+  const toggleLocation = (city) => setSelectedLocations((prev) => (prev.includes(city) ? prev.filter((l) => l !== city) : [...prev, city]));
+  const addCity = (city) => { if (!selectedLocations.includes(city)) setSelectedLocations((p) => [...p, city]); setQuery(''); setSuggestOpen(false); };
+  const clearFilters = () => { setQuery(''); setSelectedLocations([]); setTimeFilter('any'); setPriceFilter(0); setGuideOnly(false); };
+  const allHostingSelected = hostingCities.length > 0 && hostingCities.every((ci) => selectedLocations.includes(ci));
+  const toggleHostingAreas = () => setSelectedLocations(allHostingSelected ? selectedLocations.filter((ci) => !hostingCities.includes(ci)) : [...new Set([...selectedLocations, ...hostingCities])]);
+
+  const switchTab = (mine) => { if (mine !== showMyPosts) { setShowMyPosts(mine); setSort(null); } };
+
+  const openCreate = () => setForm({ open: true, key: Date.now(), kind: isHost ? 'Host' : 'Guest', isEditing: false, initialData: null });
+  const openEdit = (post) => setForm({ open: true, key: Date.now(), kind: post.userType, isEditing: true, initialData: post });
+  const closeForm = () => setForm((f) => ({ ...f, open: false }));
+
+  // Rejects on failure so the form can show the error inline.
+  const submitForm = async (payload) => {
+    if (form.isEditing) {
+      const post = form.initialData;
+      if (post.userType === 'Guest') await postsService.updateGuestPost(post.id, { ...payload, planningDate: payload.planningDate ? toDate(payload.planningDate) : null });
+      else await postsService.updateHostPost(post.id, payload);
+      closeForm();
+      showToast(post.userType === 'Guest' ? 'Trip updated' : 'Listing updated');
+      fetchPosts();
+      return;
     }
-  }, [user]);
-
-  useEffect(() => {
-    filterPosts();
-  }, [posts, selectedLocations]);
-
-  // Refetch posts when showMyPosts changes
-  useEffect(() => {
-    fetchPosts();
-  }, [showMyPosts]);
-
-  useEffect(() => {
-    const handleClickOutside = () => setActiveDropdown(null);
-    if (activeDropdown) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
-    }
-  }, [activeDropdown]);
-
-  useEffect(() => {
-    const anyOpen = showCreateModal || showEditModal || showDeleteModal || showHowItWorks || showProfileModal;
-    document.body.style.overflow = anyOpen ? 'hidden' : '';
-    document.documentElement.style.overflow = anyOpen ? 'hidden' : '';
-    return () => {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
+    const postWithUser = {
+      ...payload,
+      userName: user?.name || 'Unknown User',
+      userId: user?.userId || user?.id,
+      planningDate: payload.planningDate ? toDate(payload.planningDate) : null,
     };
-  }, [showCreateModal, showEditModal, showDeleteModal, showHowItWorks, showProfileModal]);
-
-  const fetchLocations = async () => {
-    try {
-      const locations = await locationService.getLocations();
-      setLocationData(locations);
-    } catch (error) {
-      console.error('Error fetching locations:', error);
-      // Same fallback used by the other fetchLocations() further down in
-      // this file — otherwise the location filter is silently empty.
-      setLocationData({
-        'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Other'],
-        'Karnataka': ['Bangalore', 'Mysore', 'Mangalore', 'Other'],
-        'Kerala': ['Kochi', 'Thiruvananthapuram', 'Kozhikode', 'Other'],
-        'Andhra Pradesh': ['Hyderabad', 'Visakhapatnam', 'Vijayawada', 'Other'],
-        'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Other'],
-        'Delhi': ['New Delhi', 'Other']
-      });
-    }
+    if (user?.userType === 'Guest') await postsService.createGuestPost(postWithUser);
+    else await postsService.createHostPost(postWithUser);
+    closeForm();
+    showToast(isHost ? 'Your listing is live 🎉' : 'Your trip is posted 🎉');
+    if (showMyPosts) fetchPosts(); else setShowMyPosts(true);
   };
 
-  const fetchPosts = async () => {
-    try {
-      setLoading(true);
-      let allPosts = [];
-      
-      if (showMyPosts) {
-        // Show user's own posts
-        const myPosts = user?.userType === 'Host' 
-          ? await postsService.getMyHostPosts()
-          : await postsService.getMyGuestPosts();
-        
-        allPosts = myPosts.map(post => ({
-          id: post.rowKey,
-          title: post.title,
-          content: post.content,
-          location: post.location,
-          planningDate: post.planningDate,
-          visitors: post.visitors || 1,
-          days: post.days || 1,
-          maxGuests: post.maxGuests || 1,
-          pricePerNight: post.pricePerNight,
-          facilities: post.facilities ? post.facilities.split(',') : [],
-          amenities: post.amenities ? post.amenities.split(',') : [],
-          userName: post.userName || user?.name || 'Unknown',
-          userId: post.userId,
-          userType: user?.userType,
-          createdAt: new Date(post.createdAt),
-          status: post.status,
-          commenceDate: post.commenceDate
-        }));
-      } else {
-        // Show posts based on user type
-        if (user?.userType === 'Host') {
-          // Hosts see guest posts
-          const guestPosts = await postsService.getGuestPosts();
-          allPosts = guestPosts.map(post => ({
-            id: post.rowKey,
-            title: post.title,
-            content: post.content,
-            location: post.location,
-            planningDate: post.planningDate,
-            visitors: post.visitors || 1,
-            days: post.days || 1,
-            facilities: post.facilities ? post.facilities.split(',') : [],
-            userName: post.userName || 'Unknown',
-            userId: post.userId,
-            userType: 'Guest',
-            createdAt: new Date(post.createdAt),
-            status: post.status
-          }));
-        } else {
-          // Guests see host posts
-          const hostPosts = await postsService.getHostPosts();
-          allPosts = hostPosts.map(post => ({
-            id: post.rowKey,
-            title: post.title,
-            content: post.content,
-            location: post.location,
-            maxGuests: post.maxGuests || 1,
-            pricePerNight: post.pricePerNight,
-            amenities: post.amenities ? post.amenities.split(',') : [],
-            userName: post.userName || 'Unknown',
-            userId: post.userId,
-            userType: 'Host',
-            createdAt: new Date(post.createdAt),
-            status: post.status,
-            commenceDate: post.commenceDate
-          }));
-        }
-      }
-      
-      allPosts.sort((a, b) => b.createdAt - a.createdAt);
-      setPosts(allPosts);
-    } catch (error) {
-      console.error('Error fetching posts:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filterPosts = () => {
-    if (selectedLocations.length === 0) {
-      setFilteredPosts(posts);
-    } else {
-      const filtered = posts.filter(post => 
-        selectedLocations.some(location => 
-          post.location?.toLowerCase().includes(location.toLowerCase())
-        )
-      );
-      setFilteredPosts(filtered);
-    }
-  };
-
-  const toggleState = (state) => {
-    setExpandedStates(prev => ({
-      ...prev,
-      [state]: !prev[state]
-    }));
-  };
-
-  const toggleLocation = (location) => {
-    setSelectedLocations(prev => 
-      prev.includes(location)
-        ? prev.filter(loc => loc !== location)
-        : [...prev, location]
-    );
-  };
-
-  const clearFilters = () => {
-    setSelectedLocations([]);
-  };
-
-  const facilityIcons = {
-    'WiFi': <Wifi size={14} />,
-    'Parking': '🚗',
-    'Meals': '🍽️',
-    'AC': '❄️',
-    'Kitchen': '👨‍🍳',
-    'Laundry': '👕',
-    'TV': '📺',
-    'Hot Water': '🚿'
-  };
-
-  const handleCreatePost = async (postData) => {
-    try {
-      const postWithUser = {
-        ...postData,
-        userName: user?.name || 'Unknown User',
-        userId: user?.userId || user?.id,
-        planningDate: postData.planningDate ? new Date(postData.planningDate + 'T00:00:00.000Z').toISOString() : null
-      };
-      
-      if (user?.userType === 'Guest') {
-        await postsService.createGuestPost(postWithUser);
-      } else {
-        await postsService.createHostPost(postWithUser);
-      }
-      setShowCreateModal(false);
-      fetchPosts();
-    } catch (error) {
-      console.error('Error creating post:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to create post. Please try again.';
-      alert(errorMessage);
-    }
-  };
-
-  const handleEditPost = (post) => {
-    setEditingPost(post);
-    setShowEditModal(true);
-    setActiveDropdown(null);
-  };
-
-  const handleUpdatePost = async (postData) => {
-    try {
-      if (editingPost.userType === 'Guest') {
-        await postsService.updateGuestPost(editingPost.id, postData);
-      } else {
-        await postsService.updateHostPost(editingPost.id, postData);
-      }
-      setShowEditModal(false);
-      setEditingPost(null);
-      fetchPosts();
-    } catch (error) {
-      console.error('Error updating post:', error);
-      alert('Failed to update post. Please try again.');
-    }
-  };
-
-  const handleDeletePost = async (post) => {
-    setDeletingPost(post);
-    setShowDeleteModal(true);
-    setActiveDropdown(null);
-  };
-
-  const confirmDeletePost = async () => {
+  const confirmDelete = async () => {
     if (!deletingPost) return;
-    
+    setDeleting(true);
     try {
-      if (deletingPost.userType === 'Guest') {
-        await postsService.deleteGuestPost(deletingPost.id);
-      } else {
-        await postsService.deleteHostPost(deletingPost.id);
-      }
-      setShowDeleteModal(false);
+      if (deletingPost.userType === 'Guest') await postsService.deleteGuestPost(deletingPost.id);
+      else await postsService.deleteHostPost(deletingPost.id);
       setDeletingPost(null);
+      showToast('Post deleted');
       fetchPosts();
     } catch (error) {
       console.error('Error deleting post:', error);
-      alert('Failed to delete post. Please try again.');
+      showToast('Failed to delete post. Please try again.', 'error');
+    } finally {
+      setDeleting(false);
     }
   };
 
-  // The wheel-scroll-goes-inert bug this page used to work around here
-  // turned out not to be Posts-specific — see App.jsx's AppContent for the
-  // app-wide version of this same fallback (confirmed to recur after
-  // visiting /chats then navigating elsewhere, e.g. to Profile).
+  const openProfile = (post) => {
+    setProfile({ userName: post.userName, userId: post.userId });
+    // The URL reflects the popup so it's shareable; backgroundLocation keeps
+    // App.jsx rendering Posts underneath while it's open.
+    if (post.userName) navigate(`/profile/${encodeURIComponent(post.userName)}`, { state: { backgroundLocation: location } });
+  };
+  const closeProfile = () => { setProfile(null); navigate(-1); };
+
+  const openChat = (id, name) => {
+    setActiveChat(null);
+    setTimeout(() => setActiveChat({ id, name, imageUrl: null }), 50);
+  };
+
+  const onSearchKey = (e) => {
+    if (!suggestOpen || !suggestions.length) { if (e.key === 'ArrowDown') setSuggestOpen(true); return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActiveSuggestion((i) => (i + 1) % suggestions.length); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveSuggestion((i) => (i - 1 + suggestions.length) % suggestions.length); }
+    else if (e.key === 'Enter' && query.trim()) { e.preventDefault(); addCity(suggestions[activeSuggestion] || suggestions[0]); }
+    else if (e.key === 'Escape') setSuggestOpen(false);
+  };
+
+  // ── View helpers ──
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? c.morning : hour < 17 ? c.afternoon : c.evening;
+  const firstName = (user?.name || '').split(' ')[0];
+  const quickFilters = viewingTrips
+    ? [['any', c.any], ['week', c.thisWeek], ['month', c.thisMonth], ['later', c.later]]
+    : [[0, c.anyPrice], [500, c.under500], [1000, c.under1000], [2000, c.under2000]];
+  const quickValue = viewingTrips ? timeFilter : priceFilter;
+  const setQuick = viewingTrips ? setTimeFilter : setPriceFilter;
+  const sortOptions = viewingTrips ? [['soonest', c.sortSoonest], ['newest', c.sortNewest]] : [['newest', c.sortNewest], ['price', c.sortPrice]];
+  const unreadTotal = (conversations || []).reduce((s, cv) => s + (cv.unreadCount || 0), 0);
+
+  const emptyState = () => {
+    if (filtersActive && posts.length) {
+      return { icon: <Compass size={28} />, title: c.emptyFilteredTitle, text: c.emptyFilteredText, action: <button type="button" className="rg-btn rg-btn-ghost" onClick={clearFilters}>{c.clearAll}</button> };
+    }
+    if (showMyPosts) {
+      return { icon: <Sparkles size={28} />, title: isHost ? c.emptyMineHost : c.emptyMineGuest, text: c.emptyMineText, action: <button type="button" className="rg-btn rg-btn-primary pb-inline-btn" onClick={openCreate}><Plus size={17} /> {isHost ? c.ctaHost : c.ctaGuest}</button> };
+    }
+    return isHost
+      ? { icon: <MapPin size={28} />, title: c.emptyHostTitle, text: c.emptyHostText, action: <button type="button" className="rg-btn rg-btn-ghost" onClick={openCreate}><Plus size={17} /> {c.ctaHost}</button> }
+      : { icon: <MapPin size={28} />, title: c.emptyGuestTitle, text: c.emptyGuestText, action: <button type="button" className="rg-btn rg-btn-primary pb-inline-btn" onClick={openCreate}><Plus size={17} /> {c.ctaGuest}</button> };
+  };
 
   return (
-    <div className="browse-layout">
-      {/* Hosting Areas / Location filter — single toggle; CSS forces it
-          open on wider screens instead of a second JS breakpoint state */}
-      <div
-        className="posts-filter-panel"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div
-          className="filter-toggle"
-          role="button"
-          tabIndex={0}
-          onClick={() => setShowFilters(v => !v)}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setShowFilters(v => !v)}
-        >
-          <span className="filter-toggle-label">
-            <Filter size={16} />
-            <span className="filter-toggle-text">{user?.userType === 'Host' ? t('hostingAreas') : t('location')}</span>
-            {selectedLocations.length > 0 && (
-              <span className="filter-count-badge">{selectedLocations.length}</span>
-            )}
-          </span>
-          <span className="filter-toggle-actions">
-            {selectedLocations.length > 0 && (
-              <button
-                className="filter-clear-link"
-                onClick={(e) => { e.stopPropagation(); clearFilters(); }}
-              >
-                {t('clear')}
-              </button>
-            )}
-            <span className={`filter-chevron ${showFilters ? 'open' : ''}`}>
-              {showFilters ? <Minus size={15} /> : <Plus size={15} />}
-            </span>
-          </span>
-        </div>
+    <MotionConfig reducedMotion="user">
+      <div className="pb">
+        <div className="rg-aurora" aria-hidden="true"><span className="a1" /><span className="a2" /><span className="a3" /></div>
 
-        <div className={`location-filters ${showFilters ? 'open' : ''}`}>
-          {user?.userType === 'Host' ? (
-            Object.keys(hostingAreasByState).length > 0 ? (
-              Object.entries(hostingAreasByState).map(([state, cities]) => (
-                <div key={state} className="state-group">
-                  <button 
-                    className="state-toggle"
-                    onClick={() => toggleState(state)}
-                  >
-                    <span>{state}</span>
-                    <span className="expand-icon" style={{ color: 'var(--primary)', background: 'none', border: 'none', borderRadius: '0', fontSize: '1.2rem' }}>
-                      {expandedStates[state] ? '-' : '+'}
-                    </span>
-                  </button>
-                  
-                  {expandedStates[state] && (
-                    <div className="cities-list">
-                      {cities.map(city => (
-                        <button
-                          key={city}
-                          className={`city-btn ${selectedLocations.includes(city) ? 'selected' : ''}`}
-                          onClick={() => toggleLocation(city)}
-                        >
-                          {city}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+        <div className="pb-shell">
+          <main className="pb-main">
+            {/* ═════ Greeting ═════ */}
+            <motion.section className="pb-hero" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}>
+              <div className="pb-hero-text">
+                <h1>{greeting}{firstName && <>, <span className="pb-grad">{firstName}</span></>} <span aria-hidden="true">👋</span></h1>
+                <p>{isHost ? c.hostSub : c.guestSub}</p>
+                <div className="pb-stats">
+                  <span className="pb-stat"><strong>{stats.total}</strong> {fmt(c.statAvailable, { n: '' }).trim()}</span>
+                  {stats.fresh > 0 && <span className="pb-stat pb-stat--fresh"><Sparkles size={13} /> {fmt(c.statNew, { n: stats.fresh })}</span>}
+                  {stats.cities > 0 && <span className="pb-stat"><MapPin size={13} /> {stats.cities === 1 ? c.statCity : fmt(c.statCities, { n: stats.cities })}</span>}
                 </div>
-              ))
-            ) : (
-              <div style={{ padding: '1rem', textAlign: 'center', color: '#64748b', fontSize: '0.9rem' }}>
-                {t('noHostingAreasConfigured')}
               </div>
-            )
-          ) : (
-          Object.entries(locationData).map(([state, cities]) => (
-            <div key={state} className="state-group">
-              <button 
-                className="state-toggle"
-                onClick={() => toggleState(state)}
-              >
-                <span>{state}</span>
-                <span className="expand-icon" style={{ color: 'var(--primary)', background: 'none', border: 'none', borderRadius: '0', fontSize: '1.2rem' }}>
-                  {expandedStates[state] ? '-' : '+'}
-                </span>
-              </button>
-              
-              {expandedStates[state] && (
-                <div className="cities-list">
-                  {cities.map(city => (
-                    <button
-                      key={city}
-                      className={`city-btn ${selectedLocations.includes(city) ? 'selected' : ''}`}
-                      onClick={() => toggleLocation(city)}
-                    >
-                      {city}
+              <div className="pb-hero-actions">
+                <button type="button" className="rg-btn rg-btn-primary pb-cta" onClick={openCreate}><Plus size={18} /> {isHost ? c.ctaHost : c.ctaGuest}</button>
+                <button type="button" className="pb-howto" onClick={() => setShowHowItWorks(true)}><HelpCircle size={16} /> {c.howTitle}</button>
+              </div>
+            </motion.section>
+
+            {/* ═════ Tabs ═════ */}
+            <div className="pb-tabs-row">
+              <div className="rg-seg pb-tabs">
+                {[[false, isHost ? c.tabExploreHost : c.tabExploreGuest], [true, c.tabMine]].map(([mine, label]) => (
+                  <button key={String(mine)} type="button" aria-pressed={showMyPosts === mine} onClick={() => switchTab(mine)}>
+                    {showMyPosts === mine && <motion.span layoutId="pb-tab-pill" className="rg-seg-pill" transition={{ type: 'spring', stiffness: 420, damping: 32 }} />}
+                    {label}
+                  </button>
+                ))}
+              </div>
+              {!loading && <span className="pb-count">{results.length === 1 ? c.oneResult : fmt(c.results, { n: results.length })}</span>}
+            </div>
+
+            {/* ═════ Toolbar ═════ */}
+            <div className="pb-toolbar">
+              <div className="pb-search" ref={searchWrap}>
+                <Search size={18} className="pb-search-icon" aria-hidden="true" />
+                <input
+                  type="search" value={query} placeholder={c.search} aria-label={c.search}
+                  role="combobox" aria-expanded={suggestOpen && suggestions.length > 0} aria-controls="pb-suggest" aria-autocomplete="list"
+                  onChange={(e) => { setQuery(e.target.value); setSuggestOpen(true); setActiveSuggestion(0); }}
+                  onFocus={() => setSuggestOpen(true)} onKeyDown={onSearchKey}
+                />
+                {query && <button type="button" className="pb-search-clear" onClick={() => setQuery('')} aria-label="Clear search"><X size={16} /></button>}
+                <AnimatePresence>
+                  {suggestOpen && suggestions.length > 0 && (
+                    <motion.ul id="pb-suggest" role="listbox" className="pb-suggest"
+                      initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
+                      <li className="pb-suggest-head" role="presentation">{c.citiesHeading}</li>
+                      {suggestions.map((city, i) => (
+                        <li key={city} role="option" aria-selected={i === activeSuggestion}
+                          className={i === activeSuggestion ? 'is-active' : ''}
+                          onMouseEnter={() => setActiveSuggestion(i)}
+                          onMouseDown={(e) => { e.preventDefault(); addCity(city); }}>
+                          <MapPin size={14} /> <span>{city}</span>
+                          {cityCounts[city] > 0 && <span className="pb-suggest-n">{cityCounts[city]}</span>}
+                        </li>
+                      ))}
+                    </motion.ul>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <div className="pb-toolbar-row">
+                <div className="pb-quick" role="group" aria-label={viewingTrips ? c.any : c.anyPrice}>
+                  {isHost && !showMyPosts && hostingCities.length > 0 && (
+                    <button type="button" className={`pb-chip pb-chip--accent${allHostingSelected ? ' is-on' : ''}`} aria-pressed={allHostingSelected} onClick={toggleHostingAreas}>
+                      <MapPin size={13} /> {c.myAreas}
                     </button>
+                  )}
+                  {viewingTrips && (
+                    <button type="button" className={`pb-chip pb-chip--guide${guideOnly ? ' is-on' : ''}`} aria-pressed={guideOnly} onClick={() => setGuideOnly((v) => !v)}>
+                      <span aria-hidden="true">🧭</span> {c.filterGuide}
+                    </button>
+                  )}
+                  {quickFilters.map(([value, label]) => (
+                    <button key={value} type="button" className={`pb-chip${quickValue === value ? ' is-on' : ''}`} aria-pressed={quickValue === value} onClick={() => setQuick(value)}>{label}</button>
                   ))}
                 </div>
-              )}
-            </div>
-          ))
-          )}
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="browse-main">
-    <div className="container">
-      {/* Page header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <div>
-          <h1 style={{ margin: '0 0 0.2rem 0', fontSize: '1.4rem', fontWeight: 700, color: 'var(--text)' }}>
-            {showMyPosts
-              ? (user?.userType === 'Host' ? t('myPosts') : t('myPosts'))
-              : (user?.userType === 'Host' ? t('guestPosts') : t('allPosts'))}
-          </h1>
-          <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-light)' }}>
-            {filteredPosts.length} {t('found')}
-            {' · '}
-            <a
-              href="#"
-              onClick={(e) => { e.preventDefault(); setShowHowItWorks(true); }}
-              style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: 500 }}
-            >
-              {t('howItWorks')}
-            </a>
-          </p>
-        </div>
-        {showMyPosts && (
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={() => setShowCreateModal(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.55rem 1.1rem',
-              background: 'var(--gradient-primary, linear-gradient(135deg,#FF6B35,#FFB347))',
-              color: 'white',
-              border: 'none',
-              borderRadius: '0.5rem',
-              fontWeight: 600,
-              fontSize: '0.875rem',
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(255,107,53,0.3)'
-            }}
-          >
-            <Plus size={16} />
-            {t('createPost')}
-          </motion.button>
-        )}
-      </div>
-
-      {/* Tab switcher */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: '1.25rem', borderBottom: '2px solid var(--border)' }}>
-        <button
-          onClick={() => setShowMyPosts(false)}
-          style={{
-            padding: '0.55rem 1.25rem',
-            background: 'none',
-            border: 'none',
-            borderBottom: !showMyPosts ? '2px solid var(--primary)' : '2px solid transparent',
-            marginBottom: '-2px',
-            color: !showMyPosts ? 'var(--primary)' : 'var(--text-light)',
-            fontWeight: !showMyPosts ? 700 : 400,
-            fontSize: '0.9rem',
-            cursor: 'pointer',
-            transition: 'all 0.2s'
-          }}
-        >
-          {user?.userType === 'Host' ? t('guestPosts') : t('allPosts')}
-        </button>
-        <button
-          onClick={() => setShowMyPosts(true)}
-          style={{
-            padding: '0.55rem 1.25rem',
-            background: 'none',
-            border: 'none',
-            borderBottom: showMyPosts ? '2px solid var(--primary)' : '2px solid transparent',
-            marginBottom: '-2px',
-            color: showMyPosts ? 'var(--primary)' : 'var(--text-light)',
-            fontWeight: showMyPosts ? 700 : 400,
-            fontSize: '0.9rem',
-            cursor: 'pointer',
-            transition: 'all 0.2s'
-          }}
-        >
-          {t('myPosts')}
-        </button>
-      </div>
-
-      <div className="posts-grid">
-        {loading ? (
-          <div className="posts-empty-state">
-            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>🔄</div>
-            <p>{t('loadingPosts')}</p>
-          </div>
-        ) : filteredPosts.length === 0 ? (
-          <div className="posts-empty-state">
-            <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>📍</div>
-            <p>{selectedLocations.length > 0
-              ? t('noPostsForLocation')
-              : t('noPostsAvailable')}
-            </p>
-            {selectedLocations.length > 0 && (
-              <button onClick={clearFilters} className="btn btn-outline">
-                {t('clearFilters')}
-              </button>
-            )}
-          </div>
-        ) : (
-          filteredPosts.map((post, idx) => {
-            const tags = [...(post.facilities || []), ...(post.amenities || [])];
-            const visibleTags = tags.slice(0, 6);
-            const extraTagCount = tags.length - visibleTags.length;
-            return (
-          <motion.div
-            key={post.id}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25, delay: idx * 0.04 }}
-            whileHover={{ y: -3 }}
-            className="post-card"
-          >
-            <div className="post-card-top">
-              <div className="post-card-avatar" aria-hidden="true">
-                {(post.userName || '?').charAt(0).toUpperCase()}
-              </div>
-              <div className="post-card-headline">
-                <h3 className="post-card-title" title={post.title}>{post.title}</h3>
-                <div className="post-card-meta">
-                  <span
-                    className="post-card-author"
-                    onClick={() => {
-                      setSelectedProfile({ userName: post.userName, userId: post.userId });
-                      setShowProfileModal(true);
-                      // Popup stays exactly as-is; this just makes the URL bar reflect it so
-                      // the profile is shareable/bookmarkable. backgroundLocation keeps App.jsx
-                      // rendering Posts (not PublicProfile) underneath while it's open.
-                      if (post.userName) {
-                        navigate(`/profile/${encodeURIComponent(post.userName)}`, { state: { backgroundLocation: location } });
-                      }
-                    }}
-                  >
-                    {post.userName}
-                  </span>
-                  <span>·</span>
-                  <span>{post.createdAt.toLocaleDateString()}</span>
+                <div className="pb-toolbar-end">
+                  <select className="pb-select" value={effectiveSort} onChange={(e) => setSort(e.target.value)} aria-label="Sort">
+                    {sortOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                  </select>
+                  <div className="pb-view" role="group" aria-label="View">
+                    <button type="button" aria-pressed={view === 'cards'} onClick={() => setView('cards')} title={c.cards}><LayoutGrid size={16} /><span>{c.cards}</span></button>
+                    <button type="button" aria-pressed={view === 'map'} onClick={() => setView('map')} title={c.map}><MapIcon size={16} /><span>{c.map}</span></button>
+                  </div>
                 </div>
               </div>
-              {post.userType === 'Host' && post.pricePerNight > 0 && (
-                <div className="post-card-price">₹{post.pricePerNight}/{t('night')}</div>
-              )}
-              {user && showMyPosts && post.userId === user.userId && (
-                <div className="post-card-menu-wrap">
-                  <button
-                    className="post-card-menu-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveDropdown(activeDropdown === post.id ? null : post.id);
-                    }}
-                  >
-                    <MoreVertical size={16} color="var(--text-light)" />
-                  </button>
-                  {activeDropdown === post.id && (
-                    <div className="post-card-dropdown">
-                      <button className="post-card-dropdown-item" onClick={() => handleEditPost(post)}>
-                        <Edit size={14} />
-                        {t('edit')}
-                      </button>
-                      <button className="post-card-dropdown-item danger" onClick={() => handleDeletePost(post)}>
-                        <Trash2 size={14} />
-                        Delete
-                      </button>
-                    </div>
-                  )}
+
+              {selectedLocations.length > 0 && (
+                <div className="pb-selected">
+                  {selectedLocations.map((city) => (
+                    <button key={city} type="button" className="pb-chip is-on pb-chip--removable" onClick={() => toggleLocation(city)} aria-label={`Remove ${city}`}>
+                      <MapPin size={13} /> {city} <X size={13} />
+                    </button>
+                  ))}
+                  <button type="button" className="rg-link-btn" onClick={clearFilters}>{c.clearAll}</button>
                 </div>
               )}
             </div>
 
-            <p className="post-card-desc">{post.content}</p>
-
-            <div className="post-card-stats">
-              <span className="post-card-location"><MapPin size={13} /> {post.location || t('locationNotSpecified')}</span>
-              {post.userType === 'Guest' && (
-                <>
-                  {post.planningDate && (
-                    <span><Calendar size={13} /> {new Date(post.planningDate).toLocaleDateString()}</span>
-                  )}
-                  <span><Users size={13} /> {post.visitors} visitor{post.visitors !== 1 ? 's' : ''}</span>
-                  <span><Calendar size={13} /> {post.days} day{post.days !== 1 ? 's' : ''}</span>
-                </>
-              )}
-              {post.userType === 'Host' && (
-                <>
-                  {post.commenceDate && (
-                    <span><Calendar size={13} /> {t('since')} {new Date(post.commenceDate).toLocaleDateString()}</span>
-                  )}
-                  <span><Users size={13} /> {t('upTo')} {post.maxGuests} {post.maxGuests !== 1 ? t('guests') : t('guest')}</span>
-                </>
-              )}
-            </div>
-
-            {tags.length > 0 && (
-              <div className="post-card-tags">
-                {visibleTags.map(tag => (
-                  <span key={tag} className="post-card-tag">
-                    {facilityIcons[tag] && <span>{facilityIcons[tag]}</span>}
-                    {tag}
-                  </span>
-                ))}
-                {extraTagCount > 0 && (
-                  <span className="post-card-tag post-card-tag-more">+{extraTagCount}</span>
-                )}
+            {/* ═════ Results ═════ */}
+            {loadError ? (
+              <div className="pb-empty">
+                <span className="pb-empty-icon"><AlertTriangle size={28} /></span>
+                <h2>{c.loadError}</h2>
+                <button type="button" className="rg-btn rg-btn-ghost" onClick={fetchPosts}><RefreshCw size={16} /> {c.retry}</button>
               </div>
-            )}
-
-            {user && post.userId !== user.userId && (
-              <div className="post-card-footer">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveChat(null);
-                    setTimeout(() => {
-                      setActiveChat({
-                        id: post.userId,
-                        name: post.userName,
-                        imageUrl: null
-                      });
-                    }, 50);
-                  }}
-                  className="btn btn-primary post-card-contact-btn"
-                >
-                  <MessageCircle size={15} />
-                  {post.userType === 'Host' ? t('contactHost') : t('contactGuest')}
-                </button>
-              </div>
-            )}
-          </motion.div>
-            );
-          })
-        )}
-      </div>
-      </div>
-    </div>
-
-      <AnimatePresence>
-        {showCreateModal && (
-          user?.userType === 'Host' ? (
-            <CreateHostPostModal
-              key="create-host"
-              onClose={() => setShowCreateModal(false)}
-              onSubmit={handleCreatePost}
-              user={user}
-            />
-          ) : (
-            <CreatePostModal
-              key="create-guest"
-              onClose={() => setShowCreateModal(false)}
-              onSubmit={handleCreatePost}
-            />
-          )
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showEditModal && editingPost && (
-          editingPost.userType === 'Host' ? (
-            <CreateHostPostModal
-              key="edit-host"
-              onClose={() => { setShowEditModal(false); setEditingPost(null); }}
-              onSubmit={handleUpdatePost}
-              user={user}
-              initialData={editingPost}
-              isEditing={true}
-            />
-          ) : (
-            <CreatePostModal
-              key="edit-guest"
-              onClose={() => { setShowEditModal(false); setEditingPost(null); }}
-              onSubmit={handleUpdatePost}
-              initialData={editingPost}
-              isEditing={true}
-            />
-          )
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showDeleteModal && deletingPost && (
-          <motion.div
-            key="delete-modal"
-            className="modal-overlay"
-            onClick={() => setShowDeleteModal(false)}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-          >
-            <motion.div
-              className="modal-content"
-              onClick={(e) => e.stopPropagation()}
-              style={{ maxWidth: '400px' }}
-              initial={{ opacity: 0, y: 20, scale: 0.97 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 10, scale: 0.97 }}
-              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <div className="modal-header">
-                <h3 style={{ color: '#dc2626', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Trash2 size={20} />
-                  {t('deletePost')}
-                </h3>
-              </div>
-              <div className="modal-body">
-                <p style={{ margin: '0 0 1rem 0', color: 'var(--text)' }}>
-                  {t('areYouSureDelete')} <strong>"{deletingPost.title}"</strong>?
-                </p>
-                <p style={{ margin: '0', color: 'var(--text-light)', fontSize: '0.875rem' }}>
-                  {t('thisActionCannotBeUndone')}
-                </p>
-              </div>
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', padding: '1rem' }}>
-                <button onClick={() => setShowDeleteModal(false)} className="btn btn-outline" style={{ minWidth: '80px' }}>
-                  {t('cancel')}
-                </button>
-                <button onClick={confirmDeletePost} className="btn" style={{ minWidth: '80px', backgroundColor: '#dc2626', color: 'white', border: '1px solid #dc2626' }}>
-                  {t('delete')}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {activeChat && (
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          zIndex: 1000,
-          width: '350px',
-          height: '500px',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          animation: 'slideInUp 0.3s ease-out'
-        }}>
-          <ChatWidget
-            recipientId={activeChat.id}
-            recipientName={activeChat.name}
-            recipientImageUrl={activeChat.imageUrl}
-            onClose={() => setActiveChat(null)}
-          />
-        </div>
-      )}
-
-      <AnimatePresence>
-      {showHowItWorks && (
-        <motion.div
-          key="how-it-works"
-          className="modal-overlay"
-          onClick={() => setShowHowItWorks(false)}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.18 }}
-        >
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
-            <div className="modal-header">
-              <h3>{t('howItWorks')}</h3>
-              <button onClick={() => setShowHowItWorks(false)} className="modal-close">×</button>
-            </div>
-            <div className="modal-body">
-              {user?.userType === 'Host' ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                    <div style={{ fontSize: '2rem', flexShrink: 0 }}>1️⃣</div>
-                    <div>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>{t('browseGuestRequests')}</h4>
-                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>{t('browseGuestRequests')}</p>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                    <div style={{ fontSize: '2rem', flexShrink: 0 }}>2️⃣</div>
-                    <div>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>{t('filterByLocation')}</h4>
-                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>{t('filterByLocationDesc')}</p>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                    <div style={{ fontSize: '2rem', flexShrink: 0 }}>3️⃣</div>
-                    <div>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>{t('contactGuest')}</h4>
-                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>{t('contactGuestsDesc')}</p>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                    <div style={{ fontSize: '2rem', flexShrink: 0 }}>4️⃣</div>
-                    <div>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>{t('createPost')}</h4>
-                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>{t('createYourHostPost')}</p>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                    <div style={{ fontSize: '2rem', flexShrink: 0 }}>1️⃣</div>
-                    <div>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>{t('allPosts')}</h4>
-                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>{t('browseAllPostsDesc')}</p>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                    <div style={{ fontSize: '2rem', flexShrink: 0 }}>2️⃣</div>
-                    <div>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>{t('filterByLocation')}</h4>
-                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>{t('filterByLocationGuest')}</p>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                    <div style={{ fontSize: '2rem', flexShrink: 0 }}>3️⃣</div>
-                    <div>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>{t('createPost')}</h4>
-                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>{t('createYourGuestPost')}</p>
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
-                    <div style={{ fontSize: '2rem', flexShrink: 0 }}>4️⃣</div>
-                    <div>
-                      <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--text)' }}>{t('myPosts')}</h4>
-                      <p style={{ margin: 0, color: '#64748b', lineHeight: '1.5' }}>{t('manageYourPostsDesc')}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </motion.div>
-      )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showProfileModal && selectedProfile && (
-          <ProfileModal
-            key="profile-modal"
-            userName={selectedProfile.userName}
-            userId={selectedProfile.userId}
-            onClose={() => {
-              setShowProfileModal(false);
-              setSelectedProfile(null);
-              // Pop the /profile/:userName entry we pushed when opening, so the
-              // address bar reverts to /posts too.
-              navigate(-1);
-            }}
-          />
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-const ProfileModal = ({ userName, userId, onClose }) => {
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [showReviewForm, setShowReviewForm] = useState(false);
-  const [reviewForm, setReviewForm] = useState({ rating: 0, comment: '' });
-  const [submittingReview, setSubmittingReview] = useState(false);
-  const [reviewError, setReviewError] = useState('');
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-
-  useEffect(() => {
-    fetchProfile();
-  }, [userId]);
-
-  const fetchProfile = async () => {
-    try {
-      const profileRes = await api.post('user/public-profile', { userId });
-      const currentUserId = user?.userId;
-      const reviews = profileRes.data.reviews || [];
-      const userReview = reviews.find(r => r.reviewerId === currentUserId);
-      const otherReviews = reviews.filter(r => r.reviewerId !== currentUserId)
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      
-      const sortedReviews = userReview ? [userReview, ...otherReviews] : otherReviews;
-      const hasUserReview = !!userReview;
-      
-      setProfile({
-        ...profileRes.data,
-        reviews: sortedReviews,
-        hasUserReview
-      });
-    } catch (error) {
-      console.error('Failed to fetch profile:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmitReview = async () => {
-    setReviewError('');
-    
-    if (!reviewForm.comment.trim() || reviewForm.rating === 0) {
-      setReviewError('Please provide both rating and comment');
-      return;
-    }
-    
-    setSubmittingReview(true);
-    try {
-      await api.post('review', {
-        userId: profile.userId,
-        rating: reviewForm.rating,
-        comment: reviewForm.comment.trim()
-      });
-      
-      await fetchProfile();
-      setShowReviewForm(false);
-      setReviewForm({ rating: 0, comment: '' });
-      setReviewError('');
-    } catch (error) {
-      console.error('Failed to submit review:', error);
-      setReviewError(error.response?.data?.message || 'Failed to submit review. Please try again.');
-    } finally {
-      setSubmittingReview(false);
-    }
-  };
-
-  const renderStars = (rating) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <span key={i} style={{ color: i < rating ? '#fbbf24' : '#d1d5db' }}>★</span>
-    ));
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
-        <div className="modal-header" style={{ padding: '0.75rem 1rem' }}>
-          <h3 style={{ margin: 0, fontSize: '1rem' }}>{loading ? 'Loading...' : profile?.name || userName}</h3>
-          <button onClick={onClose} className="modal-close" style={{ width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: '1' }}>×</button>
-        </div>
-        <div className="modal-body" style={{ paddingTop: '0.5rem' }}>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '2rem' }}>Loading profile...</div>
-          ) : !profile ? (
-            <div style={{ textAlign: 'center', padding: '2rem' }}>Profile not found</div>
-          ) : (
-            <>
-              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', alignItems: 'center' }}>
-                {profile.profileImageUrl ? (
-                  <img 
-                    src={profile.profileImageUrl} 
-                    alt={profile.name}
-                    style={{ 
-                      width: '120px', 
-                      height: '120px', 
-                      borderRadius: '50%', 
-                      objectFit: 'cover',
-                      border: '2px solid var(--primary)',
-                      flexShrink: 0
-                    }}
-                  />
-                ) : (
-                  <div style={{ 
-                    width: '120px', 
-                    height: '120px', 
-                    borderRadius: '50%', 
-                    background: 'var(--primary)', 
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '2.5rem',
-                    fontWeight: 'bold',
-                    flexShrink: 0
-                  }}>
-                    {profile.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <h3 style={{ margin: '0 0 0.25rem 0', fontSize: '1.1rem' }}>{profile.name}</h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <span style={{ color: '#64748b', fontSize: '0.85rem' }}>📍 {profile.location}</span>
-                  </div>
-                  <p style={{ color: '#64748b', fontSize: '0.8rem', margin: '0' }}>
-                    {profile.userType} • Joined {new Date(profile.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
-                  </p>
-                </div>
-              </div>
-              
-              {profile.bio && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <h4 style={{ marginBottom: '0.75rem', color: 'var(--text)' }}>
-                    {profile.userType === 'Host' ? '🏠 About My Hosting' : '✨ About Me'}
-                  </h4>
-                  <p style={{ 
-                    color: '#475569', 
-                    lineHeight: '1.5',
-                    background: '#f8fafc',
-                    padding: '1rem',
-                    borderRadius: '0.5rem',
-                    margin: 0
-                  }}>
-                    {profile.bio}
-                  </p>
-                </div>
-              )}
-              
-              {profile.userType === 'Host' && profile.hostingAreas && profile.hostingAreas.length > 0 && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <h4 style={{ marginBottom: '0.75rem', color: 'var(--text)' }}>🗺️ Hosting Areas</h4>
-                  <div style={{ 
-                    background: '#f0fdf4',
-                    padding: '1rem',
-                    borderRadius: '0.5rem',
-                    border: '1px solid #86efac'
-                  }}>
-                    {profile.hostingAreas.map((area, idx) => (
-                      <div key={idx} style={{ marginBottom: idx < profile.hostingAreas.length - 1 ? '0.5rem' : '0', color: '#166534' }}>
-                        <strong>{area.state}:</strong> {area.cities.join(', ')}
-                      </div>
+            ) : loading ? (
+              <div className="pb-grid">{Array.from({ length: 6 }, (_, i) => <SkeletonCard key={i} />)}</div>
+            ) : view === 'map' ? (
+              <>
+                <CityMap counts={cityCounts} selected={selectedLocations} onToggle={toggleLocation} c={c} />
+                {selectedLocations.length > 0 && results.length > 0 && (
+                  <div className="pb-grid pb-grid--below-map">
+                    {results.map((post, i) => (
+                      <PostCard key={post.id} index={i} post={post} c={c} locale={locale} isOwn={user && post.userId === user.userId}
+                        onContact={(p) => openChat(p.userId, p.userName)} onProfile={openProfile} onEdit={openEdit} onDelete={setDeletingPost} />
                     ))}
                   </div>
-                </div>
-              )}
-              
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <h4 style={{ margin: '0', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    ⭐ Reviews ({profile.totalReviews || profile.reviews?.length || 0})
-                    {profile.averageRating > 0 && (
-                      <span style={{ fontSize: '0.9rem', color: '#64748b' }}>({profile.averageRating.toFixed(1)} avg)</span>
-                    )}
-                  </h4>
-                  {!profile.hasUserReview && (
-                    <button 
-                      className="btn btn-outline"
-                      onClick={() => setShowReviewForm(!showReviewForm)}
-                      style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
-                    >
-                      {showReviewForm ? 'Cancel' : 'Write Review'}
-                    </button>
-                  )}
-                </div>
-                
-                {showReviewForm && (
-                  <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '0.5rem', marginBottom: '1rem' }}>
-                    {reviewError && (
-                      <div style={{ 
-                        background: '#fee2e2', 
-                        color: '#dc2626', 
-                        padding: '0.5rem', 
-                        borderRadius: '0.375rem', 
-                        marginBottom: '0.75rem',
-                        fontSize: '0.85rem'
-                      }}>
-                        {reviewError}
-                      </div>
-                    )}
-                    <div style={{ marginBottom: '0.75rem' }}>
-                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Rating:</label>
-                      <div style={{ display: 'flex', gap: '0.25rem' }}>
-                        {Array.from({ length: 5 }, (_, i) => (
-                          <button
-                            key={i}
-                            type="button"
-                            onClick={() => {
-                              setReviewForm(prev => ({ ...prev, rating: i + 1 }));
-                              setReviewError('');
-                            }}
-                            style={{ 
-                              background: 'none',
-                              border: 'none',
-                              fontSize: '1.5rem',
-                              cursor: 'pointer',
-                              color: i < reviewForm.rating ? '#fbbf24' : '#d1d5db',
-                              padding: '0'
-                            }}
-                          >
-                            ★
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div style={{ marginBottom: '0.75rem' }}>
-                      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '500' }}>Comment:</label>
-                      <textarea
-                        value={reviewForm.comment}
-                        onChange={(e) => {
-                          setReviewForm(prev => ({ ...prev, comment: e.target.value }));
-                          setReviewError('');
-                        }}
-                        placeholder="Share your experience..."
-                        rows={3}
-                        style={{
-                          width: '100%',
-                          padding: '0.5rem',
-                          border: '1px solid var(--border)',
-                          borderRadius: '0.375rem',
-                          resize: 'vertical',
-                          fontFamily: 'inherit'
-                        }}
-                      />
-                    </div>
-                    <button 
-                      className="btn btn-primary"
-                      onClick={handleSubmitReview}
-                      disabled={submittingReview}
-                      style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
-                    >
-                      {submittingReview ? 'Submitting...' : 'Submit Review'}
-                    </button>
-                  </div>
                 )}
-                
-                {profile.reviews && profile.reviews.length > 0 && (
-                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                    {profile.reviews.map((review, index) => {
-                      const isUserReview = review.reviewerId === user?.userId;
-                      return (
-                        <div 
-                          key={index}
-                          style={{ 
-                            background: isUserReview ? '#fef3c7' : '#f8fafc',
-                            padding: '0.75rem',
-                            borderRadius: '0.5rem',
-                            border: `1px solid ${isUserReview ? '#fbbf24' : 'var(--border)'}`,
-                            marginBottom: '0.75rem',
-                            position: 'relative'
-                          }}
-                        >
-                          {isUserReview && (
-                            <div style={{ 
-                              position: 'absolute',
-                              top: '0.5rem',
-                              right: '0.5rem',
-                              background: '#fbbf24',
-                              color: 'white',
-                              padding: '0.125rem 0.5rem',
-                              borderRadius: '0.25rem',
-                              fontSize: '0.7rem',
-                              fontWeight: '600'
-                            }}>
-                              Your Review
-                            </div>
-                          )}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem', paddingRight: isUserReview ? '5rem' : '0' }}>
-                            <strong style={{ fontSize: '0.9rem' }}>{review.reviewerName}</strong>
-                            <div>
-                              {Array.from({ length: 5 }, (_, i) => (
-                                <span key={i} style={{ color: i < review.rating ? '#fbbf24' : '#d1d5db' }}>★</span>
-                              ))}
-                            </div>
-                          </div>
-                          <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.85rem', color: '#475569', lineHeight: '1.4' }}>
-                            {review.comment}
-                          </p>
-                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                            {new Date(review.createdAt).toLocaleDateString()}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                
-                {(!profile.reviews || profile.reviews.length === 0) && !showReviewForm && (
-                  <p style={{ color: '#64748b', fontStyle: 'italic', textAlign: 'center', padding: '1rem' }}>
-                    No reviews yet. Be the first to share your experience!
-                  </p>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const CreateHostPostModal = ({ onClose, onSubmit, user, initialData = null, isEditing = false }) => {
-  const [formData, setFormData] = useState({
-    title: initialData?.title || '',
-    commenceDate: initialData?.commenceDate || '',
-    maxGuests: initialData?.maxGuests || 2,
-    pricePerNight: initialData?.pricePerNight || 0,
-    amenities: initialData?.amenities || [],
-    content: initialData?.content || ''
-  });
-  const [validationErrors, setValidationErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const hostingAreas = user?.hostingAreas || [];
-  const hostingAreasText = hostingAreas
-    .filter(area => area.state && area.cities && area.cities.length > 0)
-    .map(area => `${area.cities.join(', ')} (${area.state})`)
-    .join(' | ');
-
-  const availableAmenities = AMENITY_OPTIONS;
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (isSubmitting) return;
-    
-    const errors = {};
-    
-    if (!formData.title.trim()) {
-      errors.title = 'Title is required';
-    } else if (formData.title.trim().length < 10) {
-      errors.title = 'Title must be at least 10 characters long';
-    }
-    
-    if (!formData.commenceDate) {
-      errors.commenceDate = 'Commence date is required';
-    }
-    
-    if (!formData.maxGuests || formData.maxGuests < 1 || formData.maxGuests > 20) {
-      errors.maxGuests = 'Max guests must be between 1 and 20';
-    }
-    
-    if (formData.pricePerNight < 0) {
-      errors.pricePerNight = 'Price cannot be negative';
-    }
-    
-    if (formData.content && formData.content.trim().length > 0 && formData.content.trim().length < 20) {
-      errors.content = 'Additional details should be at least 20 characters long';
-    }
-    
-    setValidationErrors(errors);
-    
-    if (Object.keys(errors).length > 0) {
-      return;
-    }
-    
-    try {
-      setIsSubmitting(true);
-      const postData = { 
-        ...formData,
-        location: hostingAreasText,
-        maxGuests: parseInt(formData.maxGuests),
-        pricePerNight: parseFloat(formData.pricePerNight),
-        content: formData.content.trim(),
-        commenceDate: new Date(formData.commenceDate + 'T00:00:00.000Z').toISOString()
-      };
-      
-      await onSubmit(postData);
-    } catch (error) {
-      console.error('Error submitting post:', error);
-      alert(error.response?.data?.message || error.message || 'Failed to save post. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const toggleAmenity = (amenity) => {
-    setFormData(prev => ({
-      ...prev,
-      amenities: prev.amenities.includes(amenity)
-        ? prev.amenities.filter(a => a !== amenity)
-        : [...prev.amenities, amenity]
-    }));
-  };
-
-  return (
-    <motion.div
-      className="modal-overlay"
-      onClick={onClose}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18 }}
-    >
-      <motion.div
-        className="create-post-modal"
-        onClick={(e) => e.stopPropagation()}
-        initial={{ opacity: 0, y: 28, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 14, scale: 0.97 }}
-        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-      >
-        <div className="modal-header-modern">
-          <div className="modal-title-section">
-            <div className="modal-icon">🏠</div>
-            <div>
-              <h2>{isEditing ? 'Edit Host Post' : 'Create Host Post'}</h2>
-              <p>Share your hosting services with guests</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="modal-close-modern">×</button>
-        </div>
-        
-        <div className="modal-body-modern">
-          <form onSubmit={handleSubmit} className="modern-form">
-            <div className="form-group-modern">
-              <label className="modern-label">
-                <span className="label-text">Service Title</span>
-                <span className="required-star">*</span>
-              </label>
-              <input
-                type="text"
-                className="modern-input"
-                value={formData.title}
-                onChange={(e) => {
-                  setFormData(prev => ({ ...prev, title: e.target.value }));
-                  setValidationErrors(prev => ({ ...prev, title: false }));
-                }}
-                placeholder="e.g., Comfortable stay with traditional hospitality"
-                required
-                style={{
-                  borderColor: validationErrors.title ? '#dc2626' : 'var(--border)'
-                }}
-              />
-              {validationErrors.title && (
-                <div style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-                  {validationErrors.title}
-                </div>
-              )}
-            </div>
-
-            <div className="form-group-modern">
-              <label className="modern-label">
-                <span className="label-text">Commence Date</span>
-                <span className="required-star">*</span>
-              </label>
-              <input
-                type="date"
-                className="modern-input"
-                value={formData.commenceDate}
-                onChange={(e) => {
-                  setFormData(prev => ({ ...prev, commenceDate: e.target.value }));
-                  setValidationErrors(prev => ({ ...prev, commenceDate: false }));
-                }}
-                style={{
-                  borderColor: validationErrors.commenceDate ? '#dc2626' : 'var(--border)'
-                }}
-                required
-              />
-              {validationErrors.commenceDate && (
-                <div style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-                  {validationErrors.commenceDate}
-                </div>
-              )}
-            </div>
-
-            <div className="form-group-modern">
-              <label className="modern-label">
-                <span className="label-text">Hosting Areas</span>
-              </label>
-              <div style={{
-                padding: '1rem',
-                background: '#f0fdf4',
-                border: '1px solid #86efac',
-                borderRadius: '0.5rem',
-                color: '#166534',
-                fontSize: '0.9rem'
-              }}>
-                {hostingAreasText || 'No hosting areas configured in profile'}
-              </div>
-              <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '0.5rem 0 0 0' }}>
-                Update hosting areas in your profile settings
-              </p>
-            </div>
-
-            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div>
-                <label className="modern-label" style={{ marginBottom: '0.5rem', display: 'block' }}>
-                  <span className="label-text">Max Guests</span>
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <button 
-                    type="button" 
-                    onClick={() => setFormData(prev => ({ ...prev, maxGuests: Math.max(1, prev.maxGuests - 1) }))}
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      border: '1px solid var(--border)',
-                      borderRadius: '0.375rem',
-                      background: 'white',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    −
-                  </button>
-                  <input
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={formData.maxGuests}
-                    onChange={(e) => setFormData(prev => ({ ...prev, maxGuests: parseInt(e.target.value) || 1 }))}
-                    style={{
-                      width: '60px',
-                      padding: '0.5rem',
-                      border: '1px solid var(--border)',
-                      borderRadius: '0.375rem',
-                      textAlign: 'center'
-                    }}
-                  />
-                  <button 
-                    type="button" 
-                    onClick={() => setFormData(prev => ({ ...prev, maxGuests: Math.min(20, prev.maxGuests + 1) }))}
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      border: '1px solid var(--border)',
-                      borderRadius: '0.375rem',
-                      background: 'white',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="modern-label" style={{ marginBottom: '0.5rem', display: 'block' }}>
-                  <span className="label-text">Price/Night (₹)</span>
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={formData.pricePerNight}
-                  onFocus={(e) => {
-                    if (formData.pricePerNight === 0) e.target.select();
-                  }}
-                  onChange={(e) => {
-                    const raw = e.target.value.replace(/[^0-9]/g, '');
-                    setFormData(prev => ({ ...prev, pricePerNight: raw === '' ? 0 : parseInt(raw, 10) }));
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '0.5rem',
-                    border: '1px solid var(--border)',
-                    borderRadius: '0.375rem'
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="form-group-modern">
-              <label className="modern-label">
-                <span className="label-text">Amenities & Services</span>
-              </label>
-              <div className="facilities-compact">
-                {availableAmenities.map(amenity => (
-                  <button
-                    key={amenity.name}
-                    type="button"
-                    onClick={() => toggleAmenity(amenity.name)}
-                    className={`facility-btn-compact ${formData.amenities.includes(amenity.name) ? 'selected' : ''}`}
-                  >
-                    <span className="facility-icon-small">{amenity.icon}</span>
-                    <span>{amenity.name}</span>
-                  </button>
+              </>
+            ) : results.length === 0 ? (() => {
+              const e = emptyState();
+              return (
+                <motion.div className="pb-empty" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+                  <span className="pb-empty-icon">{e.icon}</span>
+                  <h2>{e.title}</h2>
+                  <p>{e.text}</p>
+                  {e.action}
+                </motion.div>
+              );
+            })() : (
+              <div className="pb-grid">
+                {results.map((post, i) => (
+                  <PostCard key={post.id} index={i} post={post} c={c} locale={locale} isOwn={user && post.userId === user.userId}
+                    onContact={(p) => openChat(p.userId, p.userName)} onProfile={openProfile} onEdit={openEdit} onDelete={setDeletingPost} />
                 ))}
-              </div>
-            </div>
-
-            <div className="form-group-modern">
-              <label className="modern-label">
-                <span className="label-text">Additional Details</span>
-              </label>
-              <textarea
-                className="modern-textarea"
-                value={formData.content}
-                onChange={(e) => {
-                  setFormData(prev => ({ ...prev, content: e.target.value }));
-                  setValidationErrors(prev => ({ ...prev, content: false }));
-                }}
-                placeholder="Describe your hosting services, house rules, nearby attractions, and any other important information for guests..."
-                rows={4}
-                style={{
-                  borderColor: validationErrors.content ? '#dc2626' : 'var(--border)'
-                }}
-              />
-              {validationErrors.content && (
-                <div style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-                  {validationErrors.content}
-                </div>
-              )}
-            </div>
-
-            <div className="form-actions">
-              <button type="button" onClick={onClose} className="btn-secondary-modern" disabled={isSubmitting}>
-                Cancel
-              </button>
-              <button type="submit" className="btn-primary-modern" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <span>Saving...</span>
-                    <span className="btn-icon">⏳</span>
-                  </>
-                ) : (
-                  <>
-                    <span>{isEditing ? 'Update Post' : 'Create Post'}</span>
-                    <span className="btn-icon">{isEditing ? '✏️' : '🚀'}</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};
-
-const CreatePostModal = ({ onClose, onSubmit, initialData = null, isEditing = false }) => {
-  const [formData, setFormData] = useState({
-    title: initialData?.title || '',
-    planningDate: initialData?.planningDate || '',
-    state: initialData?.location?.split(', ')[1] || '',
-    city: initialData?.location?.split(', ')[0] || '',
-    facilities: initialData?.facilities || [],
-    visitors: initialData?.visitors || 1,
-    days: initialData?.days || 1,
-    content: initialData?.content || ''
-  });
-  const [locationData, setLocationData] = useState({});
-  const [validationErrors, setValidationErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    const fetchLocations = async () => {
-      try {
-        const locations = await locationService.getLocations();
-        setLocationData(locations);
-      } catch (error) {
-        console.error('Failed to load locations:', error);
-        setLocationData({
-          'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Other'],
-          'Karnataka': ['Bangalore', 'Mysore', 'Mangalore', 'Other'],
-          'Kerala': ['Kochi', 'Thiruvananthapuram', 'Kozhikode', 'Other'],
-          'Andhra Pradesh': ['Hyderabad', 'Visakhapatnam', 'Vijayawada', 'Other'],
-          'Maharashtra': ['Mumbai', 'Pune', 'Nagpur', 'Other'],
-          'Delhi': ['New Delhi', 'Other']
-        });
-      }
-    };
-    fetchLocations();
-  }, []);
-
-  const availableFacilities = AMENITY_OPTIONS;
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (isSubmitting) return;
-    
-    const errors = {};
-    
-    if (!formData.title.trim()) {
-      errors.title = 'Title is required';
-    } else if (formData.title.trim().length < 5) {
-      errors.title = 'Title must be at least 5 characters long';
-    }
-    
-    if (!formData.state) {
-      errors.state = 'Please select a state';
-    }
-    
-    if (!formData.city) {
-      errors.city = 'Please select a city';
-    }
-    
-    if (formData.planningDate) {
-      const selectedDate = new Date(formData.planningDate);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      if (selectedDate < today) {
-        errors.planningDate = 'Planning date should be today or in the future';
-      }
-    }
-    
-    if (!formData.visitors || formData.visitors < 1 || formData.visitors > 10) {
-      errors.visitors = 'Visitors must be between 1 and 10';
-    }
-    
-    if (!formData.days || formData.days < 1 || formData.days > 30) {
-      errors.days = 'Days must be between 1 and 30';
-    }
-    
-    if (formData.content && formData.content.trim().length > 0 && formData.content.trim().length < 10) {
-      errors.content = 'Description should be at least 10 characters long';
-    }
-    
-    setValidationErrors(errors);
-    
-    if (Object.keys(errors).length > 0) {
-      return;
-    }
-    
-    try {
-      setIsSubmitting(true);
-      const location = `${formData.city}, ${formData.state}`;
-      const postData = { 
-        ...formData, 
-        location,
-        visitors: parseInt(formData.visitors),
-        days: parseInt(formData.days),
-        content: formData.content.trim()
-      };
-      
-      await onSubmit(postData);
-    } catch (error) {
-      console.error('Error submitting post:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to save post. Please try again.';
-      alert(errorMessage);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const toggleFacility = (facility) => {
-    setFormData(prev => ({
-      ...prev,
-      facilities: prev.facilities.includes(facility)
-        ? prev.facilities.filter(f => f !== facility)
-        : [...prev.facilities, facility]
-    }));
-  };
-
-  return (
-    <motion.div
-      className="modal-overlay"
-      onClick={onClose}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18 }}
-    >
-      <motion.div
-        className="create-post-modal"
-        onClick={(e) => e.stopPropagation()}
-        initial={{ opacity: 0, y: 28, scale: 0.97 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 14, scale: 0.97 }}
-        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-      >
-        <div className="modal-header-modern">
-          <div className="modal-title-section">
-            <div className="modal-icon">✨</div>
-            <div>
-              <h2>{isEditing ? 'Edit Post' : 'Create New Post'}</h2>
-              <p>{isEditing ? 'Update your accommodation request' : 'Share your accommodation needs with hosts'}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="modal-close-modern">×</button>
-        </div>
-        
-        <div className="modal-body-modern">
-          <form onSubmit={handleSubmit} className="modern-form">
-            <div className="form-group-modern">
-              <label className="modern-label">
-                <span className="label-text">Title</span>
-                <span className="required-star">*</span>
-              </label>
-              <input
-                type="text"
-                className="modern-input"
-                value={formData.title}
-                onChange={(e) => {
-                  setFormData(prev => ({ ...prev, title: e.target.value }));
-                  setValidationErrors(prev => ({ ...prev, title: false }));
-                }}
-                placeholder="e.g., Looking for cozy stay during Diwali"
-                required
-                style={{
-                  borderColor: validationErrors.title ? '#dc2626' : 'var(--border)'
-                }}
-              />
-              {validationErrors.title && (
-                <div style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-                  {validationErrors.title}
-                </div>
-              )}
-            </div>
-
-            <div className="form-group-modern">
-              <label className="modern-label">
-                <span className="label-text">Planning Date</span>
-              </label>
-              <input
-                type="date"
-                className="modern-input"
-                value={formData.planningDate}
-                onChange={(e) => {
-                  setFormData(prev => ({ ...prev, planningDate: e.target.value }));
-                  setValidationErrors(prev => ({ ...prev, planningDate: false }));
-                }}
-                style={{
-                  borderColor: validationErrors.planningDate ? '#dc2626' : 'var(--border)'
-                }}
-                min={new Date().toISOString().split('T')[0]}
-              />
-              {validationErrors.planningDate && (
-                <div style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-                  {validationErrors.planningDate}
-                </div>
-              )}
-            </div>
-
-            <div className="form-group-modern">
-              <label className="modern-label">
-                <span className="label-text">Visiting State</span>
-                <span className="required-star">*</span>
-              </label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                {Object.keys(locationData).map(state => (
-                  <button
-                    key={state}
-                    type="button"
-                    onClick={() => {
-                      setFormData(prev => ({ ...prev, state, city: '' }));
-                      setValidationErrors(prev => ({ ...prev, state: false, city: false }));
-                    }}
-                    style={{
-                      padding: '0.75rem 1.25rem',
-                      border: `2px solid ${validationErrors.state ? '#dc2626' : '#e5e7eb'}`,
-                      borderRadius: '8px',
-                      background: formData.state === state ? '#667eea' : 'white',
-                      color: formData.state === state ? 'white' : '#374151',
-                      cursor: 'pointer',
-                      fontSize: '0.875rem',
-                      fontWeight: '500',
-                      transition: 'all 0.2s ease',
-                      boxShadow: formData.state === state ? '0 4px 12px rgba(102, 126, 234, 0.3)' : '0 1px 3px rgba(0, 0, 0, 0.1)'
-                    }}
-                  >
-                    {state}
-                  </button>
-                ))}
-              </div>
-              {validationErrors.state && (
-                <div style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-                  {validationErrors.state}
-                </div>
-              )}
-            </div>
-
-            {formData.state && (
-              <div className="form-group-modern">
-                <label className="modern-label">
-                  <span className="label-text">Visiting City</span>
-                  <span className="required-star">*</span>
-                </label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                  {locationData[formData.state] && locationData[formData.state].map(city => (
-                    <button
-                      key={city}
-                      type="button"
-                      onClick={() => {
-                        setFormData(prev => ({ ...prev, city }));
-                        setValidationErrors(prev => ({ ...prev, city: false }));
-                      }}
-                      style={{
-                        padding: '0.5rem 1rem',
-                        border: `2px solid ${validationErrors.city ? '#dc2626' : '#e5e7eb'}`,
-                        borderRadius: '6px',
-                        background: formData.city === city ? '#667eea' : 'white',
-                        color: formData.city === city ? 'white' : '#374151',
-                        cursor: 'pointer',
-                        fontSize: '0.8rem',
-                        fontWeight: '500',
-                        transition: 'all 0.2s ease'
-                      }}
-                    >
-                      {city}
-                    </button>
-                  ))}
-                </div>
-                {validationErrors.city && (
-                  <div style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-                    {validationErrors.city}
-                  </div>
-                )}
               </div>
             )}
+          </main>
 
-            <div className="form-group-modern">
-              <label className="modern-label">
-                <span className="label-text">Preferred Facilities</span>
-              </label>
-              <div className="facilities-compact">
-                {availableFacilities.map(facility => (
-                  <button
-                    key={facility.name}
-                    type="button"
-                    onClick={() => toggleFacility(facility.name)}
-                    className={`facility-btn-compact ${formData.facilities.includes(facility.name) ? 'selected' : ''}`}
-                  >
-                    <span className="facility-icon-small">{facility.icon}</span>
-                    <span>{facility.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div>
-                <label className="modern-label" style={{ marginBottom: '0.5rem', display: 'block' }}>
-                  <span className="label-text">Visitors</span>
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <button 
-                    type="button" 
-                    onClick={() => setFormData(prev => ({ ...prev, visitors: Math.max(1, prev.visitors - 1) }))}
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      border: '1px solid var(--border)',
-                      borderRadius: '0.375rem',
-                      background: 'white',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    −
-                  </button>
-                  <input
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={formData.visitors}
-                    onChange={(e) => setFormData(prev => ({ ...prev, visitors: parseInt(e.target.value) || 1 }))}
-                    style={{
-                      width: '60px',
-                      padding: '0.5rem',
-                      border: '1px solid var(--border)',
-                      borderRadius: '0.375rem',
-                      textAlign: 'center'
-                    }}
-                  />
-                  <button 
-                    type="button" 
-                    onClick={() => setFormData(prev => ({ ...prev, visitors: Math.min(10, prev.visitors + 1) }))}
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      border: '1px solid var(--border)',
-                      borderRadius: '0.375rem',
-                      background: 'white',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="modern-label" style={{ marginBottom: '0.5rem', display: 'block' }}>
-                  <span className="label-text">Days</span>
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <button 
-                    type="button" 
-                    onClick={() => setFormData(prev => ({ ...prev, days: Math.max(1, prev.days - 1) }))}
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      border: '1px solid var(--border)',
-                      borderRadius: '0.375rem',
-                      background: 'white',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    −
-                  </button>
-                  <input
-                    type="number"
-                    min="1"
-                    max="30"
-                    value={formData.days}
-                    onChange={(e) => setFormData(prev => ({ ...prev, days: parseInt(e.target.value) || 1 }))}
-                    style={{
-                      width: '60px',
-                      padding: '0.5rem',
-                      border: '1px solid var(--border)',
-                      borderRadius: '0.375rem',
-                      textAlign: 'center'
-                    }}
-                  />
-                  <button 
-                    type="button" 
-                    onClick={() => setFormData(prev => ({ ...prev, days: Math.min(30, prev.days + 1) }))}
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      border: '1px solid var(--border)',
-                      borderRadius: '0.375rem',
-                      background: 'white',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="form-group-modern">
-              <label className="modern-label">
-                <span className="label-text">Additional Details</span>
-              </label>
-              <textarea
-                className="modern-textarea"
-                value={formData.content}
-                onChange={(e) => {
-                  setFormData(prev => ({ ...prev, content: e.target.value }));
-                  setValidationErrors(prev => ({ ...prev, content: false }));
-                }}
-                placeholder="Describe your accommodation needs, preferences, and any special requirements..."
-                rows={4}
-                style={{
-                  borderColor: validationErrors.content ? '#dc2626' : 'var(--border)'
-                }}
-              />
-              {validationErrors.content && (
-                <div style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-                  {validationErrors.content}
-                </div>
+          {/* ═════ Side rail (wide screens) ═════ */}
+          <aside className="pb-rail">
+            <section className="pb-panel">
+              <header className="pb-panel-head">
+                <h2><MessageCircle size={17} /> {c.recentChats}</h2>
+                {unreadTotal > 0 && <span className="pb-unread">{fmt(c.unread, { n: unreadTotal })}</span>}
+              </header>
+              {conversations === null ? (
+                <div className="pb-chat-sk">{[0, 1, 2].map((i) => <span key={i} className="pb-sk pb-sk--line" />)}</div>
+              ) : conversations.length === 0 ? (
+                <p className="pb-muted">{c.noChats}</p>
+              ) : (
+                <ul className="pb-chats">
+                  {conversations.map((cv) => (
+                    <li key={cv.otherUserId}>
+                      <button type="button" onClick={() => openChat(cv.otherUserId, cv.otherUserName)}>
+                        <span className="pb-avatar pb-avatar--guest" aria-hidden="true">{(cv.otherUserName || '?').charAt(0).toUpperCase()}</span>
+                        <span className="pb-chat-text">
+                          <strong>{cv.otherUserName || 'Unknown User'}</strong>
+                          <small>{cv.lastMessage}</small>
+                        </span>
+                        {cv.unreadCount > 0 && <span className="pb-unread-dot">{cv.unreadCount}</span>}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               )}
-            </div>
+              <Link to="/chats" className="pb-panel-link">{c.openChats} <ArrowRight size={15} /></Link>
+            </section>
 
-            <div className="form-actions">
-              <button type="button" onClick={onClose} className="btn-secondary-modern" disabled={isSubmitting}>
-                Cancel
-              </button>
-              <button type="submit" className="btn-primary-modern" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <span>Saving...</span>
-                    <span className="btn-icon">⏳</span>
-                  </>
-                ) : (
-                  <>
-                    <span>{isEditing ? 'Update Post' : 'Create Post'}</span>
-                    <span className="btn-icon">{isEditing ? '✏️' : '🚀'}</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
+            <section className="pb-panel pb-panel--safety">
+              <span className="pb-safety-icon" aria-hidden="true"><ShieldCheck size={20} /></span>
+              <h2>{c.safetyTitle}</h2>
+              <p>{c.safetyText}</p>
+              <Link to="/safety-guidelines" className="pb-panel-link">{c.safetyLink} <ArrowRight size={15} /></Link>
+            </section>
+          </aside>
         </div>
-      </motion.div>
-    </motion.div>
+
+        {/* Mobile: create button always within reach */}
+        {!activeChat && (
+          <button type="button" className="pb-fab" onClick={openCreate} aria-label={isHost ? c.ctaHost : c.ctaGuest}><Plus size={24} /></button>
+        )}
+
+        {activeChat && (
+          <div className="pb-chat-window">
+            <ChatWidget recipientId={activeChat.id} recipientName={activeChat.name} recipientImageUrl={activeChat.imageUrl} onClose={() => setActiveChat(null)} />
+          </div>
+        )}
+
+        <AnimatePresence>
+          {toast && (
+            <motion.div key={toast.id} className={`rg-toast is-${toast.type}`} role={toast.type === 'error' ? 'alert' : 'status'}
+              initial={{ x: 120, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 120, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 28 }}>
+              <span className="rg-toast-icon">{toast.type === 'error' ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}</span>
+              <span>{toast.message}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ═════ Dialogs ═════ */}
+        <PostFormModal key={form.key} open={form.open} kind={form.kind} isEditing={form.isEditing} initialData={form.initialData}
+          user={user} locationData={locationData} onClose={closeForm} onSubmit={submitForm} />
+
+        <GlassDialog open={!!deletingPost} onClose={() => setDeletingPost(null)} size="sm"
+          icon={<Trash2 size={18} style={{ color: '#fca5a5' }} />} title={t('deletePost')}
+          footer={(
+            <>
+              <button type="button" className="rg-btn rg-btn-ghost" onClick={() => setDeletingPost(null)} disabled={deleting}>{t('cancel')}</button>
+              <button type="button" className="rg-btn pb-btn-danger" onClick={confirmDelete} disabled={deleting}>{deleting ? '…' : t('delete')}</button>
+            </>
+          )}>
+          {deletingPost && (
+            <p className="rg-modal-text">{t('areYouSureDelete')} <strong>“{deletingPost.title}”</strong>? {t('thisActionCannotBeUndone')}</p>
+          )}
+        </GlassDialog>
+
+        <GlassDialog open={showHowItWorks} onClose={() => setShowHowItWorks(false)} size="md"
+          icon={<HelpCircle size={18} style={{ color: '#ffc163' }} />} title={c.howTitle}
+          footer={<button type="button" className="rg-btn rg-btn-primary" onClick={() => setShowHowItWorks(false)}>{c.gotIt}</button>}>
+          <ol className="pb-how">
+            {(isHost ? c.howHost : c.howGuest).map(([title, text], i) => (
+              <li key={title}><span className="pb-how-num">{i + 1}</span><div><strong>{title}</strong><p>{text}</p></div></li>
+            ))}
+          </ol>
+        </GlassDialog>
+
+        <ProfileModal key={profile?.userId || 'none'} open={!!profile} userId={profile?.userId} userName={profile?.userName} onClose={closeProfile} />
+      </div>
+    </MotionConfig>
   );
 };
 

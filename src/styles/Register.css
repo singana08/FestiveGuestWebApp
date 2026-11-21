@@ -57,7 +57,7 @@
 }
 .rg .rg-lead { font-size: 1.02rem; line-height: 1.7; max-width: 30rem; }
 
-.rg-pass-stage { margin-top: 2.25rem; perspective: 1200px; }
+.rg-pass-stage { margin-top: 1.6rem; perspective: 1200px; }
 .rg-pass {
   position: relative; width: min(410px, 100%);
   padding: 1.35rem 1.4rem 1.15rem; border-radius: 26px; overflow: hidden;
@@ -125,7 +125,7 @@
 }
 .rg-pass-code { font: 600 0.74rem ui-monospace, Consolas, monospace; letter-spacing: 0.14em; color: var(--rg-mute); }
 
-.rg-perks { list-style: none; margin: 2rem 0 0; padding: 0; display: grid; gap: 0.7rem; }
+.rg-perks { list-style: none; margin: 1.4rem 0 0; padding: 0; display: grid; gap: 0.55rem; }
 .rg-perks li { display: flex; align-items: center; gap: 0.6rem; font-size: 0.92rem; color: var(--rg-soft); }
 .rg-perks svg { color: #6ee7b7; flex-shrink: 0; }
 
@@ -157,7 +157,7 @@
 .rg .rg-card-sub { margin-top: 0.3rem; font-size: 0.9rem; }
 
 /* Stepper */
-.rg-stepper { position: relative; margin: 1.5rem 0 1.75rem; }
+.rg-stepper { position: relative; margin: 1.15rem 0 1.25rem; }
 .rg-steps-track { position: absolute; top: 17px; left: 18px; right: 18px; height: 3px; border-radius: 3px; background: rgba(255, 255, 255, 0.12); }
 .rg-steps-fill { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #34d399, #ffc163, #ff7a3d); }
 .rg-steps { position: relative; list-style: none; margin: 0; padding: 0; display: flex; justify-content: space-between; }
@@ -282,8 +282,8 @@
 /* Role cards */
 .rg-roles { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
 .rg-role {
-  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 0.2rem;
-  padding: 1rem; border-radius: 18px; text-align: left; cursor: pointer;
+  position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 0.7rem; row-gap: 0.05rem;
+  padding: 0.7rem 0.85rem; border-radius: 16px; text-align: left; cursor: pointer;
   font: inherit; color: var(--rg-ink);
   background: rgba(255, 255, 255, 0.05); border: 1.5px solid rgba(255, 255, 255, 0.14);
   transition: border-color 0.25s, background 0.25s, transform 0.25s, box-shadow 0.25s;
@@ -295,12 +295,12 @@
   box-shadow: 0 16px 34px -18px rgba(255, 107, 53, 0.85);
 }
 .rg-role-icon {
-  width: 44px; height: 44px; margin-bottom: 0.45rem; border-radius: 14px;
-  display: grid; place-items: center; font-size: 1.4rem;
+  grid-row: span 2; width: 38px; height: 38px; border-radius: 12px;
+  display: grid; place-items: center; font-size: 1.2rem;
   background: linear-gradient(145deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.05));
   border: 1px solid rgba(255, 255, 255, 0.22); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
-.rg-role-title { font: 800 0.98rem 'Plus Jakarta Sans', sans-serif; }
+.rg-role-title { padding-right: 1.4rem; font: 800 0.95rem 'Plus Jakarta Sans', sans-serif; }
 .rg-role-desc { font-size: 0.78rem; color: var(--rg-mute); }
 .rg-role-check {
   position: absolute; top: 0.7rem; right: 0.7rem; width: 22px; height: 22px; border-radius: 50%;
@@ -473,8 +473,73 @@
 }
 .rg-modal-foot .rg-btn-primary { flex: 0 0 auto; }
 
+/* ═══ Login page (shares everything above) ═══ */
+.lg-shell { grid-template-columns: minmax(0, 1fr) minmax(0, 470px); align-items: center; min-height: calc(100vh - var(--nav-height, 68px) - 6rem); }
+.lg-tiles { display: grid; gap: 0.7rem; margin-top: 1.5rem; max-width: 30rem; }
+.lg-tile {
+  display: flex; align-items: center; gap: 0.85rem; padding: 0.8rem 1rem; border-radius: 18px;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 45%), rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  box-shadow: 0 18px 40px -26px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+.lg-tile .rg-role-icon { margin: 0; flex-shrink: 0; }
+.lg-tile strong { display: block; font: 700 0.98rem 'Plus Jakarta Sans', sans-serif; color: var(--rg-ink); }
+.rg .lg-tile p { margin-top: 0.15rem; font-size: 0.86rem; line-height: 1.5; }
+.lg-forgot { display: flex; justify-content: flex-end; margin: -0.35rem 0 1.15rem; }
+.lg-otp-actions { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; margin-top: 0.7rem; }
+.lg-otp-actions .rg-link-btn:last-child { color: var(--rg-soft); }
+.lg-create { width: 100%; margin-top: 0.75rem; }
+.rg .lg-or { margin-top: 1.4rem; text-align: center; font-size: 0.88rem; }
+
+/* Two-option segmented switch (login method, reset channel) */
+.rg-seg {
+  position: relative; display: flex; gap: 0.2rem; padding: 0.25rem; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.rg-seg button {
+  position: relative; z-index: 0; flex: 1;
+  padding: 0.45rem 0.85rem; border: 0; border-radius: 999px; background: transparent; cursor: pointer;
+  font: 700 0.86rem 'Plus Jakarta Sans', sans-serif; color: rgba(255, 240, 230, 0.72);
+  transition: color 0.2s;
+}
+.rg-seg button[aria-pressed='true'] { color: #2a1206; }
+.rg-seg-pill {
+  position: absolute; inset: 0; z-index: -1; border-radius: 999px;
+  background: linear-gradient(135deg, #ffd38a 0%, #ff9a4d 50%, #ff6b35 100%);
+  box-shadow: 0 8px 18px -8px rgba(255, 107, 53, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* Dialog form fields (portalled, so not under .rg) */
+.rg-portal {
+  --rg-ink: #fff7f0; --rg-soft: rgba(255, 240, 230, 0.74); --rg-mute: rgba(255, 240, 230, 0.5);
+  --rg-amber: #ffc163; --rg-line: rgba(255, 255, 255, 0.14); --rg-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+.rg-portal .rg-label { color: rgba(255, 240, 230, 0.88); }
+.rg-portal .rg-error { margin: 0.4rem 0 0; font-size: 0.78rem; color: #fca5a5; }
+.rg-portal p { margin: 0; }
+.rg-modal--narrow { width: min(460px, 100%); }
+.rg-portal .rg-modal-text { margin: 0 0 1rem; font-size: 0.9rem; line-height: 1.55; color: rgba(255, 240, 230, 0.72); }
+.rg-modal-text strong { color: #fff7f0; }
+
 /* ── Responsive ── */
+/* Laptop screens: slightly more compact controls and spacing so the login
+   card fits a 768px-tall screen. Phones keep 48px touch targets. */
+@media (min-width: 1001px) {
+  .rg { padding-top: clamp(0.9rem, 2.2vh, 1.5rem); padding-bottom: 1.5rem; }
+  .rg-card { padding: 1.4rem 1.7rem; }
+  .rg .rg-card-title { font-size: 1.3rem; }
+  .rg-input { padding-top: 0.55rem; padding-bottom: 0.55rem; }
+  .rg-btn { padding: 0.6rem 1.25rem; font-size: 0.9rem; }
+  .rg-field { margin-bottom: 0.8rem; }
+  .rg-label { margin-bottom: 0.35rem; }
+  .rg-divider { margin: 0.8rem 0 0.9rem; }
+  .rg-actions { margin-top: 1.25rem; }
+  .rg .rg-title { font-size: clamp(1.55rem, 2.1vw, 1.85rem); }
+  .lg-shell { min-height: calc(100vh - var(--nav-height, 68px) - 4.5rem); }
+}
 @media (max-width: 1000px) {
+  .lg-shell { grid-template-columns: minmax(0, 1fr); max-width: 520px; min-height: 0; }
+  .lg-side { display: none; }
   .rg-shell { grid-template-columns: minmax(0, 1fr); max-width: 620px; gap: 1.5rem; }
   .rg-side { position: static; padding-top: 0; }
   .rg-pass-stage, .rg-perks { display: none; }
@@ -485,7 +550,8 @@
   .rg { padding-inline: 0.85rem; }
   .rg-card { padding: 1.3rem 1.05rem; border-radius: 22px; }
   .rg-roles { gap: 0.55rem; }
-  .rg-role { padding: 0.85rem; }
+  .rg-role { grid-template-columns: minmax(0, 1fr); row-gap: 0.2rem; padding: 0.85rem; }
+  .rg-role-icon { grid-row: auto; margin-bottom: 0.3rem; }
   .rg-reqs { grid-template-columns: 1fr; }
   .rg-input.has-action { padding-right: 8rem; }
   .rg-toast { left: 0.85rem; right: 0.85rem; max-width: none; }
