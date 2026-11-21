@@ -5,12 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { LanguageProvider, useLanguage } from './i18n/LanguageContext';
 import Logo from './components/Logo';
-import Loader from './components/Loader';
 import InviteFriendsModal from './components/InviteFriendsModal';
+// Not lazy: it's the landing page, so it renders straight away on a first
+// visit instead of showing a loading spinner while its chunk downloads.
+import Home from './pages/Home';
 import './styles/App.css';
 
 // ── Lazy-loaded pages (code splitting for faster initial load) ──
-const Home            = lazy(() => import('./pages/Home'));
 const Login           = lazy(() => import('./pages/Login'));
 const Registration    = lazy(() => import('./pages/Registration'));
 const GuestDashboard  = lazy(() => import('./pages/GuestDashboard'));
@@ -52,22 +53,26 @@ const PageTransition = ({ children }) => (
   </motion.div>
 );
 
-// ── Inline page-level suspense fallback ──
+// ── Suspense fallback for lazily loaded pages ──
+// Transparent so it suits light and dark pages, and it only fades in after a
+// short delay, so a quick chunk load shows nothing at all.
 const PageLoader = () => (
-  <div style={{
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    minHeight: 'calc(100vh - 68px)', background: 'var(--background)'
-  }}>
-    <div style={{ textAlign: 'center' }}>
-      <div style={{
-        width: 44, height: 44, border: '3px solid var(--border-strong)',
-        borderTopColor: 'var(--primary)', borderRadius: '50%',
-        animation: 'spin 0.8s linear infinite', margin: '0 auto 1rem'
-      }} />
-      <p style={{ color: 'var(--text-light)', fontSize: '0.9rem', margin: 0 }}>Loading…</p>
-    </div>
+  <div className="page-loader" role="status" aria-label="Loading">
+    <span className="page-loader-spin" />
   </div>
 );
+
+// Saved session, or null (a corrupt entry is cleared). Read synchronously so
+// the first render already knows who's logged in — no splash screen needed.
+const readStoredUser = () => {
+  try {
+    const saved = JSON.parse(localStorage.getItem('user'));
+    return saved?.token && saved?.email && (saved.role || saved.userType) ? saved : null;
+  } catch {
+    localStorage.removeItem('user');
+    return null;
+  }
+};
 
 // ── Navbar avatar (photo or initial fallback) ──
 const NavAvatar = ({ user }) => {
@@ -91,28 +96,12 @@ const AppContent = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(readStoredUser);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   // Persisted so the "Limited-time offer" banner stays dismissed across
   // reloads/navigations instead of nagging the user every single visit.
   const [promoDismissed, setPromoDismissed] = useState(() => localStorage.getItem('promoDismissed') === 'true');
   const avatarRef = useRef(null);
-
-  // Read user from localStorage immediately
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('user');
-      if (saved) {
-        const userData = JSON.parse(saved);
-        if (userData?.token && userData?.email && (userData.role || userData.userType)) {
-          setUser(userData);
-        }
-      }
-    } catch {
-      localStorage.removeItem('user');
-    }
-  }, []);
 
   const { unreadCount, fetchUnreadCount, toast: msgToast, dismissToast } = useNotifications();
   const { language, toggleLanguage, t } = useLanguage();
@@ -140,9 +129,6 @@ const AppContent = () => {
   // instance booted, not the one we happened to boot on — so capture the
   // key of whichever entry was current at mount (lazy initializer, runs
   // once) and ignore backgroundLocation until location.key moves past it.
-  // A ref flipped in a mount effect doesn't work here: the loading gate
-  // below delays the render that actually uses this by ~600ms, well after
-  // that effect already ran, so it was already un-guarding by then.
   const [bootLocationKey] = useState(() => location.key);
   const backgroundLocation = location.key === bootLocationKey ? undefined : location.state?.backgroundLocation;
   const isDarkPage = DARK_ROUTES.has((backgroundLocation || location).pathname);
@@ -151,25 +137,12 @@ const AppContent = () => {
     document.body.setAttribute('lang', language);
   }, [language]);
 
+  // Follow logins/logouts made in other tabs.
   useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), user ? 0 : 600);
-    const handleStorage = () => {
-      try {
-        const saved = localStorage.getItem('user');
-        if (saved) {
-          const userData = JSON.parse(saved);
-          if (userData?.token && userData?.email && (userData.role || userData.userType)) {
-            setUser(userData);
-          } else setUser(null);
-        } else setUser(null);
-      } catch {
-        localStorage.removeItem('user');
-        setUser(null);
-      }
-    };
+    const handleStorage = () => setUser(readStoredUser());
     window.addEventListener('storage', handleStorage);
-    return () => { clearTimeout(timer); window.removeEventListener('storage', handleStorage); };
-  }, [user]);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   // Close mobile menu and avatar dropdown on route change
   useEffect(() => {
@@ -241,8 +214,6 @@ const AppContent = () => {
     setShowLogoutModal(false);
     window.location.href = '/';
   };
-
-  if (loading) return <Loader />;
 
   return (
     <div className={`app-container${isDarkPage ? ' theme-dark' : ''}`}>
