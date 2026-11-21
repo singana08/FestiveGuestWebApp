@@ -8,6 +8,8 @@ import api from '../utils/api';
 import ImageWithSas from '../components/ImageWithSas';
 import GlassDialog from '../components/posts/GlassDialog';
 import ProgressRing from '../components/ProgressRing';
+import VerifyPhoneDialog from '../components/VerifyPhoneDialog';
+import { VerifiedChip } from '../components/VerifiedBadge';
 import { useLanguage } from '../i18n/LanguageContext';
 import locationService from '../utils/locationService';
 import useSEO from '../hooks/useSEO';
@@ -39,12 +41,13 @@ function Profile() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccessCountdown, setPasswordSuccessCountdown] = useState(0);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [editFormData, setEditFormData] = useState({ name: '', phone: '', state: '', city: '', bio: '', hostingAreas: [], notificationPreferences: { email: true, push: false } });
+  const [editFormData, setEditFormData] = useState({ name: '', state: '', city: '', bio: '', hostingAreas: [], notificationPreferences: { email: true, push: false } });
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [updateError, setUpdateError] = useState('');
   const [locationData, setLocationData] = useState(null);
   const [toast, setToast] = useState(null);
   const [blocks, setBlocks] = useState([]);
+  const [showVerify, setShowVerify] = useState(false);
   const fileInputRef = useRef(null);
 
   const passwordRequirements = [
@@ -69,7 +72,7 @@ function Profile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const anyOpen = showChangePassword || isEditingProfile;
+  const anyOpen = showChangePassword || isEditingProfile || showVerify;
   useEffect(() => {
     document.body.style.overflow = anyOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -79,7 +82,6 @@ function Profile() {
     const [city = '', state = ''] = (u.location || '').split(', ');
     setEditFormData({
       name: u.name || '',
-      phone: u.phone || '',
       state, city,
       bio: u.bio || '',
       // Copies, so toggling cities in the dialog never mutates the loaded profile.
@@ -198,7 +200,6 @@ function Profile() {
       const location = editFormData.city && editFormData.state ? `${editFormData.city}, ${editFormData.state}` : user.location;
       const payload = {
         name: editFormData.name.trim(),
-        phone: editFormData.phone,
         location,
         bio: editFormData.bio,
         notificationPreferences: editFormData.notificationPreferences,
@@ -274,7 +275,7 @@ function Profile() {
   const checklist = [
     { done: !!user.profileImageUrl, label: 'Add a photo', fix: () => fileInputRef.current?.click() },
     { done: (user.bio || '').trim().length >= 10, label: isHost ? 'Describe what you offer' : 'Write a short bio', fix: openEdit },
-    { done: !!user.phone, label: 'Add your phone', fix: openEdit },
+    { done: !!user.isVerified, label: 'Verify your phone', fix: () => setShowVerify(true) },
     { done: !!user.location, label: 'Add your city', fix: openEdit },
     ...(isHost ? [{ done: areas.length > 0, label: 'Pick hosting areas', fix: openEdit }] : []),
   ];
@@ -311,6 +312,7 @@ function Profile() {
                 </p>
                 <p className="pf-chips">
                   <span className={`pf-chip${user.status === 'Active' ? ' is-green' : ' is-amber'}`}><span className="pf-dot" /> {user.status || 'Active'}</span>
+                  {user.isVerified && <VerifiedChip />}
                 </p>
               </div>
 
@@ -391,7 +393,11 @@ function Profile() {
                 <header className="pf-card-head"><h2>Contact &amp; alerts</h2></header>
                 <ul className="pf-rows">
                   <li><Mail size={15} /><span>Email</span><strong title={user.email}>{user.email}</strong></li>
-                  <li><Phone size={15} /><span>Phone</span><strong>{user.phone ? `+91 ${user.phone}` : '—'}</strong></li>
+                  <li>
+                    <Phone size={15} /><span>Phone</span>
+                    <strong className={user.isVerified ? 'is-on' : ''}>{user.phone ? `+91 ${user.phone}` : '—'}{user.isVerified && ' ✓'}</strong>
+                    <button type="button" className="sa-btn pf-verify-btn" onClick={() => setShowVerify(true)}>{user.isVerified ? 'Change' : 'Verify'}</button>
+                  </li>
                   <li><MapPin size={15} /><span>City</span><strong>{user.location || '—'}</strong></li>
                   <li><Bell size={15} /><span>Email alerts</span><strong className={user.notificationPreferences?.email !== false ? 'is-on' : ''}>{user.notificationPreferences?.email !== false ? 'On' : 'Off'}</strong></li>
                 </ul>
@@ -459,19 +465,10 @@ function Profile() {
             </>
           )}>
           {updateError && <div className="rg-alert" role="alert"><AlertTriangle size={17} /> {updateError}</div>}
-          <div className="pf-form-row">
-            <div className="rg-field">
-              <label className="rg-label" htmlFor="pf-name">{t('name')}</label>
-              <input id="pf-name" className="rg-input" value={editFormData.name} onChange={(e) => setField('name', e.target.value)} />
-            </div>
-            <div className="rg-field">
-              <label className="rg-label" htmlFor="pf-phone">{t('phone')}</label>
-              <div className="rg-inline">
-                <span className="rg-prefix" aria-hidden="true">+91</span>
-                <input id="pf-phone" type="tel" inputMode="numeric" maxLength={10} className="rg-input rg-input--prefixed" value={editFormData.phone}
-                  onChange={(e) => setField('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} />
-              </div>
-            </div>
+          <div className="rg-field">
+            <label className="rg-label" htmlFor="pf-name">{t('name')}</label>
+            <input id="pf-name" className="rg-input" value={editFormData.name} onChange={(e) => setField('name', e.target.value)} />
+            <p className="pb-hint">To change your phone number, use “{user.isVerified ? 'Change' : 'Verify'}” next to Phone — new numbers are confirmed by SMS.</p>
           </div>
           {locationData && (
             <>
@@ -533,6 +530,9 @@ function Profile() {
             </button>
           </div>
         </GlassDialog>
+
+        <VerifyPhoneDialog open={showVerify} onClose={() => setShowVerify(false)}
+          onVerified={() => { setShowVerify(false); showToast('Phone verified — you now have a ✓ badge'); fetchUser(); }} />
 
         {/* ═════ Change password ═════ */}
         <GlassDialog open={showChangePassword} onClose={closeChangePasswordModal} size="sm"

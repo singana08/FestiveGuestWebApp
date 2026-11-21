@@ -259,13 +259,6 @@ const Registration = ({ setUser }) => {
         return;
       }
 
-      if (!phoneVerified) {
-        setServerError('Please verify your phone number before completing registration.');
-        showToast('Please verify your phone number before registering', 'error');
-        setLoading(false);
-        return;
-      }
-
       const storedAcceptance = sessionStorage.getItem('disclaimerAcceptance');
       if (!storedAcceptance) {
         showToast('Please accept the disclaimer again', 'error');
@@ -370,14 +363,9 @@ const Registration = ({ setUser }) => {
       const res = await api.post('phone-otp/send', { phone: formData.phone });
       if (res.data.success) { setPhoneOtpSent(true); setPhoneOtpSessionId(res.data.sessionId); showToast('OTP sent to your phone', 'success'); }
     } catch (err) {
-      const msg = err.response?.data?.message || err.message;
-      if (msg?.includes('not configured')) {
-        // Phone OTP isn't live yet — don't block signups on a feature that can't work.
-        setPhoneVerified(true); setVerifiedPhone(formData.phone);
-        showToast('Phone verification isn\'t available yet — continuing without it.', 'success');
-      } else {
-        showToast('Failed to send OTP: ' + msg, 'error');
-      }
+      // Sign-up isn't blocked when SMS fails — the number is saved unverified and can be verified later.
+      setPhoneOtpError("We couldn't send the code right now. You can continue and verify your number later from your profile.");
+      console.error('Phone OTP send failed:', err.response?.data?.message || err.message);
     } finally {
       setPhoneOtpSending(false);
     }
@@ -757,7 +745,7 @@ const Registration = ({ setUser }) => {
                             <input id="rg-phone" type="tel" name="phone" autoComplete="tel-national" required maxLength={10} inputMode="numeric"
                               className={`${inputCls(phoneError || validationErrors.phone, phoneVerified)} rg-input--prefixed${!phoneOtpSent || phoneVerified ? ' has-action' : ''}`}
                               value={formData.phone} placeholder="10-digit mobile number" disabled={phoneVerified}
-                              onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); handleInputChange({ target: { name: 'phone', value: v } }); validatePhone(v); clearError('phone'); }}
+                              onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 10); handleInputChange({ target: { name: 'phone', value: v } }); validatePhone(v); clearError('phone'); setPhoneOtpError(''); }}
                               onBlur={e => validatePhone(e.target.value)} />
                             {phoneVerified ? (
                               <span className="rg-verified">
@@ -771,6 +759,11 @@ const Registration = ({ setUser }) => {
                             )}
                           </div>
                           {(phoneError || validationErrors.phone) && <p className="rg-error">{phoneError || validationErrors.phone}</p>}
+                          {!phoneVerified && !phoneOtpSent && (
+                            phoneOtpError
+                              ? <p className="rg-error" role="alert">{phoneOtpError}</p>
+                              : <p className="rg-note rg-note--soft">Verifying now is optional — you can do it later from your profile to get a ✓ Verified badge.</p>
+                          )}
                           <AnimatePresence initial={false}>
                             {phoneOtpSent && !phoneVerified && (
                               <motion.div className="rg-otp" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3, ease: EASE }}>
@@ -900,7 +893,7 @@ const Registration = ({ setUser }) => {
                           {[
                             { label: 'Name', value: formData.name },
                             { label: 'Email', value: verifiedEmail + ' ✓' },
-                            { label: 'Phone', value: formData.phone },
+                            { label: 'Phone', value: phoneVerified ? `+91 ${formData.phone} · verified ✓` : `+91 ${formData.phone} · verify later from your profile` },
                             { label: 'Joining as', value: isHost ? '🏡 Local host' : '🧳 Guest' },
                             { label: 'Location', value: place || '—' },
                           ].map(row => (

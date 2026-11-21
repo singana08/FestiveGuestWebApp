@@ -17,6 +17,7 @@ import CityMap from '../components/posts/CityMap';
 import PostFormModal from '../components/posts/PostFormModal';
 import ProfileModal from '../components/posts/ProfileModal';
 import GlassDialog from '../components/posts/GlassDialog';
+import VerifyPhoneBanner from '../components/VerifyPhoneBanner';
 import { CITY_COORDS } from '../components/posts/cityCoords';
 import { fmt, daysUntil, citiesInLocation, splitCsv } from '../components/posts/postUtils';
 import '../styles/Register.css';
@@ -338,6 +339,8 @@ const Posts = () => {
                 <button type="button" className="pb-howto" onClick={() => setShowHowItWorks(true)}><HelpCircle size={16} /> {c.howTitle}</button>
               </div>
             </motion.section>
+
+            <VerifyPhoneBanner />
 
             {/* ═════ Tabs ═════ */}
             <div className="pb-tabs-row">

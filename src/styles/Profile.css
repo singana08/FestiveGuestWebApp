@@ -139,6 +139,8 @@
 .pf-rows span { color: var(--rg-mute); }
 .pf-rows strong { justify-self: end; max-width: 100%; font-weight: 600; color: var(--rg-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pf-rows strong.is-on { color: #6ee7b7; }
+.pf-rows li:has(.pf-verify-btn) { grid-template-columns: auto auto minmax(0, 1fr) auto; }
+.pf-rows .pf-verify-btn { padding: 0.2rem 0.6rem; font-size: 0.72rem; }
 .pf-private { display: flex; align-items: center; gap: 0.35rem; margin-top: 0.55rem; font-size: 0.74rem; color: #a7f3d0; }
 
 /* Free during launch */
@@ -233,7 +235,6 @@
 .rg-portal .rf-redeem-box .rf-ok { color: #6ee7b7; }
 
 /* ── Dialog bits (portalled) ── */
-.pf-form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1rem; }
 .pf-areas-picker { max-height: 260px; overflow-y: auto; padding: 0.75rem 0.85rem 0.1rem; border-radius: 14px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.22) transparent; }
 .pf-toggle-row {
   display: flex; align-items: center; justify-content: space-between; gap: 1rem;
@@ -267,7 +268,6 @@
   .pf-hero-actions { flex-direction: row; width: 100%; }
   .pf-hero-actions .pf-btn { flex: 1; }
   .pf-strength { align-items: flex-start; }
-  .pf-form-row { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) { .pf-cover-lights { animation: none; } }
 

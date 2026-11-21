@@ -216,13 +216,9 @@ const Login = ({ setUser }) => {
       const res = await api.post('phone-otp/send', { phone: loginPhone });
       if (res.data.success) { setLoginPhoneOtpSent(true); setLoginPhoneOtpSessionId(res.data.sessionId); }
     } catch (err) {
-      const msg = err.response?.data?.message || err.message;
-      if (msg?.includes('not configured')) {
-        showToast('Login with OTP isn\'t available yet. Please use your password.', 'error');
-        setLoginMethod('password');
-      } else {
-        setLoginPhoneError('Failed to send OTP: ' + msg);
-      }
+      console.error('Phone OTP send failed:', err.response?.data?.message || err.message);
+      showToast('We couldn’t send a code right now. Please sign in with your password.', 'error');
+      setLoginMethod('password');
     } finally {
       setLoginPhoneOtpSending(false);
     }
