@@ -141,6 +141,7 @@ const AppContent = () => {
 
   // Close mobile menu and avatar dropdown on route change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reacting to navigation is what this effect is for
     setMenuOpen(false);
     setAvatarOpen(false);
     window.scrollTo(0, 0);
@@ -433,7 +434,7 @@ const AppContent = () => {
               <Route path="/home" element={<PageTransition><Home user={user} /></PageTransition>} />
               <Route path="/r/:code" element={<PageTransition><ReferralRedirect /></PageTransition>} />
               <Route path="/login" element={!user ? <PageTransition><Login setUser={setUser} /></PageTransition> : <Navigate to={postLoginRedirect} />} />
-              <Route path="/register" element={!user ? <PageTransition><Registration setUser={setUser} /></PageTransition> : <Navigate to="/home" />} />
+              <Route path="/register" element={!user ? <PageTransition><Registration /></PageTransition> : <Navigate to="/home" />} />
               <Route path="/chats" element={user ? <PageTransition><Chats /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/posts" element={user ? <PageTransition><Posts /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/profile" element={user ? <PageTransition><Profile /></PageTransition> : <Navigate to="/login" />} />

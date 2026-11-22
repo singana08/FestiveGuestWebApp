@@ -33,7 +33,7 @@ const AccordionItem = ({ icon, question, children, open, onToggle }) => (
 );
 
 const Help = () => {
-  useSEO({ title: 'Help & Support', description: 'Get help using FestiveGuest to find or become a trusted local host in India — registration, safety, payments, and more.' });
+  useSEO({ title: 'Help & Support', description: 'Get help using FestiveGuest to find or become a trusted local host in India — registration, safety, your account and more.' });
   const { t } = useLanguage();
   const [feedback, setFeedback] = useState({ name: '', email: '', message: '' });
   const [sending, setSending] = useState(false);
@@ -107,7 +107,6 @@ const Help = () => {
   const trouble = [
     { key: 'login', topic: 'account', steps: 5 },
     { key: 'loading', topic: 'start', steps: 6 },
-    { key: 'payment', topic: 'money', steps: 6 },
     { key: 'email', topic: 'account', steps: 5 },
   ].map((tr) => {
     const id = tr.key.charAt(0).toUpperCase() + tr.key.slice(1);
@@ -122,7 +121,7 @@ const Help = () => {
   const nothing = shownFaqs.length === 0 && shownTrouble.length === 0;
   const toggle = (key) => setOpenKey((k) => (k === key ? null : key));
 
-  const topics = [['all', 'All topics'], ['start', 'Getting started'], ['safety', 'Safety'], ['money', 'Payments'], ['account', 'Account']];
+  const topics = [['all', 'All topics'], ['start', 'Getting started'], ['safety', 'Safety'], ['money', 'Money'], ['account', 'Account']];
   const policies = [
     { to: '/terms-of-service', icon: <FileText size={17} />, label: t('termsOfService'), desc: t('termsDesc') },
     { to: '/privacy-policy', icon: <Lock size={17} />, label: t('privacyPolicy'), desc: t('privacyDesc') },
@@ -147,7 +146,7 @@ const Help = () => {
             <p>{t('helpDescription')}</p>
             <div className="hp-search">
               <Search size={17} aria-hidden="true" />
-              <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search help — e.g. password, payment, safety" aria-label="Search help" />
+              <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search help — e.g. password, verify phone, safety" aria-label="Search help" />
               {query && <button type="button" onClick={() => setQuery('')} aria-label="Clear search"><X size={15} /></button>}
             </div>
             <div className="hp-topics" role="group" aria-label="Topics">

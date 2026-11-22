@@ -20,17 +20,6 @@ class LocationService {
     return this.pending;
   }
 
-  async seedLocations() {
-    try {
-      const response = await api.post('location/seed');
-      this.locations = null;
-      return response.data;
-    } catch (error) {
-      console.error('Failed to seed locations:', error);
-      throw error;
-    }
-  }
-
   clearCache() {
     this.locations = null;
   }

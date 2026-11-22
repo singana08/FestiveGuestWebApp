@@ -399,7 +399,7 @@ function Profile() {
                     <button type="button" className="sa-btn pf-verify-btn" onClick={() => setShowVerify(true)}>{user.isVerified ? 'Change' : 'Verify'}</button>
                   </li>
                   <li><MapPin size={15} /><span>City</span><strong>{user.location || '—'}</strong></li>
-                  <li><Bell size={15} /><span>Email alerts</span><strong className={user.notificationPreferences?.email !== false ? 'is-on' : ''}>{user.notificationPreferences?.email !== false ? 'On' : 'Off'}</strong></li>
+                  <li><Bell size={15} /><span>New-post emails</span><strong className={user.notificationPreferences?.email !== false ? 'is-on' : ''}>{user.notificationPreferences?.email !== false ? 'On' : 'Off'}</strong></li>
                 </ul>
                 <p className="pf-private"><ShieldCheck size={13} /> Your email and phone are never shown on posts.</p>
               </motion.section>
@@ -522,8 +522,8 @@ function Profile() {
             </div>
           )}
           <div className="pf-toggle-row">
-            <span><Bell size={16} /> Email me when I get a new message</span>
-            <button type="button" role="switch" aria-checked={!!editFormData.notificationPreferences.email} aria-label="Email notifications"
+            <span><Bell size={16} /> {isHost ? 'Email me when a traveller posts in my hosting areas' : 'Email me when a host posts in my city'}</span>
+            <button type="button" role="switch" aria-checked={!!editFormData.notificationPreferences.email} aria-label="Email me about new posts"
               className={`pf-switch${editFormData.notificationPreferences.email ? ' is-on' : ''}`}
               onClick={() => setEditFormData((p) => ({ ...p, notificationPreferences: { ...p.notificationPreferences, email: !p.notificationPreferences.email } }))}>
               <span />

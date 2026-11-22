@@ -42,7 +42,7 @@ api.interceptors.request.use(
           config.headers.Authorization = `Bearer ${user.token}`;
         }
       }
-    } catch (e) {
+    } catch {
       console.warn('Failed to read user from storage');
     }
     return config;

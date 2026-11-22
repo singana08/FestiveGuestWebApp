@@ -33,6 +33,7 @@ export const LanguageProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components -- the hook belongs with its provider
 export const useLanguage = () => {
   const context = useContext(LanguageContext);
   if (!context) {

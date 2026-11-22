@@ -4,6 +4,7 @@ import chatService from '../utils/chatService';
 
 const NotificationContext = createContext();
 
+// eslint-disable-next-line react-refresh/only-export-components -- the hook belongs with its provider
 export const useNotifications = () => {
   const context = useContext(NotificationContext);
   if (!context) {
@@ -74,6 +75,7 @@ export const NotificationProvider = ({ children }) => {
   // Poll for unread count
   useEffect(() => {
     if (!isLoggedIn()) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- state is only set after the request resolves
     fetchUnreadCount();
     pollTimerRef.current = setInterval(fetchUnreadCount, POLL_INTERVAL);
     return () => {

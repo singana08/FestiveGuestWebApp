@@ -7,18 +7,16 @@ const ImageWithSas = ({
   className, 
   style,
   fallbackText = 'No Image',
-  userId = null
 }) => {
   const [imgSrc, setImgSrc] = useState(null);
   const [loading, setLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  const fallbackSvg = `data:image/svg+xml;base64,${btoa(`
-    <svg width="150" height="150" viewBox="0 0 150 150" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="150" height="150" rx="8" fill="#f1f5f9"/>
-      <text x="75" y="80" text-anchor="middle" fill="#64748b" font-family="Arial" font-size="14">${fallbackText.replace(/[^\x00-\x7F]/g, 'User')}</text>
-    </svg>
-  `)}`;
+  // URL-encoded rather than base64 so any script works (btoa can't take Telugu, so initials used to show as "User").
+  const label = String(fallbackText).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+  const fallbackSvg = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
+    `<svg width="150" height="150" viewBox="0 0 150 150" fill="none" xmlns="http://www.w3.org/2000/svg"><rect width="150" height="150" rx="8" fill="#f1f5f9"/><text x="75" y="80" text-anchor="middle" fill="#64748b" font-family="Arial" font-size="14">${label}</text></svg>`,
+  )}`;
 
   useEffect(() => {
     const loadImage = async () => {

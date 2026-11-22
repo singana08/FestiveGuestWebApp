@@ -52,14 +52,6 @@ export const helpTranslations = {
     troubleLoadingStep5: 'Flush DNS: Open Command Prompt and type "ipconfig /flushdns"',
     troubleLoadingStep6: 'Disable browser extensions temporarily',
     
-    troublePaymentTitle: 'Payment not processing?',
-    troublePaymentDesc: 'Common payment issues:',
-    troublePaymentStep1: 'Verify card details are entered correctly',
-    troublePaymentStep2: 'Check if your card has sufficient balance',
-    troublePaymentStep3: 'Ensure international transactions are enabled',
-    troublePaymentStep4: 'Try a different payment method',
-    troublePaymentStep5: 'Contact your bank if payment is declined',
-    troublePaymentStep6: 'Wait 5 minutes and retry if gateway timeout occurs',
     
     troubleEmailTitle: 'Not receiving emails or notifications?',
     troubleEmailDesc: 'Check these:',
@@ -133,14 +125,6 @@ export const helpTranslations = {
     troubleLoadingStep5: 'DNS ఫ్లష్ చేయండి: కమాండ్ ప్రాంప్ట్ తెరిచి "ipconfig /flushdns" టైప్ చేయండి',
     troubleLoadingStep6: 'బ్రౌజర్ ఎక్స్‌టెన్షన్‌లను తాత్కాలికంగా నిలిపివేయండి',
     
-    troublePaymentTitle: 'చెల్లింపు ప్రాసెస్ కావడం లేదా?',
-    troublePaymentDesc: 'సాధారణ చెల్లింపు సమస్యలు:',
-    troublePaymentStep1: 'కార్డ్ వివరాలు సరిగ్గా నమోదు చేయబడ్డాయో ధృవీకరించండి',
-    troublePaymentStep2: 'మీ కార్డ్‌లో తగినంత బ్యాలెన్స్ ఉందో తనిఖీ చేయండి',
-    troublePaymentStep3: 'అంతర్జాతీయ లావాదేవీలు ప్రారంభించబడ్డాయని నిర్ధారించుకోండి',
-    troublePaymentStep4: 'వేరే చెల్లింపు పద్ధతిని ప్రయత్నించండి',
-    troublePaymentStep5: 'చెల్లింపు తిరస్కరించబడితే మీ బ్యాంక్‌ను సంప్రదించండి',
-    troublePaymentStep6: 'గేట్‌వే టైమ్‌అవుట్ సంభవిస్తే 5 నిమిషాలు వేచి ఉండి మళ్లీ ప్రయత్నించండి',
     
     troubleEmailTitle: 'ఇమెయిల్‌లు లేదా నోటిఫికేషన్‌లు అందడం లేదా?',
     troubleEmailDesc: 'వీటిని తనిఖీ చేయండి:',

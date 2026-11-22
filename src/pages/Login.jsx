@@ -14,7 +14,7 @@ const passwordRequirements = [
   { label: 'One uppercase letter', test: pw => /[A-Z]/.test(pw) },
   { label: 'One lowercase letter', test: pw => /[a-z]/.test(pw) },
   { label: 'One number',            test: pw => /\d/.test(pw) },
-  { label: 'One special character', test: pw => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw) },
+  { label: 'One special character', test: pw => /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(pw) },
 ];
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const EASE = [0.22, 1, 0.36, 1];

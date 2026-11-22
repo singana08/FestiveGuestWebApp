@@ -82,7 +82,7 @@ const PassCard = ({ name, role, place, since, code, stamps, interactive }) => {
   );
 };
 
-const Registration = ({ setUser }) => {
+const Registration = () => {
   useSEO({ title: 'Sign Up', description: 'Create your free FestiveGuest account to find a trusted local host in India, or register as a verified host yourself.' });
   const navigate = useNavigate();
   const location = useLocation();
@@ -108,7 +108,6 @@ const Registration = ({ setUser }) => {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
   const [verificationOTP, setVerificationOTP] = useState('');
-  const [registeredEmail, setRegisteredEmail] = useState('');
   const [serverError, setServerError] = useState(null);
   const [otpSent, setOtpSent] = useState(false);
   const [verifiedEmail, setVerifiedEmail] = useState('');
@@ -121,7 +120,6 @@ const Registration = ({ setUser }) => {
   const [phoneOtpError, setPhoneOtpError] = useState('');
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [phoneVerificationToken, setPhoneVerificationToken] = useState('');
-  const [verifiedPhone, setVerifiedPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
@@ -140,7 +138,7 @@ const Registration = ({ setUser }) => {
     { label: 'One uppercase letter', test: pw => /[A-Z]/.test(pw) },
     { label: 'One lowercase letter', test: pw => /[a-z]/.test(pw) },
     { label: 'One number', test: pw => /\d/.test(pw) },
-    { label: 'One special character', test: pw => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw) },
+    { label: 'One special character', test: pw => /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(pw) },
   ];
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -204,7 +202,7 @@ const Registration = ({ setUser }) => {
       try {
         const locations = await locationService.getLocations();
         setLocationData(locations);
-      } catch (error) {
+      } catch {
         showToast('Failed to load location data', 'error');
       }
     };
@@ -329,7 +327,7 @@ const Registration = ({ setUser }) => {
     setOtpSending(true);
     try {
       const res = await api.post('email/send-otp', { email: formData.email, purpose: 'registration' });
-      if (res.data.success) { setOtpSent(true); setRegisteredEmail(formData.email); showToast('OTP sent to your email', 'success'); }
+      if (res.data.success) { setOtpSent(true); showToast('OTP sent to your email', 'success'); }
     } catch (err) {
       const msg = err.response?.data?.message || err.message;
       // 409: the email already has an account — say so on the field itself.
@@ -377,7 +375,7 @@ const Registration = ({ setUser }) => {
     try {
       const res = await api.post('phone-otp/verify', { sessionId: phoneOtpSessionId, otp: phoneOtpCode, phone: formData.phone, purpose: 'register' });
       if (res.data.success) {
-        setPhoneVerificationToken(res.data.verificationToken); setVerifiedPhone(formData.phone);
+        setPhoneVerificationToken(res.data.verificationToken);
         setPhoneVerified(true); setPhoneOtpSent(false); setPhoneOtpCode('');
         showToast(res.data?.message || 'Phone verified', 'success');
       }
@@ -750,7 +748,7 @@ const Registration = ({ setUser }) => {
                             {phoneVerified ? (
                               <span className="rg-verified">
                                 <CheckCircle2 size={15} /> Verified
-                                <button type="button" className="rg-link-btn" onClick={() => { setPhoneVerified(false); setVerifiedPhone(''); setPhoneOtpSent(false); setPhoneOtpCode(''); setPhoneVerificationToken(''); }}>Change</button>
+                                <button type="button" className="rg-link-btn" onClick={() => { setPhoneVerified(false); setPhoneOtpSent(false); setPhoneOtpCode(''); setPhoneVerificationToken(''); }}>Change</button>
                               </span>
                             ) : !phoneOtpSent && (
                               <button type="button" className="rg-send" onClick={sendPhoneOtp} disabled={phoneOtpSending || !!phoneError || !formData.phone}>

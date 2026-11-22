@@ -1,584 +1,263 @@
-import React, { useState, useEffect } from 'react';
-import useSEO from '../hooks/useSEO';
-import { motion } from 'framer-motion';
-import axios from 'axios';
-import locationService from '../utils/locationService';
+import { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { Flag, Users, MapPin, Search, ShieldCheck, Ban, RotateCcw, Check, AlertTriangle, Plus, X } from 'lucide-react';
 import api from '../utils/api';
-import SubscriptionBadge from '../components/SubscriptionBadge';
-import { Check, X, Ban, Users, CreditCard, MapPin as MapPinIcon, TrendingUp } from 'lucide-react';
+import locationService from '../utils/locationService';
+import useSEO from '../hooks/useSEO';
+import '../styles/Admin.css';
 
-const API_BASE = 'https://api.festiveguest.com/api';
-const ADMIN_EMAILS = ['admin@festiveguest.com', 'kalyanimatrimony@gmail.com'];
+const REASONS = {
+  fake_profile: 'Fake profile', harassment: 'Harassment', scam: 'Scam / asking for money',
+  inappropriate: 'Inappropriate content', safety: 'Safety concern', other: 'Other',
+};
+const day = (d) => (d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
+const errText = (err) => err.response?.data?.message || err.message;
+
+const StatusChip = ({ status }) => (
+  <span className={`ad-chip ad-chip--${(status || 'unknown').toLowerCase()}`}>{status || 'Unknown'}</span>
+);
 
 function Admin() {
   useSEO({ title: 'Admin', noindex: true });
-  const [payments, setPayments] = useState([]);
+  const [tab, setTab] = useState('reports');
   const [users, setUsers] = useState([]);
+  const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [seedingLocations, setSeedingLocations] = useState(false);
-  const [testResult, setTestResult] = useState('');
-  const [testing, setTesting] = useState(false);
-  const [activeTab, setActiveTab] = useState('subscriptions');
-  const [locationsData, setLocationsData] = useState({});
-  const [loadingLocations, setLoadingLocations] = useState(false);
-  const [filterRole, setFilterRole] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [sortBy, setSortBy] = useState('createdDate');
-  const [sortOrder, setSortOrder] = useState('desc');
-  const [expandedStates, setExpandedStates] = useState({});
-  const [showAddCityModal, setShowAddCityModal] = useState(false);
-  const [selectedState, setSelectedState] = useState('');
-  const [newCity, setNewCity] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState('');
 
-  useEffect(() => {
-    if (activeTab === 'subscriptions' || activeTab === 'payments') {
-      fetchPayments();
-      fetchUsers();
-    }
-    if (activeTab === 'locations') {
-      fetchLocations();
-    }
-  }, [activeTab]);
-
-  const fetchLocations = async () => {
-    setLoadingLocations(true);
+  const load = async () => {
+    setLoading(true); setError('');
     try {
-      const res = await api.get('location/states-with-cities');
-      setLocationsData(res.data || {});
-    } catch (e) {
-      console.error('Failed to fetch locations:', e);
-      setLocationsData({});
-    } finally {
-      setLoadingLocations(false);
-    }
-  };
-
-  const handleAddCity = async () => {
-    if (!newCity.trim()) {
-      alert('Please enter a city name');
-      return;
-    }
-    setLoadingLocations(true);
-    try {
-      await api.post('location/add', { state: selectedState, city: newCity.trim() });
-      alert('City added successfully!');
-      setShowAddCityModal(false);
-      setNewCity('');
-      fetchLocations();
-    } catch (error) {
-      alert('Failed to add city: ' + error.message);
-      setLoadingLocations(false);
-    }
-  };
-
-  const handleDeleteLocation = async (state, city) => {
-    if (!confirm(`Delete ${city}, ${state}?`)) return;
-    setLoadingLocations(true);
-    try {
-      await api.delete(`location/delete?state=${encodeURIComponent(state)}&city=${encodeURIComponent(city)}`);
-      alert('Location deleted successfully!');
-      fetchLocations();
-    } catch (error) {
-      alert('Failed to delete location: ' + error.message);
-      setLoadingLocations(false);
-    }
-  };
-
-  const fetchPayments = async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('admin/listpayments');
-      setPayments(res.data);
-    } catch (e) {
-      console.error('Failed to fetch payments:', e);
+      const [u, r] = await Promise.all([api.get('admin/users'), api.get('admin/reports')]);
+      setUsers(u.data || []); setReports(r.data || []);
+    } catch (err) {
+      setError(`Couldn’t load admin data: ${errText(err)}`);
     } finally {
       setLoading(false);
     }
   };
+  useEffect(() => { load(); }, []);
 
-  const fetchUsers = async () => {
-    setLoading(true);
+  const setMemberStatus = async (userId, name, status) => {
+    const verb = status === 'Suspended' ? 'Suspend' : 'Reactivate';
+    const what = status === 'Suspended'
+      ? `${name} will be signed out, can’t sign in or send messages, and their posts will be hidden.`
+      : `${name} will be able to sign in and use FestiveGuest again.`;
+    if (!window.confirm(`${verb} ${name}?\n\n${what}`)) return;
+    setBusy(userId); setError('');
     try {
-      const res = await api.get('admin/users');
-      setUsers(res.data || []);
-    } catch (e) {
-      console.error('Failed to fetch users:', e);
+      await api.post(`admin/users/${encodeURIComponent(userId)}/status`, { status });
+      setUsers((list) => list.map((u) => (u.userId === userId ? { ...u, status } : u)));
+      setReports((list) => list.map((r) => (r.reportedUserId === userId ? { ...r, reportedStatus: status } : r)));
+    } catch (err) {
+      setError(`${verb} failed: ${errText(err)}`);
     } finally {
-      setLoading(false);
+      setBusy('');
     }
   };
 
-  const handleSubscriptionAction = async (userId, action) => {
-    const statusMap = { approve: 'paid', reject: 'free', revoke: 'free', pending: 'pending' };
-    const newStatus = statusMap[action] || action;
-    
-    setLoading(true);
+  const setReportStatus = async (id, status) => {
+    setBusy(id); setError('');
     try {
-      await api.post('subscription/update', {
-        userId,
-        subscriptionStatus: newStatus,
-        paymentVerifiedTimestamp: newStatus === 'paid' ? new Date().toISOString() : null
-      });
-      alert(`Subscription updated to ${newStatus}!`);
-      fetchUsers();
-    } catch (error) {
-      console.error('Subscription action error:', error);
-      alert(`Failed to update subscription: ` + error.message);
-      setLoading(false);
-    }
-  };
-
-  const testLocationAPI = async () => {
-    setTesting(true);
-    try {
-      const seedResponse = await api.post('seedlocations');
-      const getResponse = await api.get('getlocations');
-      setTestResult(`✅ APIs working! Seeded: ${seedResponse.data.count} locations. Retrieved: ${Object.keys(getResponse.data).length} states.`);
-    } catch (error) {
-      setTestResult(`❌ API Error: ${error.message}`);
+      await api.post(`admin/reports/${encodeURIComponent(id)}/status`, { status });
+      setReports((list) => list.map((r) => (r.id === id ? { ...r, status } : r)));
+    } catch (err) {
+      setError(`Couldn’t update the report: ${errText(err)}`);
     } finally {
-      setTesting(false);
+      setBusy('');
     }
   };
 
-  const handleSeedLocations = async () => {
-    setSeedingLocations(true);
-    try {
-      const result = await locationService.seedLocations();
-      alert(`Locations seeded successfully! ${result.count} locations added.`);
-    } catch (error) {
-      alert('Failed to seed locations: ' + error.message);
-    } finally {
-      setSeedingLocations(false);
-    }
-  };
-
-  const handleVerify = async (paymentId, userId) => {
-    try {
-      await api.post('verifypayment', { paymentId, userId });
-      alert('Payment verified and user updated!');
-      fetchPayments();
-    } catch (error) {
-      alert('Verification failed: ' + error.message);
-    }
-  };
-
-  const paidUsers = users.filter(u => u.subscriptionStatus === 'paid').length;
-  const pendingUsers = users.filter(u => u.subscriptionStatus === 'pending').length;
-  const freeUsers = users.filter(u => !u.subscriptionStatus || u.subscriptionStatus === 'free').length;
-
-  const statCards = [
-    { label: 'Total Users', value: users.length, icon: <Users size={20} />, color: 'var(--primary)', bg: 'rgba(255,107,53,0.08)' },
-    { label: 'Active (Paid)', value: paidUsers, icon: <TrendingUp size={20} />, color: '#10b981', bg: 'rgba(16,185,129,0.08)' },
-    { label: 'Pending', value: pendingUsers, icon: <CreditCard size={20} />, color: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
-    { label: 'Free Tier', value: freeUsers, icon: <Users size={20} />, color: '#64748b', bg: 'rgba(100,116,139,0.08)' },
+  const openReports = reports.filter((r) => r.status !== 'Resolved').length;
+  const stats = [
+    ['Members', users.length], ['Hosts', users.filter((u) => u.userType === 'Host').length],
+    ['Guests', users.filter((u) => u.userType === 'Guest').length], ['Verified phones', users.filter((u) => u.isVerified).length],
+    ['Suspended', users.filter((u) => u.status === 'Suspended').length], ['Open reports', openReports],
   ];
 
   return (
-    <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
-      {/* Gradient header */}
-      <motion.div
-        initial={{ opacity: 0, y: -12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        style={{
-          background: 'var(--gradient-primary, linear-gradient(135deg,#FF6B35,#FFB347))',
-          borderRadius: '1rem',
-          padding: '1.5rem 2rem',
-          marginBottom: '1.5rem',
-          color: 'white'
-        }}
-      >
-        <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700 }}>⚡ Admin Dashboard</h2>
-        <p style={{ margin: '0.25rem 0 0', opacity: 0.85, fontSize: '0.875rem' }}>Manage users, payments, and locations</p>
-      </motion.div>
-
-      {/* Stat cards */}
-      {users.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-          {statCards.map((card, i) => (
-            <motion.div
-              key={card.label}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06 }}
-              style={{
-                background: 'white',
-                borderRadius: '0.75rem',
-                padding: '1rem 1.25rem',
-                border: '1px solid #e2e8f0',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
-              }}
-            >
-              <div style={{ background: card.bg, color: card.color, padding: '0.6rem', borderRadius: '0.5rem', display: 'flex' }}>
-                {card.icon}
-              </div>
-              <div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', lineHeight: 1 }}>{card.value}</div>
-                <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.2rem' }}>{card.label}</div>
-              </div>
-            </motion.div>
-          ))}
+    <div className="ad">
+      <header className="ad-head">
+        <div>
+          <h1><ShieldCheck size={22} /> Admin</h1>
+          <p>Reports, members and cities</p>
         </div>
-      )}
+        <button type="button" className="ad-btn" onClick={load} disabled={loading}><RotateCcw size={14} /> Refresh</button>
+      </header>
 
-      {/* Modern tab bar */}
-      <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1.5rem', background: '#f1f5f9', borderRadius: '0.75rem', padding: '0.3rem' }}>
-        {[
-          { key: 'subscriptions', label: 'Subscriptions' },
-          { key: 'payments', label: 'Payments' },
-          { key: 'locations', label: 'Locations' }
-        ].map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            style={{
-              flex: 1,
-              padding: '0.6rem 1rem',
-              background: activeTab === tab.key ? 'white' : 'transparent',
-              border: 'none',
-              borderRadius: '0.5rem',
-              color: activeTab === tab.key ? 'var(--primary)' : '#64748b',
-              fontWeight: activeTab === tab.key ? 700 : 500,
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              boxShadow: activeTab === tab.key ? '0 1px 4px rgba(0,0,0,0.1)' : 'none',
-              transition: 'all 0.2s'
-            }}
-          >
-            {tab.label}
-          </button>
+      {error && <div className="ad-alert" role="alert"><AlertTriangle size={16} /> {error}</div>}
+
+      <div className="ad-stats">
+        {stats.map(([label, value]) => (
+          <div key={label} className={`ad-stat${label === 'Open reports' && value > 0 ? ' is-hot' : ''}`}><strong>{loading ? '…' : value}</strong><span>{label}</span></div>
         ))}
       </div>
 
-      {/* Subscription Management Tab */}
-      {activeTab === 'subscriptions' && (
-        <div className="admin-section" key="subscriptions" style={{ minHeight: '400px' }}>
-          <h3 style={{ marginBottom: '1rem' }}>User Subscriptions</h3>
-          
-          {/* Filters */}
-          <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', padding: '1rem', background: '#f8fafc', borderRadius: '0.5rem' }}>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem', color: '#475569' }}>Role</label>
-              <select value={filterRole} onChange={(e) => setFilterRole(e.target.value)} style={{ width: '100%', padding: '0.625rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '0.375rem', background: 'white', fontSize: '0.875rem', cursor: 'pointer', outline: 'none' }}>
-                <option value="all">All Roles</option>
-                <option value="Guest">Guest</option>
-                <option value="Host">Host</option>
-              </select>
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem', color: '#475569' }}>Status</label>
-              <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} style={{ width: '100%', padding: '0.625rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '0.375rem', background: 'white', fontSize: '0.875rem', cursor: 'pointer', outline: 'none' }}>
-                <option value="all">All Status</option>
-                <option value="free">Free</option>
-                <option value="pending">Pending</option>
-                <option value="paid">Paid</option>
-              </select>
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem', color: '#475569' }}>Sort By</label>
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} style={{ width: '100%', padding: '0.625rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '0.375rem', background: 'white', fontSize: '0.875rem', cursor: 'pointer', outline: 'none' }}>
-                <option value="name">Name</option>
-                <option value="email">Email</option>
-                <option value="role">Role</option>
-                <option value="status">Status</option>
-                <option value="createdDate">Created Date</option>
-                <option value="referrals">Referrals</option>
-                <option value="points">Points</option>
-              </select>
-            </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', fontSize: '0.875rem', color: '#475569' }}>Order</label>
-              <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} style={{ width: '100%', padding: '0.625rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '0.375rem', background: 'white', fontSize: '0.875rem', cursor: 'pointer', outline: 'none' }}>
-                <option value="asc">Ascending</option>
-                <option value="desc">Descending</option>
-              </select>
-            </div>
-          </div>
+      <nav className="ad-tabs" role="tablist">
+        {[['reports', <Flag size={15} />, 'Reports', openReports], ['members', <Users size={15} />, 'Members'], ['cities', <MapPin size={15} />, 'Cities']].map(([key, icon, label, count]) => (
+          <button key={key} type="button" role="tab" aria-selected={tab === key} className={tab === key ? 'is-on' : ''} onClick={() => setTab(key)}>
+            {icon} {label} {count > 0 && <span className="ad-count">{count}</span>}
+          </button>
+        ))}
+      </nav>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                  <th style={{ padding: '1rem', textAlign: 'left' }}>Name</th>
-                  <th style={{ padding: '1rem', textAlign: 'left' }}>Email</th>
-                  <th style={{ padding: '1rem', textAlign: 'left' }}>Role</th>
-                  <th style={{ padding: '1rem', textAlign: 'center' }}>Referrals</th>
-                  <th style={{ padding: '1rem', textAlign: 'center' }}>Points</th>
-                  <th style={{ padding: '1rem', textAlign: 'left' }}>Created Date</th>
-                  <th style={{ padding: '1rem', textAlign: 'center' }}>Status</th>
-                  <th style={{ padding: '1rem', textAlign: 'center' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan="8" style={{ textAlign: 'center', padding: '3rem' }}>
-                    <div style={{ display: 'inline-block', width: '40px', height: '40px', border: '4px solid rgba(255,107,53,0.15)', borderTop: '4px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-                    <p style={{ marginTop: '1rem', color: '#64748b' }}>Loading users...</p>
-                  </td></tr>
-                ) : users.filter(user => {
-                  if (filterRole !== 'all' && user.userType !== filterRole) return false;
-                  if (filterStatus !== 'all' && (user.subscriptionStatus || 'free') !== filterStatus) return false;
-                  return true;
-                }).sort((a, b) => {
-                  let aVal, bVal;
-                  if (sortBy === 'name') { aVal = a.name?.toLowerCase() || ''; bVal = b.name?.toLowerCase() || ''; }
-                  else if (sortBy === 'email') { aVal = a.email?.toLowerCase() || ''; bVal = b.email?.toLowerCase() || ''; }
-                  else if (sortBy === 'role') { aVal = a.userType || ''; bVal = b.userType || ''; }
-                  else if (sortBy === 'status') { aVal = a.subscriptionStatus || 'free'; bVal = b.subscriptionStatus || 'free'; }
-                  else if (sortBy === 'createdDate') { aVal = new Date(a.createdDate || 0).getTime(); bVal = new Date(b.createdDate || 0).getTime(); }
-                  else if (sortBy === 'referrals') { aVal = a.successfulReferrals || 0; bVal = b.successfulReferrals || 0; }
-                  else if (sortBy === 'points') { aVal = a.referralPoints || 0; bVal = b.referralPoints || 0; }
-                  if (sortOrder === 'asc') return aVal > bVal ? 1 : -1;
-                  return aVal < bVal ? 1 : -1;
-                }).length > 0 ? users.filter(user => {
-                  if (filterRole !== 'all' && user.userType !== filterRole) return false;
-                  if (filterStatus !== 'all' && (user.subscriptionStatus || 'free') !== filterStatus) return false;
-                  return true;
-                }).sort((a, b) => {
-                  let aVal, bVal;
-                  if (sortBy === 'name') { aVal = a.name?.toLowerCase() || ''; bVal = b.name?.toLowerCase() || ''; }
-                  else if (sortBy === 'email') { aVal = a.email?.toLowerCase() || ''; bVal = b.email?.toLowerCase() || ''; }
-                  else if (sortBy === 'role') { aVal = a.userType || ''; bVal = b.userType || ''; }
-                  else if (sortBy === 'status') { aVal = a.subscriptionStatus || 'free'; bVal = b.subscriptionStatus || 'free'; }
-                  else if (sortBy === 'createdDate') { aVal = new Date(a.createdDate || 0).getTime(); bVal = new Date(b.createdDate || 0).getTime(); }
-                  else if (sortBy === 'referrals') { aVal = a.successfulReferrals || 0; bVal = b.successfulReferrals || 0; }
-                  else if (sortBy === 'points') { aVal = a.referralPoints || 0; bVal = b.referralPoints || 0; }
-                  if (sortOrder === 'asc') return aVal > bVal ? 1 : -1;
-                  return aVal < bVal ? 1 : -1;
-                }).map(user => (
-                    <tr key={user.userId} style={{ borderBottom: '1px solid #e2e8f0', transition: 'background 0.15s' }} onMouseEnter={e => e.currentTarget.style.background='#fef7f4'} onMouseLeave={e => e.currentTarget.style.background=''}>
-                      <td style={{ padding: '1rem' }}>{user.name}</td>
-                      <td style={{ padding: '1rem' }}>{user.email}</td>
-                      <td style={{ padding: '1rem' }}>{user.userType}</td>
-                      <td style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', color: 'var(--primary)' }}>{user.successfulReferrals || 0}</td>
-                      <td style={{ padding: '1rem', textAlign: 'center', fontWeight: '600', color: '#10b981' }}>{user.referralPoints || 0}</td>
-                      <td style={{ padding: '1rem', fontSize: '0.875rem', color: '#64748b' }}>{user.createdDate ? new Date(user.createdDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '-'}</td>
-                      <td style={{ padding: '1rem', textAlign: 'center' }}>
-                        <SubscriptionBadge status={user.subscriptionStatus || 'free'} />
-                      </td>
-                      <td style={{ padding: '1rem', textAlign: 'center' }}>
-                        <select
-                          value={user.subscriptionStatus || 'free'}
-                          onChange={(e) => handleSubscriptionAction(user.userId, e.target.value === 'paid' ? 'approve' : e.target.value === 'pending' ? 'pending' : 'reject')}
-                          style={{
-                            padding: '0.5rem 0.75rem',
-                            border: '1px solid #cbd5e1',
-                            borderRadius: '0.375rem',
-                            cursor: 'pointer',
-                            fontWeight: '600',
-                            fontSize: '0.875rem',
-                            outline: 'none',
-                            background: user.subscriptionStatus === 'paid' ? '#d1fae5' : user.subscriptionStatus === 'pending' ? '#fef3c7' : '#f3f4f6',
-                            color: user.subscriptionStatus === 'paid' ? '#065f46' : user.subscriptionStatus === 'pending' ? '#92400e' : '#374151'
-                          }}
-                        >
-                          <option value="free">Free</option>
-                          <option value="pending">Pending</option>
-                          <option value="paid">Paid</option>
-                        </select>
-                      </td>
-                    </tr>
-                )) : (
-                  <tr><td colSpan="8" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No users found</td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Payment Verification Tab */}
-      {activeTab === 'payments' && (
-        <div className="admin-section" key="payments" style={{ minHeight: '400px' }}>
-          <h3 style={{ marginBottom: '1rem' }}>Payment Verification</h3>
-          <p style={{ marginBottom: '1.5rem', color: '#64748b' }}>Review and verify user payment submissions for subscription upgrades.</p>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '3rem' }}>
-              <div style={{ display: 'inline-block', width: '40px', height: '40px', border: '4px solid rgba(255,107,53,0.15)', borderTop: '4px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-              <p style={{ marginTop: '1rem', color: '#64748b' }}>Loading payments...</p>
-            </div>
-          ) : payments.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '3rem', background: '#f8fafc', borderRadius: '0.5rem', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✅</div>
-              <h4 style={{ marginBottom: '0.5rem', color: '#1e293b' }}>No Pending Payments</h4>
-              <p style={{ color: '#64748b', margin: 0 }}>All payment submissions have been processed. New submissions will appear here.</p>
-            </div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead>
-                  <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                    <th style={{ padding: '1rem', textAlign: 'left' }}>User ID</th>
-                    <th style={{ padding: '1rem', textAlign: 'left' }}>Type</th>
-                    <th style={{ padding: '1rem', textAlign: 'left' }}>UPI Ref</th>
-                    <th style={{ padding: '1rem', textAlign: 'left' }}>Amount</th>
-                    <th style={{ padding: '1rem', textAlign: 'center' }}>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.length > 0 ? payments.map(payment => (
-                    <tr key={payment.rowKey} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                      <td style={{ padding: '1rem' }}>{payment.partitionKey}</td>
-                      <td style={{ padding: '1rem' }}>{payment.type}</td>
-                      <td style={{ padding: '1rem' }}>{payment.upiRef}</td>
-                      <td style={{ padding: '1rem' }}>₹{payment.amount}</td>
-                      <td style={{ padding: '1rem', textAlign: 'center' }}>
-                        <button 
-                          onClick={() => handleVerify(payment.rowKey, payment.partitionKey)}
-                          style={{
-                            padding: '0.5rem 1rem',
-                            background: '#10b981',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '0.375rem',
-                            cursor: 'pointer',
-                            fontSize: '0.875rem'
-                          }}
-                        >
-                          Verify
-                        </button>
-                      </td>
-                    </tr>
-                  )) : (
-                    <tr><td colSpan="5" style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>No pending payments</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Location Management Tab */}
-      {activeTab === 'locations' && (
-        <div className="admin-section" key="locations" style={{ minHeight: '400px' }}>
-          <h3 style={{ marginBottom: '1.5rem' }}>Location Management</h3>
-          
-          {loadingLocations ? (
-            <div style={{ textAlign: 'center', padding: '3rem' }}>
-              <div style={{ display: 'inline-block', width: '40px', height: '40px', border: '4px solid rgba(255,107,53,0.15)', borderTop: '4px solid var(--primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
-              <p style={{ marginTop: '1rem', color: '#64748b' }}>Loading locations...</p>
-            </div>
-          ) : Object.keys(locationsData).length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem', color: '#64748b', background: '#f8fafc', borderRadius: '0.5rem' }}>
-              <p>No locations found.</p>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {Object.keys(locationsData).sort().map(state => (
-                <div key={state} style={{ border: '1px solid #e2e8f0', borderRadius: '0.5rem', overflow: 'hidden' }}>
-                  <button
-                    onClick={() => setExpandedStates(prev => ({ ...prev, [state]: !prev[state] }))}
-                    style={{
-                      width: '100%',
-                      padding: '1rem',
-                      background: '#f8fafc',
-                      border: 'none',
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      fontWeight: '600',
-                      fontSize: '1rem',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}
-                  >
-                    <span>📍 {state} ({locationsData[state].length})</span>
-                    <span>{expandedStates[state] ? '▼' : '▶'}</span>
-                  </button>
-                  {expandedStates[state] && (
-                    <div style={{ padding: '1rem', background: 'white', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      {[...locationsData[state]].sort().map(city => (
-                        <div key={city} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', background: '#f8fafc', borderRadius: '0.375rem', border: '1px solid #e2e8f0' }}>
-                          <span>{city}</span>
-                          <button
-                            onClick={() => handleDeleteLocation(state, city)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: '#ef4444',
-                              cursor: 'pointer',
-                              padding: '0.25rem',
-                              fontSize: '1.2rem',
-                              lineHeight: 1
-                            }}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                      <button
-                        onClick={() => { setSelectedState(state); setShowAddCityModal(true); }}
-                        style={{
-                          padding: '0.5rem 1rem',
-                          background: '#10b981',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '0.375rem',
-                          cursor: 'pointer',
-                          fontSize: '0.875rem',
-                          fontWeight: '600'
-                        }}
-                      >
-                        + Add City
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Add City Modal */}
-      {showAddCityModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }} onClick={() => setShowAddCityModal(false)}>
-          <div style={{ background: 'white', padding: '2rem', borderRadius: '0.5rem', minWidth: '400px' }} onClick={(e) => e.stopPropagation()}>
-            <h3 style={{ marginBottom: '1.5rem' }}>Add City to {selectedState}</h3>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>State</label>
-              <input
-                type="text"
-                value={selectedState}
-                disabled
-                style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.375rem', background: '#f8fafc', color: '#64748b' }}
-              />
-            </div>
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600' }}>City Name</label>
-              <input
-                type="text"
-                value={newCity}
-                onChange={(e) => setNewCity(e.target.value)}
-                placeholder="Enter city name"
-                style={{ width: '100%', padding: '0.5rem', border: '1px solid #e2e8f0', borderRadius: '0.375rem' }}
-                onKeyPress={(e) => e.key === 'Enter' && handleAddCity()}
-              />
-            </div>
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => { setShowAddCityModal(false); setNewCity(''); }}
-                style={{ padding: '0.5rem 1rem', background: '#e2e8f0', border: 'none', borderRadius: '0.375rem', cursor: 'pointer' }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddCity}
-                disabled={loadingLocations}
-                style={{ padding: '0.5rem 1rem', background: '#10b981', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontWeight: '600' }}
-              >
-                {loadingLocations ? 'Adding...' : 'Add City'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {loading && tab !== 'cities' ? <p className="ad-empty">Loading…</p>
+        : tab === 'reports' ? <Reports reports={reports} busy={busy} onMember={setMemberStatus} onReport={setReportStatus} />
+          : tab === 'members' ? <Members users={users} busy={busy} onMember={setMemberStatus} />
+            : <Cities />}
     </div>
+  );
+}
+
+function Reports({ reports, busy, onMember, onReport }) {
+  const [show, setShow] = useState('Open');
+  const list = reports.filter((r) => show === 'All' || (show === 'Open' ? r.status !== 'Resolved' : r.status === 'Resolved'));
+
+  return (
+    <section>
+      <div className="ad-seg">
+        {['Open', 'Resolved', 'All'].map((s) => <button key={s} type="button" className={show === s ? 'is-on' : ''} onClick={() => setShow(s)}>{s}</button>)}
+      </div>
+      {list.length === 0 ? <p className="ad-empty">{show === 'Open' ? 'No open reports. 🎉' : 'Nothing here.'}</p> : (
+        <ul className="ad-reports">
+          {list.map((r) => (
+            <li key={r.id} className={r.status === 'Resolved' ? 'is-done' : ''}>
+              <div className="ad-report-top">
+                <span className="ad-reason">{REASONS[r.reason] || r.reason}</span>
+                <span className="ad-muted">{day(r.createdAt)}{r.context && ` · from ${r.context}`}</span>
+                {r.status === 'Resolved' && <span className="ad-chip ad-chip--resolved">Resolved</span>}
+              </div>
+              <p className="ad-who">
+                <strong>{r.reporterName || 'A member'}</strong> reported{' '}
+                <Link to={`/profile/${encodeURIComponent(r.reportedName)}`} target="_blank" rel="noopener noreferrer">{r.reportedName}</Link>{' '}
+                <StatusChip status={r.reportedStatus} />
+              </p>
+              {r.details ? <p className="ad-details">“{r.details}”</p> : <p className="ad-muted">No details given.</p>}
+              <div className="ad-actions">
+                {r.reportedStatus === 'Active' && (
+                  <button type="button" className="ad-btn ad-btn--danger" disabled={busy === r.reportedUserId} onClick={() => onMember(r.reportedUserId, r.reportedName, 'Suspended')}><Ban size={14} /> Suspend member</button>
+                )}
+                {r.reportedStatus === 'Suspended' && (
+                  <button type="button" className="ad-btn" disabled={busy === r.reportedUserId} onClick={() => onMember(r.reportedUserId, r.reportedName, 'Active')}><RotateCcw size={14} /> Reactivate</button>
+                )}
+                {r.status === 'Resolved'
+                  ? <button type="button" className="ad-btn" disabled={busy === r.id} onClick={() => onReport(r.id, 'Open')}>Reopen</button>
+                  : <button type="button" className="ad-btn ad-btn--primary" disabled={busy === r.id} onClick={() => onReport(r.id, 'Resolved')}><Check size={14} /> Mark resolved</button>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function Members({ users, busy, onMember }) {
+  const [q, setQ] = useState('');
+  const [role, setRole] = useState('all');
+  const [status, setStatus] = useState('all');
+
+  const list = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    return users
+      .filter((u) => (role === 'all' || u.userType === role) && (status === 'all' || u.status === status))
+      .filter((u) => !term || [u.name, u.email, u.phone, u.location].some((v) => (v || '').toLowerCase().includes(term)))
+      .sort((a, b) => new Date(b.createdDate || 0) - new Date(a.createdDate || 0));
+  }, [users, q, role, status]);
+
+  return (
+    <section>
+      <div className="ad-filters">
+        <label className="ad-search"><Search size={15} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email, phone or city" aria-label="Search members" /></label>
+        <select value={role} onChange={(e) => setRole(e.target.value)} aria-label="Role">
+          <option value="all">All roles</option><option value="Guest">Guests</option><option value="Host">Hosts</option><option value="Admin">Admins</option>
+        </select>
+        <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status">
+          <option value="all">Any status</option><option value="Active">Active</option><option value="Suspended">Suspended</option>
+        </select>
+        <span className="ad-muted">{list.length} shown</span>
+      </div>
+      <div className="ad-table-wrap">
+        <table className="ad-table">
+          <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>City</th><th>Joined</th><th>Invited</th><th>Status</th><th /></tr></thead>
+          <tbody>
+            {list.length === 0 ? <tr><td colSpan={9} className="ad-empty">No members match.</td></tr> : list.map((u) => (
+              <tr key={u.userId}>
+                <td><Link to={`/profile/${encodeURIComponent(u.name)}`} target="_blank" rel="noopener noreferrer">{u.name}</Link></td>
+                <td>{u.email}</td>
+                <td>{u.phone ? <>{u.phone}{u.isVerified && <span className="ad-tick" title="Phone verified"> ✓</span>}</> : '—'}</td>
+                <td>{u.userType}</td>
+                <td>{u.location || '—'}</td>
+                <td>{day(u.createdDate)}</td>
+                <td>{u.successfulReferrals || 0}</td>
+                <td><StatusChip status={u.status} /></td>
+                <td>
+                  {u.userType !== 'Admin' && (u.status === 'Suspended'
+                    ? <button type="button" className="ad-btn ad-btn--sm" disabled={busy === u.userId} onClick={() => onMember(u.userId, u.name, 'Active')}>Reactivate</button>
+                    : <button type="button" className="ad-btn ad-btn--sm ad-btn--danger" disabled={busy === u.userId} onClick={() => onMember(u.userId, u.name, 'Suspended')}>Suspend</button>)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function Cities() {
+  const [data, setData] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [open, setOpen] = useState('');
+  const [newCity, setNewCity] = useState('');
+
+  const load = async () => {
+    setLoading(true); setError('');
+    locationService.clearCache(); // so city pickers elsewhere in this session see the change
+    try { setData((await api.get('location/states-with-cities')).data || {}); }
+    catch (err) { setError(`Couldn’t load cities: ${errText(err)}`); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, []);
+
+  const add = async (state) => {
+    if (!newCity.trim()) return;
+    try { await api.post('location/add', { state, city: newCity.trim() }); setNewCity(''); load(); }
+    catch (err) { setError(`Couldn’t add the city: ${errText(err)}`); }
+  };
+  const remove = async (state, city) => {
+    if (!window.confirm(`Remove ${city}, ${state}? Members can no longer pick it.`)) return;
+    try { await api.delete(`location/delete?state=${encodeURIComponent(state)}&city=${encodeURIComponent(city)}`); load(); }
+    catch (err) { setError(`Couldn’t remove the city: ${errText(err)}`); }
+  };
+
+  if (loading) return <p className="ad-empty">Loading…</p>;
+  return (
+    <section>
+      {error && <div className="ad-alert" role="alert"><AlertTriangle size={16} /> {error}</div>}
+      <ul className="ad-states">
+        {Object.keys(data).sort().map((state) => (
+          <li key={state}>
+            <button type="button" className="ad-state" aria-expanded={open === state} onClick={() => { setOpen(open === state ? '' : state); setNewCity(''); }}>
+              <span>{state}</span><span className="ad-muted">{data[state].length} cities</span>
+            </button>
+            {open === state && (
+              <div className="ad-cities">
+                {[...data[state]].sort().map((city) => (
+                  <span key={city} className="ad-city">{city}<button type="button" onClick={() => remove(state, city)} aria-label={`Remove ${city}`}><X size={13} /></button></span>
+                ))}
+                <form className="ad-add" onSubmit={(e) => { e.preventDefault(); add(state); }}>
+                  <input value={newCity} onChange={(e) => setNewCity(e.target.value)} placeholder="New city" aria-label={`New city in ${state}`} />
+                  <button type="submit" className="ad-btn ad-btn--primary ad-btn--sm" disabled={!newCity.trim()}><Plus size={13} /> Add</button>
+                </form>
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

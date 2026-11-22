@@ -10,7 +10,7 @@ const PrivacyPolicy = () => {
     <div className="legal-document">
       <div className="container">
         <h1>Privacy Policy</h1>
-        <p className="last-updated">Last Updated: 21 November 2026</p>
+        <p className="last-updated">Last Updated: 22 November 2026</p>
         <LegalToc />
 
         <section>
@@ -25,8 +25,7 @@ const PrivacyPolicy = () => {
           <h3>2.1 Personal Information</h3>
           <ul>
             <li>Full name, email address, phone number, and state (from registration)</li>
-            <li>Messages exchanged via WhatsApp (only for subscription verification)</li>
-            <li>Screenshots of payment confirmations (used solely for subscription activation)</li>
+            <li>Reports you submit about other members, and members you block</li>
             <li>Profile photos and accommodation photos</li>
             <li>Address and location information</li>
             <li>Emergency contact details</li>
@@ -54,12 +53,10 @@ const PrivacyPolicy = () => {
           <h2>3. How We Use Your Information</h2>
           <ul>
             <li>Facilitate connections between hosts and guests</li>
-            <li>Verify subscription payments manually via WhatsApp</li>
-            <li>Update your database and unlock premium features</li>
             <li>Communicate with users about their account and support</li>
             <li>Verify user identity and ensure platform safety</li>
             <li>Provide customer support and resolve disputes</li>
-            <li>Send important notifications about bookings and safety</li>
+            <li>Email you about new posts in your area (you can turn this off in your profile) and send important account and safety notices</li>
             <li>Improve our services and user experience</li>
             <li>Comply with legal obligations and prevent fraud</li>
           </ul>
@@ -68,8 +65,8 @@ const PrivacyPolicy = () => {
         <section>
           <h2>4. Information Sharing and Disclosure</h2>
           
-          <h3>4.1 No Third-Party Sharing</h3>
-          <p><strong>We do not share your personal information or payment details with any external services or third parties.</strong> Your data remains confidential and is used solely for platform operations.</p>
+          <h3>4.1 No Selling or Advertising</h3>
+          <p><strong>We do not sell your personal information or share it with advertisers.</strong> We use a small number of service providers only to run the platform: Microsoft Azure (hosting, data storage and error monitoring), our email delivery provider (verification codes and notifications), 2Factor (SMS verification codes) and Cloudflare (aggregate website analytics). They process data only to provide these services to us.</p>
 
           <h3>4.2 Privacy-First Approach</h3>
           <p>We prioritize user privacy and do NOT share personal contact details (email addresses, phone numbers) directly between users. Instead:</p>
@@ -102,8 +99,7 @@ const PrivacyPolicy = () => {
           
           <h3>5.1 Data Storage</h3>
           <ul>
-            <li><strong>Payment Screenshots:</strong> Stored temporarily until verification is complete, then deleted within 7 days</li>
-            <li><strong>User Account Details:</strong> Stored securely in our database hosted on Azure Static Web Apps</li>
+            <li><strong>User Account Details:</strong> Stored securely in Microsoft Azure data storage</li>
             <li><strong>Access Control:</strong> Access to user data is restricted to authorized admins only</li>
           </ul>
 
@@ -128,9 +124,7 @@ const PrivacyPolicy = () => {
           <p>We retain your personal information for as long as necessary to provide our services and comply with legal obligations. Specific retention periods:</p>
           <ul>
             <li>Account information: Until account deletion plus 7 years for legal compliance</li>
-            <li>Transaction records: 7 years from transaction date</li>
             <li>Communication records: 3 years from last communication</li>
-            <li>Marketing data: Until you withdraw consent</li>
           </ul>
         </section>
 
@@ -140,7 +134,7 @@ const PrivacyPolicy = () => {
           <ul>
             <li><strong>Access:</strong> Request copies of your personal information</li>
             <li><strong>Rectification:</strong> Request correction of inaccurate information</li>
-            <li><strong>Erasure:</strong> Request deletion of your personal information (account + payment proof)</li>
+            <li><strong>Erasure:</strong> Request deletion of your personal information (your account and its data)</li>
             <li><strong>Portability:</strong> Request transfer of your data to another service</li>
             <li><strong>Restriction:</strong> Request limitation of processing</li>
             <li><strong>Objection:</strong> Object to processing for marketing purposes</li>
@@ -206,30 +200,8 @@ const PrivacyPolicy = () => {
         </section>
 
         <section>
-          <h2>14. Manual Payment Verification</h2>
-          <p><strong>Important Notice:</strong> FestiveGuest uses a manual payment verification process via WhatsApp for subscription payments.</p>
-          
-          <h3>14.1 Process</h3>
-          <ul>
-            <li>Payments are verified manually by our team</li>
-            <li>Users submit payment screenshots via WhatsApp</li>
-            <li>Verification may take up to 24-48 hours</li>
-          </ul>
-
-          <h3>14.2 Limitations</h3>
-          <ul>
-            <li>Delays may occur due to manual verification process</li>
-            <li>FestiveGuest is not liable for incorrect or fraudulent payment screenshots</li>
-            <li>Users are responsible for submitting accurate payment proof</li>
-            <li>Refunds are subject to verification and our refund policy</li>
-          </ul>
-
-          <h3>14.3 Data Handling</h3>
-          <ul>
-            <li>Payment screenshots are stored temporarily for verification only</li>
-            <li>Screenshots are deleted within 7 days after verification</li>
-            <li>No payment information is shared with third parties</li>
-          </ul>
+          <h2>14. Payments</h2>
+          <p>FestiveGuest is free during its launch and does not collect any payments or payment details. If paid features are introduced, we will update this policy before collecting any payment information. Any arrangement between a host and a guest is made directly between them, outside our platform.</p>
         </section>
 
         <section>
