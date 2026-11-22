@@ -26,11 +26,6 @@ const TermsOfService  = lazy(() => import('./pages/TermsOfService'));
 const SafetyGuidelines = lazy(() => import('./pages/SafetyGuidelines'));
 const NotFound        = lazy(() => import('./pages/NotFound'));
 
-// Every page uses the dark glass theme except these legacy ones (matched as
-// the path or a sub-path). Keep in sync with public/boot-theme.js.
-const LIGHT_PAGES = ['/admin'];
-const isLightPage = (path) => LIGHT_PAGES.some((p) => path === p || path.startsWith(`${p}/`));
-
 // ── Static ambient background (CSS-only — no scroll-time repaint cost) ──
 const AppBackground = () => (
   <div className="app-background" aria-hidden="true" />
@@ -126,7 +121,6 @@ const AppContent = () => {
   // once) and ignore backgroundLocation until location.key moves past it.
   const [bootLocationKey] = useState(() => location.key);
   const backgroundLocation = location.key === bootLocationKey ? undefined : location.state?.backgroundLocation;
-  const isDarkPage = !isLightPage((backgroundLocation || location).pathname);
 
   useEffect(() => {
     document.body.setAttribute('lang', language);
@@ -204,10 +198,10 @@ const AppContent = () => {
   };
 
   return (
-    <div className={`app-container${isDarkPage ? ' theme-dark' : ''}`}>
+    <div className="app-container theme-dark">
       <AppBackground />
       {/* ── Navbar ── */}
-      <nav className={`navbar${isDarkPage ? ' navbar--glass' : ''}`}>
+      <nav className="navbar navbar--glass">
         <Link to="/" className="nav-logo">
           <Logo className="nav-logo-img" />
         </Link>

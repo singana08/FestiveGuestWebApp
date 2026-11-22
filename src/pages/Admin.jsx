@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { Flag, Users, MapPin, Search, ShieldCheck, Ban, RotateCcw, Check, AlertTriangle, Plus, X, Phone, MessageCircle, Copy, EyeOff, ExternalLink } from 'lucide-react';
+import { Flag, Users, MapPin, Search, ShieldCheck, Ban, RotateCcw, Check, AlertTriangle, Plus, X, Phone, MessageCircle, Copy, EyeOff, Star } from 'lucide-react';
 import api from '../utils/api';
 import locationService from '../utils/locationService';
+import ImageWithSas from '../components/ImageWithSas';
 import useSEO from '../hooks/useSEO';
+import '../styles/Register.css'; // the shared aurora background
 import '../styles/Admin.css';
 
 const REASONS = {
@@ -53,8 +54,8 @@ function Admin() {
   const setMemberStatus = async (userId, name, status) => {
     const verb = status === 'Suspended' ? 'Suspend' : 'Reactivate';
     const what = status === 'Suspended'
-      ? `${name} will be signed out, can’t sign in or send messages, and their posts will be hidden.`
-      : `${name} will be able to sign in and use FestiveGuest again.`;
+      ? `${name} will be signed out, can’t sign in or send messages, and their posts will be hidden. They’ll get an email saying their account is suspended (not who reported them).`
+      : `${name} will be able to sign in and use FestiveGuest again. They’ll get an email saying their account is active.`;
     if (!window.confirm(`${verb} ${name}?\n\n${what}`)) return;
     setBusy(userId); setError('');
     try {
@@ -89,6 +90,8 @@ function Admin() {
 
   return (
     <div className="ad">
+      <div className="rg-aurora" aria-hidden="true"><span className="a1" /><span className="a2" /><span className="a3" /></div>
+      <div className="ad-shell">
       <header className="ad-head">
         <div>
           <h1><ShieldCheck size={22} /> Admin</h1>
@@ -122,6 +125,7 @@ function Admin() {
         <MemberDialog key={openMember.userId} member={openMember} reports={reports} busy={busy}
           onMember={setMemberStatus} onClose={() => setOpenId('')} />
       )}
+      </div>
     </div>
   );
 }
@@ -132,8 +136,16 @@ function MemberDialog({ member, reports, busy, onMember, onClose }) {
   const [loadingPhone, setLoadingPhone] = useState(false);
   const [phoneError, setPhoneError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [profile, setProfile] = useState(null); // photo, bio and rating — what other members see
 
   useEffect(() => { ref.current?.showModal(); }, []);
+  useEffect(() => {
+    let live = true;
+    api.post('user/public-profile', { userId: member.userId })
+      .then((res) => { if (live) setProfile(res.data || {}); })
+      .catch(() => { if (live) setProfile({}); });
+    return () => { live = false; };
+  }, [member.userId]);
   useEffect(() => {
     if (!phone) return undefined;
     const timer = setTimeout(() => setPhone(null), PHONE_SHOWN_FOR);
@@ -165,7 +177,10 @@ function MemberDialog({ member, reports, busy, onMember, onClose }) {
     <dialog ref={ref} className="ad-dialog" aria-labelledby="ad-member-name" onClose={onClose}
       onClick={(e) => { if (e.target === ref.current) ref.current.close(); }}>
       <header className="ad-dialog-head">
-        <div>
+        {profile?.profileImageUrl
+          ? <ImageWithSas src={profile.profileImageUrl} alt="" className="ad-avatar" fallbackText={member.name?.charAt(0) || '?'} />
+          : <span className="ad-avatar ad-avatar--initial" aria-hidden="true">{member.name?.charAt(0) || '?'}</span>}
+        <div className="ad-dialog-title">
           <h2 id="ad-member-name">{member.name}</h2>
           <p className="ad-muted">{member.userType} · joined {day(member.createdDate)} · <StatusChip status={member.status} /></p>
         </div>
@@ -173,6 +188,14 @@ function MemberDialog({ member, reports, busy, onMember, onClose }) {
       </header>
 
       <div className="ad-dialog-body">
+        {profile === null ? <p className="ad-muted">Loading profile…</p> : (
+          <div className="ad-bio">
+            {profile.bio ? <p>“{profile.bio}”</p> : <p className="ad-muted">No bio yet.</p>}
+            {profile.totalReviews > 0 && (
+              <p className="ad-rating"><Star size={13} /> {Number(profile.averageRating).toFixed(1)} · {profile.totalReviews} review{profile.totalReviews > 1 ? 's' : ''}</p>
+            )}
+          </div>
+        )}
         <dl className="ad-facts">
           <dt>Email</dt><dd>{member.email || '—'}</dd>
           <dt>City</dt><dd>{member.location || '—'}</dd>
@@ -219,7 +242,6 @@ function MemberDialog({ member, reports, busy, onMember, onClose }) {
           {member.userType !== 'Admin' && (member.status === 'Suspended'
             ? <button type="button" className="ad-btn" disabled={busy === member.userId} onClick={() => onMember(member.userId, member.name, 'Active')}><RotateCcw size={14} /> Reactivate</button>
             : <button type="button" className="ad-btn ad-btn--danger" disabled={busy === member.userId} onClick={() => onMember(member.userId, member.name, 'Suspended')}><Ban size={14} /> Suspend</button>)}
-          <Link className="ad-btn" to={`/profile/${encodeURIComponent(member.name)}`} target="_blank" rel="noopener noreferrer"><ExternalLink size={14} /> Public profile</Link>
         </div>
       </div>
     </dialog>
@@ -296,15 +318,13 @@ function Members({ users, busy, onMember, onOpen }) {
       </div>
       <div className="ad-table-wrap">
         <table className="ad-table">
-          <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>City</th><th>Joined</th><th>Invited</th><th>Status</th><th /></tr></thead>
+          {/* Only what's needed to scan the list — contact details live in the member popup. */}
+          <thead><tr><th>Name</th><th>Role</th><th>Joined</th><th>Invited</th><th>Status</th><th aria-label="Actions" /></tr></thead>
           <tbody>
-            {list.length === 0 ? <tr><td colSpan={9} className="ad-empty">No members match.</td></tr> : list.map((u) => (
+            {list.length === 0 ? <tr><td colSpan={6} className="ad-empty">No members match.</td></tr> : list.map((u) => (
               <tr key={u.userId}>
-                <td><button type="button" className="ad-name" onClick={() => onOpen(u.userId)}>{u.name}</button></td>
-                <td>{u.email}</td>
-                <td>{u.maskedPhone || '—'}{u.isVerified && <span className="ad-tick" title="Phone verified"> ✓</span>}</td>
+                <td><button type="button" className="ad-name" onClick={() => onOpen(u.userId)}>{u.name}</button>{u.isVerified && <span className="ad-tick" title="Phone verified"> ✓</span>}</td>
                 <td>{u.userType}</td>
-                <td>{u.location || '—'}</td>
                 <td>{day(u.createdDate)}</td>
                 <td>{u.successfulReferrals || 0}</td>
                 <td><StatusChip status={u.status} /></td>
