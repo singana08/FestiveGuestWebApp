@@ -27,7 +27,7 @@ export default function VerifyPhoneBanner() {
         <button type="button" className="rg-btn rg-btn-primary rg-btn-sm vp-banner-btn" onClick={() => setOpen(true)}>Verify now</button>
         <button type="button" className="vp-banner-close" onClick={later} aria-label="Remind me later" title="Remind me later"><X size={16} /></button>
       </div>
-      <VerifyPhoneDialog open={open} onClose={() => setOpen(false)} initialPhone={user.phone}
+      <VerifyPhoneDialog open={open} onClose={() => setOpen(false)}
         onVerified={() => { setOpen(false); setDone(true); }} />
     </>
   );

@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Flag, Users, MapPin, Search, ShieldCheck, Ban, RotateCcw, Check, AlertTriangle, Plus, X } from 'lucide-react';
+import { Flag, Users, MapPin, Search, ShieldCheck, Ban, RotateCcw, Check, AlertTriangle, Plus, X, Phone, MessageCircle, Copy, EyeOff, ExternalLink } from 'lucide-react';
 import api from '../utils/api';
 import locationService from '../utils/locationService';
 import useSEO from '../hooks/useSEO';
@@ -17,6 +17,15 @@ const StatusChip = ({ status }) => (
   <span className={`ad-chip ad-chip--${(status || 'unknown').toLowerCase()}`}>{status || 'Unknown'}</span>
 );
 
+const PHONE_SHOWN_FOR = 60_000; // the full number hides itself again after a minute
+const waNumber = (phone) => { const d = (phone || '').replace(/\D/g, ''); return d.length === 10 ? `91${d}` : d; };
+const spaced = (phone) => (/^\d{10}$/.test(phone) ? `+91 ${phone.slice(0, 5)} ${phone.slice(5)}` : phone);
+
+/** A name that opens the member popup (plain text if the member no longer exists). */
+const MemberName = ({ id, name, users, onOpen }) => (users.some((u) => u.userId === id)
+  ? <button type="button" className="ad-name" onClick={() => onOpen(id)}>{name}</button>
+  : <strong>{name || 'A member'}</strong>);
+
 function Admin() {
   useSEO({ title: 'Admin', noindex: true });
   const [tab, setTab] = useState('reports');
@@ -25,6 +34,8 @@ function Admin() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
+  const [openId, setOpenId] = useState('');
+  const openMember = users.find((u) => u.userId === openId);
 
   const load = async () => {
     setLoading(true); setError('');
@@ -103,14 +114,119 @@ function Admin() {
       </nav>
 
       {loading && tab !== 'cities' ? <p className="ad-empty">Loading…</p>
-        : tab === 'reports' ? <Reports reports={reports} busy={busy} onMember={setMemberStatus} onReport={setReportStatus} />
-          : tab === 'members' ? <Members users={users} busy={busy} onMember={setMemberStatus} />
+        : tab === 'reports' ? <Reports reports={reports} users={users} busy={busy} onMember={setMemberStatus} onReport={setReportStatus} onOpen={setOpenId} />
+          : tab === 'members' ? <Members users={users} busy={busy} onMember={setMemberStatus} onOpen={setOpenId} />
             : <Cities />}
+
+      {openMember && (
+        <MemberDialog key={openMember.userId} member={openMember} reports={reports} busy={busy}
+          onMember={setMemberStatus} onClose={() => setOpenId('')} />
+      )}
     </div>
   );
 }
 
-function Reports({ reports, busy, onMember, onReport }) {
+function MemberDialog({ member, reports, busy, onMember, onClose }) {
+  const ref = useRef(null);
+  const [phone, setPhone] = useState(null); // the full number, only after "View"
+  const [loadingPhone, setLoadingPhone] = useState(false);
+  const [phoneError, setPhoneError] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => { ref.current?.showModal(); }, []);
+  useEffect(() => {
+    if (!phone) return undefined;
+    const timer = setTimeout(() => setPhone(null), PHONE_SHOWN_FOR);
+    return () => clearTimeout(timer);
+  }, [phone]);
+
+  const viewPhone = async () => {
+    setLoadingPhone(true); setPhoneError('');
+    try {
+      const res = await api.get(`admin/users/${encodeURIComponent(member.userId)}/phone`);
+      if (res.data.phone) setPhone(res.data.phone);
+      else setPhoneError('No phone number on this account.');
+    } catch (err) {
+      setPhoneError(`Couldn’t load the number: ${errText(err)}`);
+    } finally {
+      setLoadingPhone(false);
+    }
+  };
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(phone); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* clipboard blocked */ }
+  };
+
+  const about = reports.filter((r) => r.reportedUserId === member.userId);
+  const made = reports.filter((r) => r.reporterId === member.userId).length;
+  const waText = `Hi ${member.name}, this is the FestiveGuest team. `;
+
+  return (
+    // Native modal: focus is trapped and Esc closes it. Clicking the dimmed backdrop closes it too.
+    <dialog ref={ref} className="ad-dialog" aria-labelledby="ad-member-name" onClose={onClose}
+      onClick={(e) => { if (e.target === ref.current) ref.current.close(); }}>
+      <header className="ad-dialog-head">
+        <div>
+          <h2 id="ad-member-name">{member.name}</h2>
+          <p className="ad-muted">{member.userType} · joined {day(member.createdDate)} · <StatusChip status={member.status} /></p>
+        </div>
+        <button type="button" className="ad-x" onClick={() => ref.current.close()} aria-label="Close"><X size={18} /></button>
+      </header>
+
+      <div className="ad-dialog-body">
+        <dl className="ad-facts">
+          <dt>Email</dt><dd>{member.email || '—'}</dd>
+          <dt>City</dt><dd>{member.location || '—'}</dd>
+          <dt>Phone</dt><dd>{member.isVerified ? <span className="ad-tick">Verified ✓</span> : 'Not verified'}</dd>
+          <dt>Invited</dt><dd>{member.successfulReferrals || 0} joined{member.referralCode && <span className="ad-muted"> · code {member.referralCode}</span>}</dd>
+        </dl>
+
+        <div className="ad-phone">
+          {phone ? (
+            <>
+              <strong aria-live="polite">{spaced(phone)}</strong>
+              <a className="ad-btn ad-btn--sm ad-btn--wa" href={`https://wa.me/${waNumber(phone)}?text=${encodeURIComponent(waText)}`} target="_blank" rel="noopener noreferrer"><MessageCircle size={14} /> WhatsApp</a>
+              <a className="ad-btn ad-btn--sm" href={`tel:+${waNumber(phone)}`}><Phone size={14} /> Call</a>
+              <button type="button" className="ad-btn ad-btn--sm" onClick={copy}><Copy size={14} /> {copied ? 'Copied' : 'Copy'}</button>
+              <button type="button" className="ad-btn ad-btn--sm" onClick={() => setPhone(null)}><EyeOff size={14} /> Hide</button>
+              <p className="ad-muted ad-phone-note">Hides again after a minute. Each view is recorded.</p>
+            </>
+          ) : (
+            <>
+              <strong>{member.maskedPhone ? `+91 ${member.maskedPhone}` : 'No phone number'}</strong>
+              {member.maskedPhone && (
+                <button type="button" className="ad-btn ad-btn--sm ad-btn--primary" onClick={viewPhone} disabled={loadingPhone}>
+                  <Phone size={14} /> {loadingPhone ? 'Loading…' : 'View number'}
+                </button>
+              )}
+              {phoneError && <p className="ad-phone-note ad-error" role="alert">{phoneError}</p>}
+            </>
+          )}
+        </div>
+
+        <section>
+          <h3 className="ad-subhead">Reports about {member.name} {about.length > 0 && <span className="ad-count">{about.length}</span>}</h3>
+          {about.length === 0 ? <p className="ad-muted">None.</p> : (
+            <ul className="ad-mini">
+              {about.map((r) => (
+                <li key={r.id}><strong>{REASONS[r.reason] || r.reason}</strong> · {day(r.createdAt)} · by {r.reporterName || 'a member'}{r.status === 'Resolved' && ' · resolved'}</li>
+              ))}
+            </ul>
+          )}
+          {made > 0 && <p className="ad-muted">{member.name} has made {made} report{made > 1 ? 's' : ''}.</p>}
+        </section>
+
+        <div className="ad-actions">
+          {member.userType !== 'Admin' && (member.status === 'Suspended'
+            ? <button type="button" className="ad-btn" disabled={busy === member.userId} onClick={() => onMember(member.userId, member.name, 'Active')}><RotateCcw size={14} /> Reactivate</button>
+            : <button type="button" className="ad-btn ad-btn--danger" disabled={busy === member.userId} onClick={() => onMember(member.userId, member.name, 'Suspended')}><Ban size={14} /> Suspend</button>)}
+          <Link className="ad-btn" to={`/profile/${encodeURIComponent(member.name)}`} target="_blank" rel="noopener noreferrer"><ExternalLink size={14} /> Public profile</Link>
+        </div>
+      </div>
+    </dialog>
+  );
+}
+
+function Reports({ reports, users, busy, onMember, onReport, onOpen }) {
   const [show, setShow] = useState('Open');
   const list = reports.filter((r) => show === 'All' || (show === 'Open' ? r.status !== 'Resolved' : r.status === 'Resolved'));
 
@@ -129,8 +245,8 @@ function Reports({ reports, busy, onMember, onReport }) {
                 {r.status === 'Resolved' && <span className="ad-chip ad-chip--resolved">Resolved</span>}
               </div>
               <p className="ad-who">
-                <strong>{r.reporterName || 'A member'}</strong> reported{' '}
-                <Link to={`/profile/${encodeURIComponent(r.reportedName)}`} target="_blank" rel="noopener noreferrer">{r.reportedName}</Link>{' '}
+                <MemberName id={r.reporterId} name={r.reporterName} users={users} onOpen={onOpen} /> reported{' '}
+                <MemberName id={r.reportedUserId} name={r.reportedName} users={users} onOpen={onOpen} />{' '}
                 <StatusChip status={r.reportedStatus} />
               </p>
               {r.details ? <p className="ad-details">“{r.details}”</p> : <p className="ad-muted">No details given.</p>}
@@ -153,7 +269,7 @@ function Reports({ reports, busy, onMember, onReport }) {
   );
 }
 
-function Members({ users, busy, onMember }) {
+function Members({ users, busy, onMember, onOpen }) {
   const [q, setQ] = useState('');
   const [role, setRole] = useState('all');
   const [status, setStatus] = useState('all');
@@ -162,14 +278,14 @@ function Members({ users, busy, onMember }) {
     const term = q.trim().toLowerCase();
     return users
       .filter((u) => (role === 'all' || u.userType === role) && (status === 'all' || u.status === status))
-      .filter((u) => !term || [u.name, u.email, u.phone, u.location].some((v) => (v || '').toLowerCase().includes(term)))
+      .filter((u) => !term || [u.name, u.email, u.location].some((v) => (v || '').toLowerCase().includes(term)))
       .sort((a, b) => new Date(b.createdDate || 0) - new Date(a.createdDate || 0));
   }, [users, q, role, status]);
 
   return (
     <section>
       <div className="ad-filters">
-        <label className="ad-search"><Search size={15} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email, phone or city" aria-label="Search members" /></label>
+        <label className="ad-search"><Search size={15} /><input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email or city" aria-label="Search members" /></label>
         <select value={role} onChange={(e) => setRole(e.target.value)} aria-label="Role">
           <option value="all">All roles</option><option value="Guest">Guests</option><option value="Host">Hosts</option><option value="Admin">Admins</option>
         </select>
@@ -184,9 +300,9 @@ function Members({ users, busy, onMember }) {
           <tbody>
             {list.length === 0 ? <tr><td colSpan={9} className="ad-empty">No members match.</td></tr> : list.map((u) => (
               <tr key={u.userId}>
-                <td><Link to={`/profile/${encodeURIComponent(u.name)}`} target="_blank" rel="noopener noreferrer">{u.name}</Link></td>
+                <td><button type="button" className="ad-name" onClick={() => onOpen(u.userId)}>{u.name}</button></td>
                 <td>{u.email}</td>
-                <td>{u.phone ? <>{u.phone}{u.isVerified && <span className="ad-tick" title="Phone verified"> ✓</span>}</> : '—'}</td>
+                <td>{u.maskedPhone || '—'}{u.isVerified && <span className="ad-tick" title="Phone verified"> ✓</span>}</td>
                 <td>{u.userType}</td>
                 <td>{u.location || '—'}</td>
                 <td>{day(u.createdDate)}</td>

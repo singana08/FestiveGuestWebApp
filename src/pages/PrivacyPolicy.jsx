@@ -56,7 +56,7 @@ const PrivacyPolicy = () => {
             <li>Communicate with users about their account and support</li>
             <li>Verify user identity and ensure platform safety</li>
             <li>Provide customer support and resolve disputes</li>
-            <li>Email you about new posts in your area (you can turn this off in your profile) and send important account and safety notices</li>
+            <li>Email you about new posts in your area, new messages, and new sign-ins or password changes on your account (you can turn each of these off in your profile), and send important account and safety notices</li>
             <li>Improve our services and user experience</li>
             <li>Comply with legal obligations and prevent fraud</li>
           </ul>
@@ -75,6 +75,8 @@ const PrivacyPolicy = () => {
             <li>Users communicate through our secure in-app chat system</li>
             <li>Contact sharing is entirely voluntary and at user discretion</li>
             <li>We collect contact details solely for our reference and emergency purposes</li>
+            <li>Your own phone number is shown to you only partly (for example 98******10)</li>
+            <li>Only FestiveGuest admins can see a full phone number, one member at a time, to contact that member about safety or support by phone or WhatsApp. Each time an admin views a number, it is recorded</li>
           </ul>
 
           <h3>4.3 What We Share Between Users</h3>

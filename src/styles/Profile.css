@@ -241,6 +241,7 @@
   padding: 0.75rem 0.9rem; border-radius: 14px; font-size: 0.88rem; color: rgba(255, 240, 230, 0.85);
   background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.1);
 }
+.pf-toggle-row + .pf-toggle-row { margin-top: 0.5rem; }
 .pf-toggle-row > span { display: inline-flex; align-items: center; gap: 0.5rem; }
 .pf-toggle-row svg { color: #ffc163; }
 .pf-switch { position: relative; flex-shrink: 0; width: 46px; height: 26px; padding: 0; border: 0; border-radius: 999px; cursor: pointer; background: rgba(255, 255, 255, 0.18); transition: background 0.25s; }

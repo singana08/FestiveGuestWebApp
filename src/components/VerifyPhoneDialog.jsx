@@ -7,20 +7,20 @@ const digitsOnly = (v) => (v || '').replace(/\D/g, '').slice(0, 10);
 const message = (err, fallback) => err.response?.data?.message || (err.response ? fallback : 'Couldn’t reach FestiveGuest. Check your connection and try again.');
 
 /** Saves the verified state into the stored session so banners/badges update at once. */
-const markVerified = (phone) => {
+const markVerified = () => {
   try {
     const u = JSON.parse(localStorage.getItem('user') || '{}');
-    localStorage.setItem('user', JSON.stringify({ ...u, phone, isVerified: true }));
+    localStorage.setItem('user', JSON.stringify({ ...u, isVerified: true }));
     window.dispatchEvent(new Event('storage'));
   } catch { /* ignore */ }
 };
 
 /**
  * Verify the signed-in member's mobile number by SMS code.
- * initialPhone is only used when it's a plain number (the profile endpoint returns a masked one).
+ * Starts empty: the server never sends phone numbers to the browser.
  */
-export default function VerifyPhoneDialog({ open, onClose, initialPhone, onVerified }) {
-  const [phone, setPhone] = useState(/^\d{10}$/.test(initialPhone || '') ? initialPhone : '');
+export default function VerifyPhoneDialog({ open, onClose, onVerified }) {
+  const [phone, setPhone] = useState('');
   const [sessionId, setSessionId] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -48,9 +48,9 @@ export default function VerifyPhoneDialog({ open, onClose, initialPhone, onVerif
     try {
       const check = await api.post('phone-otp/verify', { sessionId, otp: code, phone, purpose: 'verify' });
       await api.post('user/verify-phone', { phone, verificationToken: check.data.verificationToken });
-      markVerified(phone);
-      setSessionId(''); setCode('');
-      onVerified?.(phone);
+      markVerified();
+      setSessionId(''); setCode(''); setPhone('');
+      onVerified?.();
     } catch (err) {
       setError(message(err, 'That code didn’t work. Please try again.'));
     } finally {

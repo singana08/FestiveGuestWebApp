@@ -27,9 +27,9 @@ const storageService = {
       
       return sasUrl;
     } catch (error) {
-      console.warn('SAS URL fetch failed, using direct blob URL:', error.message);
-      // Return direct blob URL as fallback (public access)
-      return `https://festivegueststorage.blob.core.windows.net/${container}/${fileName}`;
+      // Containers are private, so there's no direct URL to fall back to: ImageWithSas shows initials instead.
+      console.warn('SAS URL fetch failed:', error.message);
+      return null;
     }
   },
 

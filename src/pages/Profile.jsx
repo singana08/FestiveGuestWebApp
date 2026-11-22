@@ -20,6 +20,9 @@ import '../styles/Profile.css';
 const EASE = [0.22, 1, 0.36, 1];
 const MAX_AREAS = 5;
 const rise = (delay = 0) => ({ initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.45, ease: EASE, delay } });
+// Email alerts a member can switch on or off; the API defaults any missing one to on.
+const EMAIL_DEFAULTS = { email: true, push: false, messages: true, signIns: true };
+const ALERT_NAMES = [['email', 'posts'], ['messages', 'messages'], ['signIns', 'sign-ins']];
 
 function Profile() {
   useSEO({ title: 'My Profile', noindex: true });
@@ -41,7 +44,7 @@ function Profile() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccessCountdown, setPasswordSuccessCountdown] = useState(0);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [editFormData, setEditFormData] = useState({ name: '', state: '', city: '', bio: '', hostingAreas: [], notificationPreferences: { email: true, push: false } });
+  const [editFormData, setEditFormData] = useState({ name: '', state: '', city: '', bio: '', hostingAreas: [], notificationPreferences: EMAIL_DEFAULTS });
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [updateError, setUpdateError] = useState('');
   const [locationData, setLocationData] = useState(null);
@@ -86,7 +89,7 @@ function Profile() {
       bio: u.bio || '',
       // Copies, so toggling cities in the dialog never mutates the loaded profile.
       hostingAreas: (u.hostingAreas || []).map((a) => ({ ...a, cities: [...(a.cities || [])] })),
-      notificationPreferences: u.notificationPreferences || { email: true, push: false },
+      notificationPreferences: { ...EMAIL_DEFAULTS, ...u.notificationPreferences },
     });
   };
 
@@ -395,11 +398,15 @@ function Profile() {
                   <li><Mail size={15} /><span>Email</span><strong title={user.email}>{user.email}</strong></li>
                   <li>
                     <Phone size={15} /><span>Phone</span>
+                    {/* Already masked by the API (98******10). */}
                     <strong className={user.isVerified ? 'is-on' : ''}>{user.phone ? `+91 ${user.phone}` : '—'}{user.isVerified && ' ✓'}</strong>
                     <button type="button" className="sa-btn pf-verify-btn" onClick={() => setShowVerify(true)}>{user.isVerified ? 'Change' : 'Verify'}</button>
                   </li>
                   <li><MapPin size={15} /><span>City</span><strong>{user.location || '—'}</strong></li>
-                  <li><Bell size={15} /><span>New-post emails</span><strong className={user.notificationPreferences?.email !== false ? 'is-on' : ''}>{user.notificationPreferences?.email !== false ? 'On' : 'Off'}</strong></li>
+                  <li><Bell size={15} /><span>Email alerts</span>{(() => {
+                    const on = ALERT_NAMES.filter(([key]) => user.notificationPreferences?.[key] !== false).map(([, name]) => name);
+                    return <strong className={on.length ? 'is-on' : ''}>{on.length ? on.join(', ').replace(/^./, (c) => c.toUpperCase()) : 'Off'}</strong>;
+                  })()}</li>
                 </ul>
                 <p className="pf-private"><ShieldCheck size={13} /> Your email and phone are never shown on posts.</p>
               </motion.section>
@@ -521,14 +528,20 @@ function Profile() {
               </div>
             </div>
           )}
-          <div className="pf-toggle-row">
-            <span><Bell size={16} /> {isHost ? 'Email me when a traveller posts in my hosting areas' : 'Email me when a host posts in my city'}</span>
-            <button type="button" role="switch" aria-checked={!!editFormData.notificationPreferences.email} aria-label="Email me about new posts"
-              className={`pf-switch${editFormData.notificationPreferences.email ? ' is-on' : ''}`}
-              onClick={() => setEditFormData((p) => ({ ...p, notificationPreferences: { ...p.notificationPreferences, email: !p.notificationPreferences.email } }))}>
-              <span />
-            </button>
-          </div>
+          {[
+            ['email', <Bell size={16} />, isHost ? 'Email me when a traveller posts in my hosting areas' : 'Email me when a host posts in my city', 'Email me about new posts'],
+            ['messages', <Mail size={16} />, 'Email me when someone sends me a message', 'Email me about new messages'],
+            ['signIns', <ShieldCheck size={16} />, 'Email me when someone signs in to my account or changes my password', 'Email me about sign-ins'],
+          ].map(([key, icon, label, aria]) => (
+            <div key={key} className="pf-toggle-row">
+              <span>{icon} {label}</span>
+              <button type="button" role="switch" aria-checked={!!editFormData.notificationPreferences[key]} aria-label={aria}
+                className={`pf-switch${editFormData.notificationPreferences[key] ? ' is-on' : ''}`}
+                onClick={() => setEditFormData((p) => ({ ...p, notificationPreferences: { ...p.notificationPreferences, [key]: !p.notificationPreferences[key] } }))}>
+                <span />
+              </button>
+            </div>
+          ))}
         </GlassDialog>
 
         <VerifyPhoneDialog open={showVerify} onClose={() => setShowVerify(false)}
