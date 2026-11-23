@@ -6,6 +6,7 @@ import api from '../utils/api';
 import ImageWithSas from '../components/ImageWithSas';
 import ProfileModal from '../components/posts/ProfileModal';
 import SafetyActions from '../components/SafetyActions';
+import StayPanel from '../components/StayPanel';
 import { useNotifications } from '../contexts/NotificationContext';
 import '../styles/Register.css';
 import '../styles/PostsBoard.css';
@@ -267,6 +268,7 @@ const Chats = () => {
               <SafetyActions className="ch-safety" userId={selectedChat.otherUserId} userName={selectedChat.otherUserName} context="chat"
                 onBlockChange={(b) => { if (b) handleBackToList(); }} />
             </header>
+            <StayPanel key={selectedChat.otherUserId} otherUserId={selectedChat.otherUserId} otherName={selectedChat.otherUserName} meId={userId} />
 
             <div className="ch-msgs">
               {messages.map((msg, i) => {

@@ -3,6 +3,7 @@ import { X, Send } from 'lucide-react';
 import chatService from '../utils/chatService';
 import api from '../utils/api';
 import ImageWithSas from '../components/ImageWithSas';
+import StayPanel from './StayPanel';
 
 const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) => {
   const [messages, setMessages] = useState([]);
@@ -195,7 +196,8 @@ const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) 
           <X size={16} />
         </button>
       </div>
-      
+      {recipientId && <StayPanel otherUserId={recipientId} otherName={recipientName} meId={userId} />}
+
       <div className="chat-messages">
         {loading ? (
           <div className="cw-state">

@@ -34,14 +34,14 @@ const mapGuestPost = (post, fallbackName) => ({
   userName: post.userName || fallbackName || 'Unknown', userId: post.userId, userType: 'Guest',
   createdAt: new Date(post.createdAt), status: post.status, userVerified: !!post.userVerified,
   needType: post.needType || 'stay', guideHelpWith: splitCsv(post.guideHelpWith), guideHours: post.guideHours || null,
-  guideLanguages: splitCsv(post.guideLanguages), guideBudgetPerHour: post.guideBudgetPerHour ?? null,
+  guideLanguages: splitCsv(post.guideLanguages), guideBudgetPerHour: post.guideBudgetPerHour ?? null, poster: post.poster || null,
 });
 const mapHostPost = (post, fallbackName) => ({
   id: post.rowKey, title: post.title, content: post.content, location: post.location,
   maxGuests: post.maxGuests || 1, pricePerNight: post.pricePerNight,
   amenities: post.amenities ? post.amenities.split(',') : [],
   userName: post.userName || fallbackName || 'Unknown', userId: post.userId, userType: 'Host',
-  createdAt: new Date(post.createdAt), status: post.status, commenceDate: post.commenceDate, userVerified: !!post.userVerified,
+  createdAt: new Date(post.createdAt), status: post.status, commenceDate: post.commenceDate, userVerified: !!post.userVerified, poster: post.poster || null,
 });
 
 // Upcoming trips by date, then flexible ones, then past trips (most recent first).

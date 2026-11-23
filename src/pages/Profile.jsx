@@ -9,6 +9,9 @@ import ImageWithSas from '../components/ImageWithSas';
 import GlassDialog from '../components/posts/GlassDialog';
 import ProgressRing from '../components/ProgressRing';
 import VerifyPhoneDialog from '../components/VerifyPhoneDialog';
+import GalleryEditor from '../components/GalleryEditor';
+import MyStays from '../components/MyStays';
+import { toJpeg, putJpeg } from '../utils/image';
 import { VerifiedChip } from '../components/VerifiedBadge';
 import { useLanguage } from '../i18n/LanguageContext';
 import locationService from '../utils/locationService';
@@ -46,6 +49,7 @@ function Profile() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editFormData, setEditFormData] = useState({ name: '', state: '', city: '', bio: '', hostingAreas: [], notificationPreferences: EMAIL_DEFAULTS });
   const [updatingProfile, setUpdatingProfile] = useState(false);
+  const [galleryCount, setGalleryCount] = useState(null);
   const [updateError, setUpdateError] = useState('');
   const [locationData, setLocationData] = useState(null);
   const [toast, setToast] = useState(null);
@@ -120,31 +124,13 @@ function Profile() {
   };
   const cancelPhoto = () => { setSelectedFile(null); setPreviewUrl(''); };
 
-  const compressImage = (file) => new Promise((resolve) => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-    img.onload = () => {
-      let { width, height } = img;
-      const maxSize = 800;
-      if (width > height) { if (width > maxSize) { height = (height * maxSize) / width; width = maxSize; } }
-      else if (height > maxSize) { width = (width * maxSize) / height; height = maxSize; }
-      canvas.width = width; canvas.height = height;
-      ctx.drawImage(img, 0, 0, width, height);
-      canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.8);
-    };
-    img.src = URL.createObjectURL(file);
-  });
-
   const uploadProfileImage = async () => {
     if (!selectedFile || !user) return;
     setUploading(true);
     try {
-      const compressedFile = await compressImage(selectedFile);
-      const tokenRes = await api.get('user/upload-sas-token');
-      const { sasUrl } = tokenRes.data;
-      const uploadResponse = await fetch(sasUrl, { method: 'PUT', headers: { 'x-ms-blob-type': 'BlockBlob', 'Content-Type': 'image/jpeg' }, body: compressedFile });
-      if (!uploadResponse.ok) throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+      const photo = await toJpeg(selectedFile, 800, 0.8);
+      const { sasUrl } = (await api.get('user/upload-sas-token')).data;
+      await putJpeg(sasUrl, photo);
       await api.post('user/confirm-upload', { imageUrl: sasUrl.split('?')[0] });
       cancelPhoto();
       showToast('Profile photo updated');
@@ -280,7 +266,11 @@ function Profile() {
     { done: (user.bio || '').trim().length >= 10, label: isHost ? 'Describe what you offer' : 'Write a short bio', fix: openEdit },
     { done: !!user.isVerified, label: 'Verify your phone', fix: () => setShowVerify(true) },
     { done: !!user.location, label: 'Add your city', fix: openEdit },
-    ...(isHost ? [{ done: areas.length > 0, label: 'Pick hosting areas', fix: openEdit }] : []),
+    ...(isHost ? [
+      { done: areas.length > 0, label: 'Pick hosting areas', fix: openEdit },
+      // null while loading counts as done, so the ring doesn't flicker.
+      { done: galleryCount !== 0, label: 'Add photos of your place', fix: () => document.getElementById('pf-gallery')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) },
+    ] : []),
   ];
   const strength = Math.round((checklist.filter((c) => c.done).length / checklist.length) * 100);
   const missing = checklist.filter((c) => !c.done);
@@ -371,6 +361,12 @@ function Profile() {
               </motion.section>
 
               {isHost && (
+                <motion.section id="pf-gallery" className="pf-card" {...rise(0.12)}>
+                  <GalleryEditor userId={user.userId} onToast={showToast} onCount={setGalleryCount} />
+                </motion.section>
+              )}
+
+              {isHost && (
                 <motion.section className="pf-card" {...rise(0.15)}>
                   <header className="pf-card-head">
                     <h2>{t('myHostingAreas')}</h2>
@@ -410,6 +406,8 @@ function Profile() {
                 </ul>
                 <p className="pf-private"><ShieldCheck size={13} /> Your email and phone are never shown on posts.</p>
               </motion.section>
+
+              <MyStays meId={user.userId} />
 
               <motion.section className="pf-card pf-free" {...rise(0.12)}>
                 <span className="pf-free-icon" aria-hidden="true"><Sparkles size={18} /></span>

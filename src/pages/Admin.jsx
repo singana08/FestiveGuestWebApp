@@ -136,7 +136,8 @@ function MemberDialog({ member, reports, busy, onMember, onClose }) {
   const [loadingPhone, setLoadingPhone] = useState(false);
   const [phoneError, setPhoneError] = useState('');
   const [copied, setCopied] = useState(false);
-  const [profile, setProfile] = useState(null); // photo, bio and rating — what other members see
+  const [profile, setProfile] = useState(null); // photo, bio, gallery and rating — what other members see
+  const [memberReviews, setMemberReviews] = useState(null); // about and by them, including hidden ones
 
   useEffect(() => { ref.current?.showModal(); }, []);
   useEffect(() => {
@@ -144,8 +145,28 @@ function MemberDialog({ member, reports, busy, onMember, onClose }) {
     api.post('user/public-profile', { userId: member.userId })
       .then((res) => { if (live) setProfile(res.data || {}); })
       .catch(() => { if (live) setProfile({}); });
+    api.get(`admin/users/${encodeURIComponent(member.userId)}/reviews`)
+      .then((res) => { if (live) setMemberReviews(res.data); })
+      .catch(() => { if (live) setMemberReviews({ about: [], by: [] }); });
     return () => { live = false; };
   }, [member.userId]);
+
+  const removePhoto = async (photo, n) => {
+    if (!window.confirm(`Remove photo ${n} from ${member.name}’s gallery? This deletes it.`)) return;
+    try {
+      await api.delete(`admin/users/${encodeURIComponent(member.userId)}/gallery/${encodeURIComponent(photo.id)}`);
+      setProfile((p) => ({ ...p, gallery: p.gallery.filter((x) => x.id !== photo.id) }));
+    } catch (err) { window.alert(`Couldn’t remove the photo: ${errText(err)}`); }
+  };
+  const removeReview = async (review) => {
+    if (!window.confirm(`Remove ${review.reviewerName}’s ${review.rating}-star review? This deletes it.`)) return;
+    try {
+      await api.delete(`admin/reviews/${encodeURIComponent(review.revieweeId)}/${encodeURIComponent(review.id)}`);
+      const keep = (r) => r.id !== review.id;
+      setMemberReviews((m) => ({ about: (m.about || []).filter(keep), by: (m.by || []).filter(keep) }));
+    } catch (err) { window.alert(`Couldn’t remove the review: ${errText(err)}`); }
+  };
+  const allReviews = [...(memberReviews?.about || []).map((r) => ({ ...r, about: true })), ...(memberReviews?.by || [])];
   useEffect(() => {
     if (!phone) return undefined;
     const timer = setTimeout(() => setPhone(null), PHONE_SHOWN_FOR);
@@ -237,6 +258,35 @@ function MemberDialog({ member, reports, busy, onMember, onClose }) {
           )}
           {made > 0 && <p className="ad-muted">{member.name} has made {made} report{made > 1 ? 's' : ''}.</p>}
         </section>
+
+        {profile?.gallery?.length > 0 && (
+          <section>
+            <h3 className="ad-subhead">Photos of their place <span className="ad-count">{profile.gallery.length}</span></h3>
+            <ul className="ad-photos">
+              {profile.gallery.map((p, i) => (
+                <li key={p.id}>
+                  <a href={p.url} target="_blank" rel="noopener noreferrer"><img src={p.url} alt={p.caption || `Photo ${i + 1}`} /></a>
+                  <button type="button" className="ad-photo-x" onClick={() => removePhoto(p, i + 1)} aria-label={`Remove photo ${i + 1}`}><X size={13} /></button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        {allReviews.length > 0 && (
+          <section>
+            <h3 className="ad-subhead">Reviews about and by {member.name}</h3>
+            <ul className="ad-mini">
+              {allReviews.map((r) => (
+                <li key={`${r.revieweeId}-${r.id}`} className="ad-review">
+                  <span><strong>{'★'.repeat(r.rating)}</strong> {r.about ? `from ${r.reviewerName}` : `written by ${member.name}`}{!r.visible && <em className="ad-muted"> · {r.legacy ? 'hidden: written before Confirm stay' : 'not published yet'}</em>}</span>
+                  <span className="ad-review-text">“{r.comment}”</span>
+                  <button type="button" className="ad-btn ad-btn--sm ad-btn--danger" onClick={() => removeReview(r)}>Remove</button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <div className="ad-actions">
           {member.userType !== 'Admin' && (member.status === 'Suspended'

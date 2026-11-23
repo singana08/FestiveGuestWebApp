@@ -598,3 +598,25 @@
 .pb-dialog .pb-when--past { color: rgba(255, 240, 230, 0.5); }
 .pb-dialog .pb-guide-meta { display: flex; flex-wrap: wrap; gap: 0.2rem 0.75rem; margin: 0; font-size: 0.78rem; }
 .pb-dialog .pb-guide-meta span:first-child { font-weight: 700; color: #a7f3d0; }
+
+/* ── Poster extras on cards: host photo strip, rating, reply speed ── */
+.pb-photos {
+  position: relative; display: grid; grid-template-columns: 2fr 1fr; grid-template-rows: 1fr 1fr; gap: 3px;
+  height: 150px; margin: -0.95rem -1rem 0.1rem; padding: 0; border: 0; cursor: pointer; overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+}
+.pb-photos img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s cubic-bezier(0.22, 1, 0.36, 1); }
+.pb-photos img.is-cover { grid-row: 1 / span 2; }
+.pb-photos--1 { grid-template-columns: 1fr; }
+.pb-photos--2 img:not(.is-cover) { grid-row: 1 / span 2; }
+.pb-photos:hover img { transform: scale(1.03); }
+.pb-photos:focus-visible { outline: 2px solid #ffc163; outline-offset: -2px; }
+.pb-photos-more {
+  position: absolute; right: 8px; bottom: 8px; padding: 0.15rem 0.5rem; border-radius: 999px;
+  font: 700 0.75rem 'Inter', sans-serif; color: #fff; background: rgba(18, 10, 31, 0.72); backdrop-filter: blur(6px);
+}
+.pb-rating { display: inline-flex; align-items: center; gap: 0.2rem; margin-left: 0.25rem; font-weight: 700; color: #ffc163; white-space: nowrap; }
+.pb-rating svg { fill: #ffc163; }
+.pb-rating small { font-weight: 500; color: rgba(255, 240, 230, 0.6); }
+.pb-reply { display: flex; align-items: center; gap: 0.3rem; margin: 0.2rem 0 0; font-size: 0.75rem; color: #6ee7b7; }
+.pb-stays { margin-left: 0.25rem; font-weight: 600; color: rgba(255, 240, 230, 0.75); white-space: nowrap; }

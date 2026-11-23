@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { MapPin, Users, Moon, CalendarDays, MessageCircle, Pencil, Trash2, Compass } from 'lucide-react';
+import { MapPin, Users, Moon, CalendarDays, MessageCircle, Pencil, Trash2, Compass, Star, Clock } from 'lucide-react';
 import { AMENITY_ICON, GUIDE_HELP, fmt, daysUntil, isNewPost, citiesInLocation } from './postUtils';
 import { VerifiedTick } from '../VerifiedBadge';
 
@@ -24,6 +24,30 @@ const OwnActions = ({ c, post, onEdit, onDelete }) => (
     <button type="button" className="pb-icon-btn pb-icon-btn--danger" onClick={() => onDelete(post)} aria-label={c.delete} title={c.delete}><Trash2 size={15} /></button>
   </div>
 );
+
+/** "★ 4.5 (2) · 3 stays" — published reviews and confirmed stays, when there are any. */
+const Rating = ({ poster }) => (
+  <>
+    {poster?.reviewCount > 0 && <span className="pb-rating" title={`${poster.rating.toFixed(1)} from ${poster.reviewCount} review${poster.reviewCount === 1 ? '' : 's'}`}><Star size={12} /> {poster.rating.toFixed(1)} <small>({poster.reviewCount})</small></span>}
+    {poster?.stays > 0 && <span className="pb-stays" title="Stays both people confirmed on FestiveGuest">· {poster.stays} stay{poster.stays === 1 ? '' : 's'}</span>}
+  </>
+);
+
+const ReplyBadge = ({ poster }) => (poster?.responseBadge ? <p className="pb-reply"><Clock size={12} /> {poster.responseBadge}</p> : null);
+
+/** The host's gallery as a strip at the top of their card: cover large, two small, "+N". Opens their profile. */
+const Photos = ({ post, onProfile }) => {
+  const photos = post.poster?.photos || [];
+  if (!photos.length) return null;
+  const shown = photos.slice(0, 3);
+  const more = (post.poster.photoCount || photos.length) - shown.length;
+  return (
+    <button type="button" className={`pb-photos pb-photos--${shown.length}`} onClick={() => onProfile(post)} aria-label={`See photos of ${post.userName}’s place`}>
+      {shown.map((url, i) => <img key={url} src={url} alt="" loading="lazy" className={i === 0 ? 'is-cover' : ''} />)}
+      {more > 0 && <span className="pb-photos-more">+{more}</span>}
+    </button>
+  );
+};
 
 const postedLabel = (c, createdAt) => {
   const ago = -daysUntil(createdAt);
@@ -73,6 +97,7 @@ const TripCard = ({ post, c, locale, isOwn, full, onOpen, onContact, onProfile, 
           </div>
           <Title post={post} onOpen={onOpen} />
           <p className={`pb-when pb-when--${tone}`}>{when}{date && ` · ${date.toLocaleDateString(locale, { weekday: 'short' })}`}</p>
+          <ReplyBadge poster={post.poster} />
         </div>
       </div>
 
@@ -104,7 +129,7 @@ const TripCard = ({ post, c, locale, isOwn, full, onOpen, onContact, onProfile, 
       <footer className="pb-card-foot">
         <button type="button" className="pb-author" onClick={() => onProfile(post)}>
           <span className="pb-avatar pb-avatar--guest" aria-hidden="true">{(post.userName || '?').charAt(0).toUpperCase()}</span>
-          <span className="pb-author-text"><strong>{post.userName}{post.userVerified && <VerifiedTick />}</strong><small>{postedLabel(c, post.createdAt)}</small></span>
+          <span className="pb-author-text"><strong>{post.userName}{post.userVerified && <VerifiedTick />}</strong><small>{postedLabel(c, post.createdAt)} <Rating poster={post.poster} /></small></span>
         </button>
         {isOwn
           ? <OwnActions c={c} post={post} onEdit={onEdit} onDelete={onDelete} />
@@ -120,6 +145,7 @@ const HostCard = ({ post, c, locale, isOwn, full, onOpen, onContact, onProfile, 
   const since = post.commenceDate ? new Date(post.commenceDate) : null;
   return (
     <>
+      <Photos post={post} onProfile={onProfile} />
       <div className="pb-card-top">
         <button type="button" className="pb-avatar pb-avatar--host pb-avatar--lg" onClick={() => onProfile(post)} aria-label={post.userName}>
           {(post.userName || '?').charAt(0).toUpperCase()}
@@ -132,8 +158,9 @@ const HostCard = ({ post, c, locale, isOwn, full, onOpen, onContact, onProfile, 
           <Title post={post} onOpen={onOpen} />
           <p className="pb-host-line">
             <button type="button" className="pb-author-link" onClick={() => onProfile(post)}>{post.userName}</button>{post.userVerified && <VerifiedTick />}
-            <span aria-hidden="true"> · </span>{postedLabel(c, post.createdAt)}
+            <span aria-hidden="true"> · </span>{postedLabel(c, post.createdAt)} <Rating poster={post.poster} />
           </p>
+          <ReplyBadge poster={post.poster} />
         </div>
       </div>
 

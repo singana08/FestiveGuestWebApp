@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, MotionConfig } from 'framer-motion';
-import { ArrowLeft, Star, CalendarDays, MapPin, MessageCircle, UserX, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Star, CalendarDays, MapPin, MessageCircle, UserX, ShieldCheck, Clock, Images, CalendarCheck } from 'lucide-react';
 import api from '../utils/api';
 import ImageWithSas from '../components/ImageWithSas';
 import ChatWidget from '../components/ChatWidget';
 import SafetyActions from '../components/SafetyActions';
+import Gallery from '../components/Gallery';
+import ReviewsSection from '../components/ReviewsSection';
+import ShareStay from '../components/ShareStay';
 import useIsBlocked from '../hooks/useIsBlocked';
 import { VerifiedChip } from '../components/VerifiedBadge';
 import useSEO from '../hooks/useSEO';
@@ -26,7 +29,6 @@ function PublicProfile() {
   const { userName } = useParams();
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
-  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [chatOpen, setChatOpen] = useState(false);
   const [blocked, setBlocked] = useIsBlocked(profile?.userId);
@@ -44,12 +46,8 @@ function PublicProfile() {
 
   const fetchPublicProfile = async () => {
     try {
-      const [profileRes, reviewsRes] = await Promise.all([
-        api.get(`user/public-profile-by-name/${encodeURIComponent(userName)}`),
-        api.get(`user/reviews-by-name/${encodeURIComponent(userName)}`),
-      ]);
-      setProfile(profileRes.data);
-      setReviews(reviewsRes.data || []);
+      // Published reviews, the gallery and the reply badge all come with the profile.
+      setProfile((await api.get(`user/public-profile-by-name/${encodeURIComponent(userName)}`)).data);
     } catch (error) {
       console.error('Failed to fetch profile:', error);
       // The backend requires auth for these endpoints, so a logged-out visitor
@@ -90,6 +88,7 @@ function PublicProfile() {
 
   const isHost = profile.userType === 'Host';
   const isMe = me && (me.userId === profile.userId || me.name === profile.name);
+  const reviews = profile.reviews || [];
   const average = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
   const byStar = [5, 4, 3, 2, 1].map((n) => ({ n, count: reviews.filter((r) => Math.round(r.rating) === n).length }));
   const areas = (profile.hostingAreas || []).filter((a) => a.state && a.cities?.length > 0);
@@ -119,6 +118,8 @@ function PublicProfile() {
               {reviews.length > 0
                 ? <span className="pf-chip is-gold"><Star size={12} /> {average.toFixed(1)} · {reviews.length} review{reviews.length === 1 ? '' : 's'}</span>
                 : <span className="pf-chip">No reviews yet</span>}
+              {profile.confirmedStays > 0 && <span className="pf-chip"><CalendarCheck size={12} /> {profile.confirmedStays} confirmed stay{profile.confirmedStays === 1 ? '' : 's'}</span>}
+              {profile.responseBadge && <span className="pf-chip"><Clock size={12} /> {profile.responseBadge}</span>}
             </p>
           </div>
           {me && !isMe && (
@@ -132,6 +133,13 @@ function PublicProfile() {
 
       <div className="pf-grid">
         <div className="pf-col">
+          {isHost && profile.gallery?.length > 0 && (
+            <motion.section className="pf-card" {...rise(0.03)}>
+              <header className="pf-card-head"><h2><Images size={16} /> {isMe ? 'Your place' : `${firstName}’s place`}</h2><span className="pf-count">{profile.gallery.length} photos</span></header>
+              <Gallery photos={profile.gallery} ownerId={profile.userId} ownerName={profile.name} canReport={!!me && !isMe} />
+            </motion.section>
+          )}
+
           <motion.section className="pf-card" {...rise(0.05)}>
             <header className="pf-card-head"><h2>{isHost ? 'About my hosting' : 'About me'}</h2></header>
             {profile.bio ? <p className="pf-bio">{profile.bio}</p> : <p className="pf-empty">{firstName} hasn’t written a bio yet.</p>}
@@ -149,20 +157,7 @@ function PublicProfile() {
           )}
 
           <motion.section className="pf-card" {...rise(0.15)}>
-            <header className="pf-card-head"><h2><Star size={16} /> Reviews</h2><span className="pf-count">{reviews.length}</span></header>
-            {reviews.length === 0 ? (
-              <p className="pf-empty">No reviews yet. Reviews appear after members have met through FestiveGuest.</p>
-            ) : (
-              <ul className="pb-reviews pf-reviews">
-                {reviews.map((review, i) => (
-                  <li key={i}>
-                    <div className="pb-review-head"><strong>{review.reviewerName}</strong><Stars value={review.rating} size={13} /></div>
-                    <p>{review.comment}</p>
-                    {review.createdAt && <small>{monthYear(review.createdAt)}</small>}
-                  </li>
-                ))}
-              </ul>
-            )}
+            <ReviewsSection userId={profile.userId} name={profile.name} reviews={reviews} meId={me?.userId} onChanged={fetchPublicProfile} />
           </motion.section>
         </div>
 
@@ -191,6 +186,7 @@ function PublicProfile() {
               <li>Meet in a public place first and share plans with family.</li>
               <li>Never pay outside the app or share OTPs.</li>
             </ul>
+            {isHost && me && !isMe && <ShareStay host={profile} />}
           </motion.section>
         </div>
       </div>
