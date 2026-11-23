@@ -47,7 +47,7 @@ export default function MyStays({ meId }) {
               <span className="ts-actions">
                 {askingMe && (
                   <>
-                    <button type="button" className="rg-btn rg-btn-primary rg-btn-sm" onClick={() => answer(s, 'accept')} disabled={busy === s.id}><Check size={14} /> Accept</button>
+                    <button type="button" className="rg-btn rg-btn-primary rg-btn-sm" onClick={() => answer(s, 'accept')} disabled={busy === s.id}><Check size={14} /> Confirm</button>
                     <button type="button" className="rg-btn rg-btn-ghost rg-btn-sm" onClick={() => answer(s, 'decline')} disabled={busy === s.id}>Decline</button>
                   </>
                 )}

@@ -268,7 +268,8 @@ const Chats = () => {
               <SafetyActions className="ch-safety" userId={selectedChat.otherUserId} userName={selectedChat.otherUserName} context="chat"
                 onBlockChange={(b) => { if (b) handleBackToList(); }} />
             </header>
-            <StayPanel key={selectedChat.otherUserId} otherUserId={selectedChat.otherUserId} otherName={selectedChat.otherUserName} meId={userId} />
+            <StayPanel key={selectedChat.otherUserId} otherUserId={selectedChat.otherUserId} otherName={selectedChat.otherUserName} meId={userId}
+              onMessage={() => { refreshMessages(selectedChat.otherUserId); fetchConversations(false); }} />
 
             <div className="ch-msgs">
               {messages.map((msg, i) => {

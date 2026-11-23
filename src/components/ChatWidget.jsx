@@ -196,7 +196,10 @@ const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) 
           <X size={16} />
         </button>
       </div>
-      {recipientId && <StayPanel otherUserId={recipientId} otherName={recipientName} meId={userId} />}
+      {recipientId && (
+        <StayPanel otherUserId={recipientId} otherName={recipientName} meId={userId}
+          onMessage={(m) => setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, { id: m.id, sender: m.senderId === userId ? 'Me' : 'Recipient', text: m.message, timestamp: new Date(m.timestamp), status: 'sent' }]))} />
+      )}
 
       <div className="chat-messages">
         {loading ? (
