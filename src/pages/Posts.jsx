@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { Fragment, useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import {
@@ -18,6 +18,8 @@ import PostFormModal from '../components/posts/PostFormModal';
 import ProfileModal from '../components/posts/ProfileModal';
 import GlassDialog from '../components/posts/GlassDialog';
 import VerifyPhoneBanner from '../components/VerifyPhoneBanner';
+import SponsoredCard from '../components/SponsoredCard';
+import api from '../utils/api';
 import { CITY_COORDS } from '../components/posts/cityCoords';
 import { fmt, daysUntil, citiesInLocation, splitCsv } from '../components/posts/postUtils';
 import '../styles/Register.css';
@@ -162,6 +164,15 @@ const Posts = () => {
 
   // ── Derived lists ──
   const hostingCities = useMemo(() => (user?.hostingAreas || []).flatMap((a) => a.cities || []), [user]);
+
+  // Sponsored cards for the cities being browsed, else the member's own city and hosting cities.
+  const [ads, setAds] = useState([]);
+  const adCities = [...new Set(selectedLocations.length ? selectedLocations : [...citiesInLocation(user?.location), ...hostingCities])].join(',');
+  useEffect(() => {
+    let live = true;
+    api.get('sponsored', { params: { cities: adCities } }).then((r) => { if (live) setAds(Array.isArray(r.data) ? r.data : []); }).catch(() => {});
+    return () => { live = false; };
+  }, [adCities]);
 
   const baseFiltered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -450,17 +461,24 @@ const Posts = () => {
               );
             })() : (
               <div className="pb-grid">
-                {results.map((post, i) => (
-                  <PostCard key={post.id} index={i} post={post} c={c} locale={locale} isOwn={user && post.userId === user.userId}
-                    onOpen={setDetail} onContact={(p) => openChat(p.userId, p.userName)} onProfile={openProfile} onEdit={openEdit} onDelete={setDeletingPost} />
-                ))}
+                {results.map((post, i) => {
+                  // After every 6 posts on tablets and phones (hidden on wide screens, where the right column has them).
+                  const ad = !showMyPosts && ads.length > 0 && (i + 1) % 6 === 0 ? ads[((i + 1) / 6 - 1) % ads.length] : null;
+                  return (
+                    <Fragment key={post.id}>
+                      <PostCard index={i} post={post} c={c} locale={locale} isOwn={user && post.userId === user.userId}
+                        onOpen={setDetail} onContact={(p) => openChat(p.userId, p.userName)} onProfile={openProfile} onEdit={openEdit} onDelete={setDeletingPost} />
+                      {ad && <SponsoredCard ad={ad} variant="feed" label={c.sponsored} visit={c.sponsoredVisit} />}
+                    </Fragment>
+                  );
+                })}
               </div>
             )}
           </main>
 
           {/* ═════ Side rail (wide screens) ═════ */}
           <aside className="pb-rail">
-            {/* Sponsored cards go here (Phase 2). Recent chats moved to the sidebar’s Chats count. */}
+            {ads.slice(0, 2).map((ad) => <SponsoredCard key={ad.id} ad={ad} variant="rail" label={c.sponsored} visit={c.sponsoredVisit} />)}
 
             <section className="pb-panel pb-panel--safety">
               <span className="pb-safety-icon" aria-hidden="true"><ShieldCheck size={20} /></span>

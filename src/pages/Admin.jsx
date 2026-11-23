@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { Flag, Users, MapPin, Search, ShieldCheck, Ban, RotateCcw, Check, AlertTriangle, Plus, X, Phone, MessageCircle, Copy, EyeOff, Star } from 'lucide-react';
+import { Flag, Users, MapPin, Search, ShieldCheck, Ban, RotateCcw, Check, AlertTriangle, Plus, X, Phone, MessageCircle, Copy, EyeOff, Star, Megaphone, ImagePlus } from 'lucide-react';
 import api from '../utils/api';
 import locationService from '../utils/locationService';
+import { toJpeg, putJpeg } from '../utils/image';
 import ImageWithSas from '../components/ImageWithSas';
 import useSEO from '../hooks/useSEO';
 import '../styles/Register.css'; // the shared aurora background
@@ -95,7 +96,7 @@ function Admin() {
       <header className="ad-head">
         <div>
           <h1><ShieldCheck size={22} /> Admin</h1>
-          <p>Reports, members and cities</p>
+          <p>Reports, members, cities and sponsored cards</p>
         </div>
         <button type="button" className="ad-btn" onClick={load} disabled={loading}><RotateCcw size={14} /> Refresh</button>
       </header>
@@ -109,17 +110,17 @@ function Admin() {
       </div>
 
       <nav className="ad-tabs" role="tablist">
-        {[['reports', <Flag size={15} />, 'Reports', openReports], ['members', <Users size={15} />, 'Members'], ['cities', <MapPin size={15} />, 'Cities']].map(([key, icon, label, count]) => (
+        {[['reports', <Flag size={15} />, 'Reports', openReports], ['members', <Users size={15} />, 'Members'], ['cities', <MapPin size={15} />, 'Cities'], ['sponsored', <Megaphone size={15} />, 'Sponsored']].map(([key, icon, label, count]) => (
           <button key={key} type="button" role="tab" aria-selected={tab === key} className={tab === key ? 'is-on' : ''} onClick={() => setTab(key)}>
             {icon} {label} {count > 0 && <span className="ad-count">{count}</span>}
           </button>
         ))}
       </nav>
 
-      {loading && tab !== 'cities' ? <p className="ad-empty">Loading…</p>
+      {loading && (tab === 'reports' || tab === 'members') ? <p className="ad-empty">Loading…</p>
         : tab === 'reports' ? <Reports reports={reports} users={users} busy={busy} onMember={setMemberStatus} onReport={setReportStatus} onOpen={setOpenId} />
           : tab === 'members' ? <Members users={users} busy={busy} onMember={setMemberStatus} onOpen={setOpenId} />
-            : <Cities />}
+            : tab === 'cities' ? <Cities /> : <Sponsored />}
 
       {openMember && (
         <MemberDialog key={openMember.userId} member={openMember} reports={reports} busy={busy}
@@ -444,6 +445,150 @@ function Cities() {
         ))}
       </ul>
     </section>
+  );
+}
+
+// ── Sponsored cards ──
+const isoDay = (d) => (d ? String(d).slice(0, 10) : '');
+const inDays = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+const cardBody = (s) => ({ title: s.title, text: s.text, link: s.link, imageId: s.imageId, cities: s.cities, startDate: isoDay(s.startDate), endDate: isoDay(s.endDate), paused: s.paused });
+
+function Sponsored() {
+  const [list, setList] = useState(null);
+  const [error, setError] = useState('');
+  const [editing, setEditing] = useState(null); // {} = new card
+
+  const load = () => api.get('sponsored/admin')
+    .then((r) => { setList(r.data || []); setError(''); })
+    .catch((err) => { setList((l) => l || []); setError(`Couldn’t load sponsored cards: ${errText(err)}`); });
+  useEffect(() => { load(); }, []);
+
+  const togglePause = async (s) => {
+    try { await api.put(`sponsored/admin/${encodeURIComponent(s.id)}`, { ...cardBody(s), paused: !s.paused }); load(); }
+    catch (err) { setError(`Couldn’t update “${s.title}”: ${errText(err)}`); }
+  };
+  const remove = async (s) => {
+    if (!window.confirm(`Delete “${s.title}”? Its image and view / click counts are deleted too. To stop it for now, use Pause instead.`)) return;
+    try { await api.delete(`sponsored/admin/${encodeURIComponent(s.id)}`); setList((l) => l.filter((x) => x.id !== s.id)); }
+    catch (err) { setError(`Couldn’t delete “${s.title}”: ${errText(err)}`); }
+  };
+
+  if (!list) return <p className="ad-empty">Loading…</p>;
+  return (
+    <section>
+      {error && <div className="ad-alert" role="alert"><AlertTriangle size={16} /> {error}</div>}
+      <div className="ad-filters">
+        <span className="ad-muted ad-grow">Shown on Posts to members in the cities you pick, labelled “Sponsored”. Never in chats, profiles, reviews or stay requests. Views and clicks are totals only.</span>
+        <button type="button" className="ad-btn ad-btn--primary" onClick={() => setEditing({})}><Plus size={14} /> New card</button>
+      </div>
+      {list.length === 0 ? <p className="ad-empty">No sponsored cards yet.</p> : (
+        <ul className="ad-sp-list">
+          {list.map((s) => (
+            <li key={s.id} className="ad-sp">
+              <img src={s.imageUrl} alt="" />
+              <div className="ad-sp-info">
+                <strong>{s.title} <span className={`ad-chip ad-chip--${s.state.toLowerCase()}`}>{s.state}</span></strong>
+                <span className="ad-muted">{s.cities.length ? s.cities.join(', ') : 'Every city'} · {day(s.startDate)} – {day(s.endDate)}</span>
+                <span className="ad-muted">{s.views} views · {s.clicks} clicks{s.views > 0 ? ` · ${((s.clicks * 100) / s.views).toFixed(1)}% clicked` : ''}</span>
+              </div>
+              <div className="ad-actions">
+                <button type="button" className="ad-btn ad-btn--sm" onClick={() => setEditing(s)}>Edit</button>
+                <button type="button" className="ad-btn ad-btn--sm" onClick={() => togglePause(s)}>{s.paused ? 'Resume' : 'Pause'}</button>
+                <button type="button" className="ad-btn ad-btn--sm ad-btn--danger" onClick={() => remove(s)}>Delete</button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      {editing && <SponsoredDialog key={editing.id || 'new'} card={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load(); }} />}
+    </section>
+  );
+}
+
+function SponsoredDialog({ card, onClose, onSaved }) {
+  const ref = useRef(null);
+  const [f, setF] = useState({
+    title: card.title || '', text: card.text || '', link: card.link || 'https://', cities: card.cities || [],
+    startDate: isoDay(card.startDate) || inDays(0), endDate: isoDay(card.endDate) || inDays(30), paused: !!card.paused,
+  });
+  const [image, setImage] = useState({ id: card.imageId || '', url: card.imageUrl || '' });
+  const [cityOptions, setCityOptions] = useState([]);
+  const [busy, setBusy] = useState('');
+  const [error, setError] = useState('');
+  const set = (key) => (e) => setF((x) => ({ ...x, [key]: e.target.value }));
+
+  useEffect(() => { ref.current?.showModal(); }, []);
+  useEffect(() => {
+    locationService.getLocations()
+      .then((d) => setCityOptions([...new Set(Object.values(d || {}).flat())].filter((ci) => ci && ci !== 'Other').sort()))
+      .catch(() => {});
+  }, []);
+
+  // ponytail: an image uploaded and then abandoned (Cancel) stays in storage; sweep the "sponsored" container if it ever matters.
+  const pickImage = async (file) => {
+    if (!file) return;
+    setBusy('image'); setError('');
+    try {
+      const jpeg = await toJpeg(file, 1200, 0.82);
+      const { data } = await api.post('sponsored/admin/upload-url');
+      await putJpeg(data.uploadUrl, jpeg);
+      setImage({ id: data.imageId, url: URL.createObjectURL(jpeg) });
+    } catch (err) { setError(`Couldn’t upload the image: ${errText(err)}`); }
+    finally { setBusy(''); }
+  };
+
+  const save = async (e) => {
+    e.preventDefault();
+    setBusy('save'); setError('');
+    try {
+      const body = { ...f, imageId: image.id };
+      if (card.id) await api.put(`sponsored/admin/${encodeURIComponent(card.id)}`, body);
+      else await api.post('sponsored/admin', body);
+      onSaved();
+    } catch (err) { setError(errText(err)); setBusy(''); }
+  };
+
+  return (
+    <dialog ref={ref} className="ad-dialog" aria-labelledby="ad-sp-title" onClose={onClose}
+      onClick={(e) => { if (e.target === ref.current) ref.current.close(); }}>
+      <header className="ad-dialog-head">
+        <div className="ad-dialog-title"><h2 id="ad-sp-title">{card.id ? 'Edit sponsored card' : 'New sponsored card'}</h2></div>
+        <button type="button" className="ad-x" onClick={() => ref.current.close()} aria-label="Close"><X size={18} /></button>
+      </header>
+      <form className="ad-dialog-body ad-form" onSubmit={save}>
+        <label className="ad-sp-img">
+          {image.url ? <img src={image.url} alt="Card image" /> : <span><ImagePlus size={22} /> {busy === 'image' ? 'Uploading…' : 'Add an image (wide works best)'}</span>}
+          <input type="file" accept="image/*" aria-label="Card image" disabled={busy === 'image'} onChange={(e) => pickImage(e.target.files?.[0])} />
+        </label>
+        <label>Title<input value={f.title} onChange={set('title')} maxLength={60} required /></label>
+        <label><span>Text <span className="ad-muted">(optional, {160 - f.text.length} left)</span></span><textarea value={f.text} onChange={set('text')} maxLength={160} /></label>
+        <label>Link<input type="url" value={f.link} onChange={set('link')} placeholder="https://" pattern="https://.+" required /></label>
+        <div className="ad-form-row">
+          <label>Starts<input type="date" value={f.startDate} onChange={set('startDate')} required /></label>
+          <label>Ends<input type="date" value={f.endDate} min={f.startDate} onChange={set('endDate')} required /></label>
+        </div>
+        <div className="ad-form-cities">
+          <label><span>Cities <span className="ad-muted">(none = every city)</span></span>
+            <select value="" onChange={(e) => e.target.value && setF((x) => ({ ...x, cities: [...x.cities, e.target.value] }))}>
+              <option value="">Add a city…</option>
+              {cityOptions.filter((ci) => !f.cities.includes(ci)).map((ci) => <option key={ci} value={ci}>{ci}</option>)}
+            </select>
+          </label>
+          {f.cities.length > 0 && (
+            <div className="ad-cities">
+              {f.cities.map((ci) => (
+                <span key={ci} className="ad-city">{ci}<button type="button" onClick={() => setF((x) => ({ ...x, cities: x.cities.filter((y) => y !== ci) }))} aria-label={`Remove ${ci}`}><X size={13} /></button></span>
+              ))}
+            </div>
+          )}
+        </div>
+        {error && <div className="ad-alert" role="alert"><AlertTriangle size={16} /> {error}</div>}
+        <div className="ad-actions">
+          <button type="submit" className="ad-btn ad-btn--primary" disabled={!!busy || !image.id}>{busy === 'save' ? 'Saving…' : card.id ? 'Save changes' : 'Add card'}</button>
+          <button type="button" className="ad-btn" onClick={() => ref.current.close()}>Cancel</button>
+        </div>
+      </form>
+    </dialog>
   );
 }
 

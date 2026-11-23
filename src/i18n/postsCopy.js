@@ -40,7 +40,7 @@ export const postsCopy = {
     openChats: 'Open all chats', unread: '{n} new',
     safetyTitle: 'Meet safely',
     safetyText: 'Meet in a public place first and share your plans with family.',
-    safetyLink: 'Safety guidelines',
+    safetyLink: 'Safety guidelines', sponsored: 'Sponsored', sponsoredVisit: 'Visit',
     loadError: "Couldn't load posts. Check your connection and try again.", retry: 'Retry',
     howTitle: 'How it works',
     howGuest: [
@@ -97,7 +97,7 @@ export const postsCopy = {
     openChats: 'అన్ని సంభాషణలు', unread: '{n} కొత్తవి',
     safetyTitle: 'సురక్షితంగా కలవండి',
     safetyText: 'ముందుగా బహిరంగ ప్రదేశంలో కలవండి, మీ ప్రణాళికలు కుటుంబంతో పంచుకోండి.',
-    safetyLink: 'భద్రతా మార్గదర్శకాలు',
+    safetyLink: 'భద్రతా మార్గదర్శకాలు', sponsored: 'ప్రాయోజితం', sponsoredVisit: 'చూడండి',
     loadError: 'పోస్ట్‌లు లోడ్ కాలేదు. కనెక్షన్ తనిఖీ చేసి మళ్లీ ప్రయత్నించండి.', retry: 'మళ్లీ ప్రయత్నించు',
     howTitle: 'ఇది ఎలా పనిచేస్తుంది',
     howGuest: [

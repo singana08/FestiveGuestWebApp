@@ -157,3 +157,27 @@
   .ad-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ad-head { flex-wrap: wrap; }
 }
+
+/* ── Sponsored cards ── */
+.ad-grow { flex: 1 1 280px; }
+.ad-chip--running { color: #6ee7b7; background: rgba(16, 185, 129, 0.16); }
+.ad-chip--scheduled { color: var(--ad-amber); background: rgba(255, 193, 99, 0.14); }
+.ad-sp-list { display: grid; gap: 0.6rem; margin: 0; padding: 0; list-style: none; }
+.ad-sp { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 0.9rem; padding: 0.7rem; border-radius: 16px; background: var(--ad-glass); border: 1px solid rgba(255, 255, 255, 0.13); }
+.ad-sp > img { flex-shrink: 0; width: 120px; aspect-ratio: 2 / 1; border-radius: 10px; object-fit: cover; background: rgba(255, 255, 255, 0.06); }
+.ad-sp-info { flex: 1 1 220px; min-width: 0; display: grid; gap: 0.2rem; }
+.ad-sp-info strong { overflow-wrap: anywhere; }
+.ad-form label { display: grid; gap: 0.3rem; font-size: 0.8rem; font-weight: 600; color: var(--ad-soft); }
+.ad-form input:not([type="file"]), .ad-form textarea, .ad-form select {
+  padding: 0.55rem 0.7rem; border-radius: 11px; font: 0.88rem 'Inter', sans-serif; color: var(--ad-ink);
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.16); color-scheme: dark;
+}
+.ad-form textarea { min-height: 4.2rem; resize: vertical; }
+.ad-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+.ad-form-cities { display: grid; gap: 0.5rem; }
+.ad-sp-img { position: relative; display: grid !important; place-items: center; aspect-ratio: 2 / 1; overflow: hidden; border-radius: 14px; cursor: pointer; border: 1px dashed rgba(255, 255, 255, 0.28); background: rgba(255, 255, 255, 0.04); }
+.ad-sp-img > span { display: inline-flex; align-items: center; gap: 0.45rem; }
+.ad-sp-img img { width: 100%; height: 100%; object-fit: cover; }
+.ad-sp-img input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.ad-sp-img:focus-within { outline: 2px solid var(--ad-amber); outline-offset: 2px; }
+.ad-form .ad-cities { padding: 0; }

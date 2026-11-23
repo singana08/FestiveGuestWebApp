@@ -1,8 +1,8 @@
 /* ═══ Signed-in app frame: left sidebar (desktop / tablet), slim top bar + bottom tabs (phone) ═══ */
 
-/* .app-container.theme-dark sets the old top bar's --nav-height, so match its specificity */
-.app-container.has-shell { --side: 236px; --nav-height: 0px; }
-.app-container.has-shell.nav-collapsed { --side: 76px; }
+/* .app-container.theme-dark (App.css, which loads after this file) sets the old top bar's --nav-height, so outrank it */
+.app-container.theme-dark.has-shell { --side: 236px; --nav-height: 0px; }
+.app-container.theme-dark.has-shell.nav-collapsed { --side: 76px; }
 /* width:auto (not 100%) and margin-right 0 (not the old "auto") so the page fills the space beside the sidebar exactly */
 .has-shell .content, .has-shell .promo-wrap { width: auto; min-width: 0; margin-left: var(--side); margin-right: 0; transition: margin-left 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
 
@@ -61,7 +61,7 @@
 .sn-phone-top, .sn-tabs { display: none; }
 
 @media (max-width: 767px) {
-  .app-container.has-shell, .app-container.has-shell.nav-collapsed { --side: 0px; --nav-height: 56px; }
+  .app-container.theme-dark.has-shell, .app-container.theme-dark.has-shell.nav-collapsed { --side: 0px; --nav-height: 56px; }
   .has-shell .pb-fab { bottom: calc(76px + env(safe-area-inset-bottom)); }
   .has-shell .pb-chat-window, .has-shell .chat-widget { bottom: calc(70px + env(safe-area-inset-bottom)); }
   .sn { display: none; }
