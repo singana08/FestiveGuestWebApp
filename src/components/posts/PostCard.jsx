@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { MapPin, Users, Moon, CalendarDays, MessageCircle, Pencil, Trash2, Compass, Star, Clock } from 'lucide-react';
 import { AMENITY_ICON, GUIDE_HELP, fmt, daysUntil, isNewPost, citiesInLocation } from './postUtils';
 import { VerifiedTick } from '../VerifiedBadge';
+import SaveButton from '../SaveButton';
 
 const EASE = [0.22, 1, 0.36, 1];
 
@@ -146,6 +147,7 @@ const HostCard = ({ post, c, locale, isOwn, full, onOpen, onContact, onProfile, 
   return (
     <>
       <Photos post={post} onProfile={onProfile} />
+      {!isOwn && post.userId && <div className="pb-save"><SaveButton userId={post.userId} name={post.userName} compact /></div>}
       <div className="pb-card-top">
         <button type="button" className="pb-avatar pb-avatar--host pb-avatar--lg" onClick={() => onProfile(post)} aria-label={post.userName}>
           {(post.userName || '?').charAt(0).toUpperCase()}

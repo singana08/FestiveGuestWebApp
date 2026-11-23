@@ -75,6 +75,14 @@ const Chats = () => {
 
   useEffect(() => { selectedChatRef.current = selectedChat; }, [selectedChat]);
 
+  // /chats?with=<memberId>&name=<name> opens that conversation (used by My trips and trip cards).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const withId = params.get('with');
+    if (withId) handleConversationClick({ otherUserId: withId, otherUserName: params.get('name') || 'Member', lastMessage: '', timestamp: new Date().toISOString(), unreadCount: 0 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on arrival
+  }, []);
+
   // Auto-scroll only when new messages arrive
   useEffect(() => {
     if (messages.length > lastMessageCountRef.current) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

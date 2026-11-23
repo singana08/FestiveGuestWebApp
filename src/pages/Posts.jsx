@@ -2,18 +2,18 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import {
-  Plus, Search, X, LayoutGrid, Map as MapIcon, HelpCircle, MessageCircle, ShieldCheck,
+  Plus, Search, X, LayoutGrid, Map as MapIcon, HelpCircle, ShieldCheck,
   ArrowRight, MapPin, Sparkles, RefreshCw, Trash2, CheckCircle2, AlertTriangle, Compass,
 } from 'lucide-react';
 import postsService from '../utils/postsService';
 import locationService from '../utils/locationService';
 import ChatWidget from '../components/ChatWidget';
-import api from '../utils/api';
 import { useLanguage } from '../i18n/LanguageContext';
 import { postsCopy } from '../i18n/postsCopy';
 import useSEO from '../hooks/useSEO';
 import PostCard from '../components/posts/PostCard';
 import CityMap from '../components/posts/CityMap';
+import UpcomingTrip from '../components/UpcomingTrip';
 import PostFormModal from '../components/posts/PostFormModal';
 import ProfileModal from '../components/posts/ProfileModal';
 import GlassDialog from '../components/posts/GlassDialog';
@@ -75,7 +75,6 @@ const Posts = () => {
   const [loadError, setLoadError] = useState(false);
   const [showMyPosts, setShowMyPosts] = useState(false);
   const [locationData, setLocationData] = useState({});
-  const [conversations, setConversations] = useState(null);
 
   const [query, setQuery] = useState('');
   const [selectedLocations, setSelectedLocations] = useState([]);
@@ -140,12 +139,6 @@ const Posts = () => {
 
   useEffect(() => {
     locationService.getLocations().then(setLocationData).catch(() => {});
-    if (user) {
-      api.get('chat/conversations')
-        .then((res) => setConversations([...(res.data || [])].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5)))
-        .catch(() => setConversations([]));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Browser back closes the profile popup (its URL is pushed on open).
@@ -302,7 +295,6 @@ const Posts = () => {
   const quickValue = viewingTrips ? timeFilter : priceFilter;
   const setQuick = viewingTrips ? setTimeFilter : setPriceFilter;
   const sortOptions = viewingTrips ? [['soonest', c.sortSoonest], ['newest', c.sortNewest]] : [['newest', c.sortNewest], ['price', c.sortPrice]];
-  const unreadTotal = (conversations || []).reduce((s, cv) => s + (cv.unreadCount || 0), 0);
 
   const emptyState = () => {
     if (filtersActive && posts.length) {
@@ -341,6 +333,7 @@ const Posts = () => {
             </motion.section>
 
             <VerifyPhoneBanner />
+            {user && !showMyPosts && <UpcomingTrip meId={user.userId} isHost={isHost} />}
 
             {/* ═════ Tabs ═════ */}
             <div className="pb-tabs-row">
@@ -467,33 +460,7 @@ const Posts = () => {
 
           {/* ═════ Side rail (wide screens) ═════ */}
           <aside className="pb-rail">
-            <section className="pb-panel">
-              <header className="pb-panel-head">
-                <h2><MessageCircle size={17} /> {c.recentChats}</h2>
-                {unreadTotal > 0 && <span className="pb-unread">{fmt(c.unread, { n: unreadTotal })}</span>}
-              </header>
-              {conversations === null ? (
-                <div className="pb-chat-sk">{[0, 1, 2].map((i) => <span key={i} className="pb-sk pb-sk--line" />)}</div>
-              ) : conversations.length === 0 ? (
-                <p className="pb-muted">{c.noChats}</p>
-              ) : (
-                <ul className="pb-chats">
-                  {conversations.map((cv) => (
-                    <li key={cv.otherUserId}>
-                      <button type="button" onClick={() => openChat(cv.otherUserId, cv.otherUserName)}>
-                        <span className="pb-avatar pb-avatar--guest" aria-hidden="true">{(cv.otherUserName || '?').charAt(0).toUpperCase()}</span>
-                        <span className="pb-chat-text">
-                          <strong>{cv.otherUserName || 'Unknown User'}</strong>
-                          <small>{cv.lastMessage}</small>
-                        </span>
-                        {cv.unreadCount > 0 && <span className="pb-unread-dot">{cv.unreadCount}</span>}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <Link to="/chats" className="pb-panel-link">{c.openChats} <ArrowRight size={15} /></Link>
-            </section>
+            {/* Sponsored cards go here (Phase 2). Recent chats moved to the sidebar’s Chats count. */}
 
             <section className="pb-panel pb-panel--safety">
               <span className="pb-safety-icon" aria-hidden="true"><ShieldCheck size={20} /></span>

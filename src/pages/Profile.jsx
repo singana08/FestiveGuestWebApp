@@ -10,7 +10,7 @@ import GlassDialog from '../components/posts/GlassDialog';
 import ProgressRing from '../components/ProgressRing';
 import VerifyPhoneDialog from '../components/VerifyPhoneDialog';
 import GalleryEditor from '../components/GalleryEditor';
-import MyStays from '../components/MyStays';
+import UpcomingTrip from '../components/UpcomingTrip';
 import { toJpeg, putJpeg } from '../utils/image';
 import { VerifiedChip } from '../components/VerifiedBadge';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -334,6 +334,8 @@ function Profile() {
             </AnimatePresence>
           </motion.section>
 
+          <UpcomingTrip meId={user.userId} isHost={isHost} />
+
           <div className="pf-grid">
             {/* ═════ Main column ═════ */}
             <div className="pf-col">
@@ -406,8 +408,6 @@ function Profile() {
                 </ul>
                 <p className="pf-private"><ShieldCheck size={13} /> Your email and phone are never shown on posts.</p>
               </motion.section>
-
-              <MyStays meId={user.userId} />
 
               <motion.section className="pf-card pf-free" {...rise(0.12)}>
                 <span className="pf-free-icon" aria-hidden="true"><Sparkles size={18} /></span>

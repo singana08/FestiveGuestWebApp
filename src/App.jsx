@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import { User, ShieldCheck, Menu, X, HelpCircle, LogOut, Globe, MessageSquare, FileText, ChevronDown, UserPlus } from 'lucide-react';
+import { Menu, X, HelpCircle, Globe, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { LanguageProvider, useLanguage } from './i18n/LanguageContext';
 import Logo from './components/Logo';
 import InviteFriendsModal from './components/InviteFriendsModal';
+import SideNav from './components/SideNav';
 // Not lazy: it's the landing page, so it renders straight away on a first
 // visit instead of showing a loading spinner while its chunk downloads.
 import Home from './pages/Home';
@@ -25,6 +26,8 @@ const ReferralRedirect = lazy(() => import('./pages/ReferralRedirect'));
 const TermsOfService  = lazy(() => import('./pages/TermsOfService'));
 const SafetyGuidelines = lazy(() => import('./pages/SafetyGuidelines'));
 const NotFound        = lazy(() => import('./pages/NotFound'));
+const Trips           = lazy(() => import('./pages/Trips'));
+const Saved           = lazy(() => import('./pages/Saved'));
 
 // ── Static ambient background (CSS-only — no scroll-time repaint cost) ──
 const AppBackground = () => (
@@ -84,16 +87,20 @@ const NavAvatar = ({ user }) => {
 // ── Main app content ──
 const AppContent = () => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [avatarOpen, setAvatarOpen] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [user, setUser] = useState(readStoredUser);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   // Persisted so the "Limited-time offer" banner stays dismissed across
   // reloads/navigations instead of nagging the user every single visit.
   const [promoDismissed, setPromoDismissed] = useState(() => localStorage.getItem('promoDismissed') === 'true');
-  const avatarRef = useRef(null);
+  // Sidebar: remembered per browser; starts collapsed on tablet-sized screens.
+  const [navCollapsed, setNavCollapsed] = useState(() => {
+    const saved = localStorage.getItem('navCollapsed');
+    return saved ? saved === '1' : window.innerWidth < 1200;
+  });
+  const toggleNav = () => setNavCollapsed((c) => { localStorage.setItem('navCollapsed', c ? '0' : '1'); return !c; });
 
-  const { unreadCount, fetchUnreadCount, toast: msgToast, dismissToast } = useNotifications();
+  const { unreadCount, toast: msgToast, dismissToast } = useNotifications();
   const { language, toggleLanguage, t } = useLanguage();
   const location = useLocation();
   // Where /login sends an already-logged-in visitor (or Login itself
@@ -137,7 +144,6 @@ const AppContent = () => {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reacting to navigation is what this effect is for
     setMenuOpen(false);
-    setAvatarOpen(false);
     window.scrollTo(0, 0);
 
     // Safety net for Chats.jsx's own cleanup of the body-scroll-lock class
@@ -179,14 +185,6 @@ const AppContent = () => {
     return () => window.removeEventListener('wheel', handleWheelFallback);
   }, [location.pathname]);
 
-  // Close avatar dropdown on outside click
-  useEffect(() => {
-    if (!avatarOpen) return;
-    const handler = (e) => { if (avatarRef.current && !avatarRef.current.contains(e.target)) setAvatarOpen(false); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [avatarOpen]);
-
   const isAdmin = user?.role === 'Admin' || user?.userType === 'Admin';
   const isActive = (path) => location.pathname === path;
 
@@ -198,9 +196,14 @@ const AppContent = () => {
   };
 
   return (
-    <div className="app-container theme-dark">
+    <div className={`app-container theme-dark${user ? ' has-shell' : ''}${user && navCollapsed ? ' nav-collapsed' : ''}`}>
       <AppBackground />
-      {/* ── Navbar ── */}
+      {/* ── Navigation: sidebar when signed in, top bar for visitors ── */}
+      {user ? (
+        <SideNav user={user} isAdmin={isAdmin} collapsed={navCollapsed} onToggle={toggleNav} unread={unreadCount}
+          language={language} onLanguage={toggleLanguage} onInvite={() => setShowInviteModal(true)}
+          onLogout={() => setShowLogoutModal(true)} Avatar={NavAvatar} />
+      ) : (
       <nav className="navbar navbar--glass">
         <Link to="/" className="nav-logo">
           <Logo className="nav-logo-img" />
@@ -226,8 +229,6 @@ const AppContent = () => {
         </button>
 
         <div className={`nav-links ${menuOpen ? 'mobile-open' : ''}`} data-lang={language}>
-          {!user ? (
-            <>
               <Link to="/help" className={`nav-item ${isActive('/help') ? 'active' : ''}`}>
                 <HelpCircle size={17} /> {t('help')}
               </Link>
@@ -240,104 +241,9 @@ const AppContent = () => {
               <button onClick={toggleLanguage} className="nav-item nav-lang">
                 <Globe size={17} /> {language === 'en' ? 'తెలుగు' : 'English'}
               </button>
-            </>
-          ) : (
-            <>
-              {/* Core nav items (desktop + mobile hamburger) */}
-              <Link to="/posts" className={`nav-item ${isActive('/posts') ? 'active' : ''}`}>
-                <FileText size={17} /> {t('posts')}
-              </Link>
-              <Link
-                to="/chats"
-                className={`nav-item chat-nav-item ${isActive('/chats') ? 'active' : ''}`}
-                onClick={() => { localStorage.removeItem('chatReadState'); fetchUnreadCount(); }}
-              >
-                <MessageSquare size={17} /> {t('chats')}
-                {unreadCount > 0 && (
-                  <span className={`unread-badge ${unreadCount > 9 ? 'large-count' : ''}`}>
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </span>
-                )}
-              </Link>
-              {isAdmin && (
-                <Link to="/admin" className={`nav-item ${isActive('/admin') ? 'active' : ''}`}>
-                  <ShieldCheck size={17} /> Admin
-                </Link>
-              )}
-
-              {/* Desktop-only avatar dropdown */}
-              <div className="nav-avatar-wrapper" ref={avatarRef}>
-                <button
-                  className="nav-avatar-btn"
-                  onClick={() => setAvatarOpen(o => !o)}
-                  aria-label="Account menu"
-                >
-                  <NavAvatar user={user} />
-                  <ChevronDown size={14} style={{ transition: 'transform 0.2s', transform: avatarOpen ? 'rotate(180deg)' : 'rotate(0deg)', color: 'var(--text-light)' }} />
-                </button>
-                <AnimatePresence>
-                  {avatarOpen && (
-                    <motion.div
-                      className="nav-avatar-dropdown"
-                      initial={{ opacity: 0, y: -8, scale: 0.96 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -8, scale: 0.96 }}
-                      transition={{ duration: 0.15 }}
-                    >
-                      {/* User info */}
-                      <div className="nav-dropdown-user">
-                        <NavAvatar user={user} />
-                        <div>
-                          <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text)' }}>{user.name}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>{user.role || user.userType}</div>
-                        </div>
-                      </div>
-                      <div className="nav-dropdown-items">
-                        <Link to="/profile" className="nav-dropdown-item" onClick={() => setAvatarOpen(false)}>
-                          <User size={15} /> My Profile
-                        </Link>
-                        <button className="nav-dropdown-item" onClick={() => { setAvatarOpen(false); setShowInviteModal(true); }}>
-                          <UserPlus size={15} /> Invite Friends
-                        </button>
-                        <Link to="/help" className="nav-dropdown-item" onClick={() => setAvatarOpen(false)}>
-                          <HelpCircle size={15} /> {t('help')}
-                        </Link>
-                        <button className="nav-dropdown-item" onClick={() => { toggleLanguage(); setAvatarOpen(false); }}>
-                          <Globe size={15} /> {language === 'en' ? 'తెలుగు' : 'English'}
-                        </button>
-                      </div>
-                      <div className="nav-dropdown-footer">
-                        <button className="nav-dropdown-item danger" onClick={() => { setAvatarOpen(false); setShowLogoutModal(true); }}>
-                          <LogOut size={15} /> {t('logout')}
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              {/* Mobile-only section (shown in hamburger menu) */}
-              <div className="nav-mobile-section">
-                <Link to="/profile" className={`nav-item ${isActive('/profile') ? 'active' : ''}`}>
-                  <User size={17} /> My Profile
-                </Link>
-                <button onClick={() => setShowInviteModal(true)} className="nav-item">
-                  <UserPlus size={17} /> Invite Friends
-                </button>
-                <Link to="/help" className={`nav-item ${isActive('/help') ? 'active' : ''}`}>
-                  <HelpCircle size={17} /> {t('help')}
-                </Link>
-                <button onClick={toggleLanguage} className="nav-item nav-lang">
-                  <Globe size={17} /> {language === 'en' ? 'తెలుగు' : 'English'}
-                </button>
-                <button onClick={() => setShowLogoutModal(true)} className="nav-item logout-btn">
-                  <LogOut size={17} /> {t('logout')}
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+            </div>
       </nav>
+      )}
 
       {/* ── New message toast ── */}
       <AnimatePresence>
@@ -370,6 +276,7 @@ const AppContent = () => {
       <AnimatePresence>
         {user && !promoDismissed && (
           <motion.div
+            className="promo-wrap"
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -432,6 +339,8 @@ const AppContent = () => {
               <Route path="/chats" element={user ? <PageTransition><Chats /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/posts" element={user ? <PageTransition><Posts /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/profile" element={user ? <PageTransition><Profile /></PageTransition> : <Navigate to="/login" />} />
+              <Route path="/trips" element={user ? <PageTransition><Trips /></PageTransition> : <Navigate to="/login" />} />
+              <Route path="/saved" element={user ? <PageTransition><Saved /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/profile/:userName" element={<PageTransition><PublicProfile /></PageTransition>} />
               <Route path="/admin" element={isAdmin ? <PageTransition><Admin /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/help" element={<PageTransition><Help /></PageTransition>} />

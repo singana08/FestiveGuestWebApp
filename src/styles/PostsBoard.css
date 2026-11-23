@@ -620,3 +620,4 @@
 .pb-rating small { font-weight: 500; color: rgba(255, 240, 230, 0.6); }
 .pb-reply { display: flex; align-items: center; gap: 0.3rem; margin: 0.2rem 0 0; font-size: 0.75rem; color: #6ee7b7; }
 .pb-stays { margin-left: 0.25rem; font-weight: 600; color: rgba(255, 240, 230, 0.75); white-space: nowrap; }
+.pb-save { position: absolute; top: 0.6rem; right: 0.6rem; z-index: 2; }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, MotionConfig } from 'framer-motion';
-import { ArrowLeft, Star, CalendarDays, MapPin, MessageCircle, UserX, ShieldCheck, Clock, Images, CalendarCheck } from 'lucide-react';
+import { ArrowLeft, Star, CalendarDays, MapPin, MessageCircle, UserX, ShieldCheck, Clock, Images, CalendarCheck, FileText } from 'lucide-react';
 import api from '../utils/api';
 import ImageWithSas from '../components/ImageWithSas';
 import ChatWidget from '../components/ChatWidget';
@@ -9,6 +9,8 @@ import SafetyActions from '../components/SafetyActions';
 import Gallery from '../components/Gallery';
 import ReviewsSection from '../components/ReviewsSection';
 import ShareStay from '../components/ShareStay';
+import SaveButton from '../components/SaveButton';
+import MemberPosts from '../components/MemberPosts';
 import useIsBlocked from '../hooks/useIsBlocked';
 import { VerifiedChip } from '../components/VerifiedBadge';
 import useSEO from '../hooks/useSEO';
@@ -125,6 +127,7 @@ function PublicProfile() {
           {me && !isMe && (
             <div className="pf-hero-actions">
               {!blocked && <button type="button" className="rg-btn rg-btn-primary pf-btn" onClick={() => setChatOpen(true)}><MessageCircle size={15} /> Message {firstName}</button>}
+              {isHost && <SaveButton userId={profile.userId} name={profile.name} />}
               <SafetyActions userId={profile.userId} userName={profile.name} context="profile" onBlockChange={(b) => { setBlocked(b); if (b) setChatOpen(false); }} />
             </div>
           )}
@@ -143,6 +146,11 @@ function PublicProfile() {
           <motion.section className="pf-card" {...rise(0.05)}>
             <header className="pf-card-head"><h2>{isHost ? 'About my hosting' : 'About me'}</h2></header>
             {profile.bio ? <p className="pf-bio">{profile.bio}</p> : <p className="pf-empty">{firstName} hasn’t written a bio yet.</p>}
+          </motion.section>
+
+          <motion.section className="pf-card" {...rise(0.08)}>
+            <header className="pf-card-head"><h2><FileText size={16} /> {isMe ? 'Your posts' : isHost ? `${firstName}’s listings` : `${firstName}’s trips`}</h2><span className="pf-count">{(profile.posts || []).length}</span></header>
+            <MemberPosts posts={profile.posts || []} isHost={isHost} name={profile.name} />
           </motion.section>
 
           {isHost && areas.length > 0 && (
