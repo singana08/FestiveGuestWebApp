@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import { Menu, X, HelpCircle, Globe, MessageSquare } from 'lucide-react';
+import { Menu, X, HelpCircle, Globe, MessageSquare, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { LanguageProvider, useLanguage } from './i18n/LanguageContext';
@@ -192,7 +192,7 @@ const AppContent = () => {
     localStorage.clear();
     setUser(null);
     setShowLogoutModal(false);
-    window.location.href = '/';
+    window.location.href = '/login';
   };
 
   return (
