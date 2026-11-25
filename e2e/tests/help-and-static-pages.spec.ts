@@ -75,8 +75,9 @@ test.describe('Static legal pages load directly (deep link)', () => {
     test(`GET ${route} renders content, not a blank page`, async ({ page }) => {
       await page.goto(route);
       await waitForAppShell(page);
-      const mainText = await page.locator('main').innerText();
-      expect(mainText.trim().length).toBeGreaterThan(0);
+      // Pages load on demand and the header shows first, so wait for text
+      // rather than reading <main> once (that raced since the splash went).
+      await expect(page.locator('main')).toHaveText(/\S/);
     });
   }
 });
