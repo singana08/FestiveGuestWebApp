@@ -1,8 +1,57 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGoogleLogin } from '@react-oauth/google';
-import { X, Search, UserPlus, Send, Users } from 'lucide-react';
+import { X, Search, UserPlus, Send, Users, Copy, Check, MessageCircle } from 'lucide-react';
 import api from '../utils/api';
+
+const GOOGLE_READY = !!import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+const GoogleG = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+);
+
+// useGoogleLogin starts Google's script as soon as it mounts, and that throws (taking the page down) when no
+// client id is configured — so it only mounts when there is one.
+const GoogleContactsButton = ({ loading, onToken, onError }) => {
+  const login = useGoogleLogin({
+    onSuccess: (t) => onToken(t.access_token),
+    onError,
+    scope: 'openid email profile https://www.googleapis.com/auth/contacts.readonly',
+  });
+  return (
+    <button onClick={() => login()} disabled={loading}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1.75rem', background: 'white', border: '1.5px solid #dadce0', borderRadius: '8px', fontSize: '0.95rem', fontWeight: 600, color: '#3c4043', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', opacity: loading ? 0.6 : 1 }}>
+      {loading
+        ? <><div style={{ width: 18, height: 18, border: '2px solid #dadce0', borderTopColor: '#4285F4', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> Loading contacts…</>
+        : <><GoogleG /> Connect Google Contacts</>}
+    </button>
+  );
+};
+
+/** Without Google contacts: the member's own invite link, to copy or send on WhatsApp. */
+const ShareLink = ({ code }) => {
+  const [copied, setCopied] = useState(false);
+  const link = code ? `${window.location.origin}/r/${encodeURIComponent(code)}` : window.location.origin;
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { /* the link is still on screen to copy by hand */ }
+  };
+  const btn = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '0.45rem', padding: '0.7rem 1.1rem', borderRadius: '10px', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'none' };
+  return (
+    <div style={{ display: 'grid', gap: '0.75rem', textAlign: 'left' }}>
+      <input readOnly value={link} onFocus={(e) => e.target.select()} aria-label="Your invite link"
+        style={{ width: '100%', boxSizing: 'border-box', padding: '0.7rem 0.85rem', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '0.88rem', color: 'var(--text)', background: '#faf7f5' }} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
+        <button type="button" onClick={copy} style={{ ...btn, border: '1.5px solid var(--border)', background: 'white', color: 'var(--text)' }}>
+          {copied ? <><Check size={16} /> Copied</> : <><Copy size={16} /> Copy link</>}
+        </button>
+        <a href={`https://wa.me/?text=${encodeURIComponent(`Join me on FestiveGuest — stay with trusted locals: ${link}`)}`} target="_blank" rel="noopener noreferrer"
+          style={{ ...btn, border: 0, background: '#16a34a', color: 'white' }}>
+          <MessageCircle size={16} /> WhatsApp
+        </a>
+      </div>
+    </div>
+  );
+};
 
 const InviteFriendsModal = ({ user, onClose }) => {
   const [contacts, setContacts] = useState([]);
@@ -41,12 +90,6 @@ const InviteFriendsModal = ({ user, onClose }) => {
       setStep('connect');
     }
   };
-
-  const googleLogin = useGoogleLogin({
-    onSuccess: t => fetchContacts(t.access_token),
-    onError: () => { setError('Google sign-in failed.'); setStep('connect'); },
-    scope: 'openid email profile https://www.googleapis.com/auth/contacts.readonly',
-  });
 
   const toggle = email => {
     setSelected(prev => {
@@ -135,35 +178,20 @@ const InviteFriendsModal = ({ user, onClose }) => {
           {(step === 'connect' || step === 'loading') && (
             <div style={{ padding: '2.5rem 1.5rem', textAlign: 'center' }}>
               <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>📬</div>
-              <h3 style={{ margin: '0 0 0.5rem', color: 'var(--text)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>Import Google Contacts</h3>
+              <h3 style={{ margin: '0 0 0.5rem', color: 'var(--text)', fontFamily: 'Plus Jakarta Sans, sans-serif' }}>{GOOGLE_READY ? 'Import Google Contacts' : 'Share your invite link'}</h3>
               <p style={{ color: 'var(--text-light)', fontSize: '0.9rem', margin: '0 0 1.5rem', lineHeight: 1.6 }}>
-                Sign in with Google to see your contacts and pick who to invite. We only read their names and emails — nothing else.
+                {GOOGLE_READY
+                  ? 'Sign in with Google to see your contacts and pick who to invite. We only read their names and emails — nothing else.'
+                  : 'Send it to friends who travel, or to locals who could host. When they join with it, you both get rewarded.'}
               </p>
               {error && (
                 <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '0.75rem', borderRadius: 'var(--radius-sm)', fontSize: '0.85rem', marginBottom: '1rem' }}>
                   {error}
                 </div>
               )}
-              <button
-                onClick={() => {
-                  if (!import.meta.env.VITE_GOOGLE_CLIENT_ID) {
-                    setError('Google Sign-In not configured. Add VITE_GOOGLE_CLIENT_ID to .env and restart.');
-                    return;
-                  }
-                  googleLogin();
-                }}
-                disabled={step === 'loading'}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem 1.75rem', background: 'white', border: '1.5px solid #dadce0', borderRadius: '8px', fontSize: '0.95rem', fontWeight: 600, color: '#3c4043', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', opacity: step === 'loading' ? 0.6 : 1 }}
-              >
-                {step === 'loading' ? (
-                  <><div style={{ width: 18, height: 18, border: '2px solid #dadce0', borderTopColor: '#4285F4', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} /> Loading contacts…</>
-                ) : (
-                  <>
-                    <svg width="20" height="20" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-                    Connect Google Contacts
-                  </>
-                )}
-              </button>
+              {GOOGLE_READY
+                ? <GoogleContactsButton loading={step === 'loading'} onToken={fetchContacts} onError={() => { setError('Google sign-in failed.'); setStep('connect'); }} />
+                : <ShareLink code={user?.referralCode} />}
               <p style={{ marginTop: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                 Your referral code: <strong style={{ color: 'var(--primary)' }}>{user?.referralCode || '—'}</strong>
               </p>
