@@ -4,7 +4,7 @@ import { Heart, MapPin, Star, CalendarCheck, FileText, Search } from 'lucide-rea
 import api from '../utils/api';
 import SaveButton from '../components/SaveButton';
 import { useSavedIds } from '../utils/saved';
-import { VerifiedTick } from '../components/VerifiedBadge';
+import { VerifiedTick, TrustShield } from '../components/VerifiedBadge';
 import useSEO from '../hooks/useSEO';
 import '../styles/Register.css';
 import '../styles/PostsBoard.css';
@@ -51,7 +51,7 @@ export default function Saved() {
                 </Link>
                 <div className="sv-heart"><SaveButton userId={h.id} name={h.name} compact /></div>
                 <div className="sv-body">
-                  <Link to={`/profile/${encodeURIComponent(h.name)}`} className="sv-name">{h.name}{h.isVerified && <VerifiedTick />}</Link>
+                  <Link to={`/profile/${encodeURIComponent(h.name)}`} className="sv-name">{h.name}{h.isVerified && <VerifiedTick />}{h.adminVerified && <TrustShield />}</Link>
                   {h.location && <p className="sv-meta"><MapPin size={13} /> {h.location}</p>}
                   <p className="sv-meta">
                     {h.reviewCount > 0 && <span className="sv-rating"><Star size={13} /> {h.rating.toFixed(1)} ({h.reviewCount})</span>}

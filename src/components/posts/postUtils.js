@@ -1,5 +1,8 @@
 // Shared helpers for the Posts board.
 
+// How an admin checked a member before marking them "Verified by FestiveGuest" (keys match the API's AdminVerification).
+export const VERIFY_HOW = { id: 'ID checked', video: 'Video call', in_person: 'Met in person' };
+
 export const AMENITY_OPTIONS = [
   { name: 'WiFi', icon: '📶' },
   { name: 'Parking', icon: '🚗' },
@@ -10,7 +13,6 @@ export const AMENITY_OPTIONS = [
   { name: 'TV', icon: '📺' },
   { name: 'Hot Water', icon: '🚿' },
 ];
-export const AMENITY_ICON = Object.fromEntries(AMENITY_OPTIONS.map((a) => [a.name, a.icon]));
 
 // Guide requests (a local for a few hours). Keys must match the API's HelpTypes.
 export const GUIDE_HELP_OPTIONS = [

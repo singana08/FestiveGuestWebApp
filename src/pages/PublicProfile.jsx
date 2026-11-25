@@ -12,7 +12,7 @@ import ShareStay from '../components/ShareStay';
 import SaveButton from '../components/SaveButton';
 import MemberPosts from '../components/MemberPosts';
 import useIsBlocked from '../hooks/useIsBlocked';
-import { VerifiedChip } from '../components/VerifiedBadge';
+import { VerifiedChip, TrustChip } from '../components/VerifiedBadge';
 import useSEO from '../hooks/useSEO';
 import '../styles/Register.css';
 import '../styles/PostsBoard.css';
@@ -116,6 +116,7 @@ function PublicProfile() {
               {profile.createdAt && <span><CalendarDays size={13} /> Joined {monthYear(profile.createdAt)}</span>}
             </p>
             <p className="pf-chips">
+              {profile.adminVerified && <TrustChip how={profile.verifiedHow} since={profile.verifiedSince} />}
               {profile.isVerified && <VerifiedChip />}
               {reviews.length > 0
                 ? <span className="pf-chip is-gold"><Star size={12} /> {average.toFixed(1)} · {reviews.length} review{reviews.length === 1 ? '' : 's'}</span>

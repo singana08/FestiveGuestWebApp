@@ -8,7 +8,7 @@ import ReviewsSection, { Stars } from '../ReviewsSection';
 import ShareStay from '../ShareStay';
 import SaveButton from '../SaveButton';
 import MemberPosts from '../MemberPosts';
-import { VerifiedChip } from '../VerifiedBadge';
+import { VerifiedChip, TrustChip } from '../VerifiedBadge';
 
 /** A post author's profile: photos of their place, reviews, reply speed, and safety tools. */
 const ProfileModal = ({ open, userId, userName, onClose, onBlockChange }) => {
@@ -60,8 +60,8 @@ const ProfileModal = ({ open, userId, userName, onClose, onBlockChange }) => {
               <span className={`pb-avatar pb-avatar--xl pb-avatar--${isHost ? 'host' : 'guest'}`} aria-hidden="true">{profile.name.charAt(0).toUpperCase()}</span>
             )}
             <div>
-              {(profile.isVerified || (isHost && !isMe)) && (
-                <p className="pb-profile-verified">{profile.isVerified && <VerifiedChip />}{isHost && !isMe && me?.userId && <SaveButton userId={profile.userId} name={profile.name} />}</p>
+              {(profile.isVerified || profile.adminVerified || (isHost && !isMe)) && (
+                <p className="pb-profile-verified">{profile.adminVerified && <TrustChip how={profile.verifiedHow} since={profile.verifiedSince} />}{profile.isVerified && <VerifiedChip />}{isHost && !isMe && me?.userId && <SaveButton userId={profile.userId} name={profile.name} />}</p>
               )}
               {profile.location && <p className="pb-profile-loc"><MapPin size={14} /> {profile.location}</p>}
               <p className="pb-profile-rating">

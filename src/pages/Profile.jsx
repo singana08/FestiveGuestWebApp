@@ -12,7 +12,7 @@ import VerifyPhoneDialog from '../components/VerifyPhoneDialog';
 import GalleryEditor from '../components/GalleryEditor';
 import UpcomingTrip from '../components/UpcomingTrip';
 import { toJpeg, putJpeg } from '../utils/image';
-import { VerifiedChip } from '../components/VerifiedBadge';
+import { VerifiedChip, TrustChip } from '../components/VerifiedBadge';
 import { useLanguage } from '../i18n/LanguageContext';
 import locationService from '../utils/locationService';
 import useSEO from '../hooks/useSEO';
@@ -305,6 +305,7 @@ function Profile() {
                 </p>
                 <p className="pf-chips">
                   <span className={`pf-chip${user.status === 'Active' ? ' is-green' : ' is-amber'}`}><span className="pf-dot" /> {user.status || 'Active'}</span>
+                  {user.adminVerified && <TrustChip />}
                   {user.isVerified && <VerifiedChip />}
                 </p>
               </div>

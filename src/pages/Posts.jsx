@@ -1,9 +1,9 @@
 import { Fragment, useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import {
-  Plus, Search, X, LayoutGrid, Map as MapIcon, HelpCircle, ShieldCheck,
-  ArrowRight, MapPin, Sparkles, RefreshCw, Trash2, CheckCircle2, AlertTriangle, Compass,
+  Plus, Search, X, LayoutGrid, Map as MapIcon, HelpCircle, Gift, Megaphone,
+  MapPin, Sparkles, RefreshCw, Trash2, CheckCircle2, AlertTriangle, Compass,
 } from 'lucide-react';
 import postsService from '../utils/postsService';
 import locationService from '../utils/locationService';
@@ -13,12 +13,14 @@ import { postsCopy } from '../i18n/postsCopy';
 import useSEO from '../hooks/useSEO';
 import PostCard from '../components/posts/PostCard';
 import CityMap from '../components/posts/CityMap';
+import SortMenu from '../components/posts/SortMenu';
 import UpcomingTrip from '../components/UpcomingTrip';
 import PostFormModal from '../components/posts/PostFormModal';
 import ProfileModal from '../components/posts/ProfileModal';
 import GlassDialog from '../components/posts/GlassDialog';
 import VerifyPhoneBanner from '../components/VerifyPhoneBanner';
-import SponsoredCard from '../components/SponsoredCard';
+import SponsoredCard, { HouseCard } from '../components/SponsoredCard';
+import InviteFriendsModal from '../components/InviteFriendsModal';
 import api from '../utils/api';
 import { CITY_COORDS } from '../components/posts/cityCoords';
 import { fmt, daysUntil, citiesInLocation, splitCsv } from '../components/posts/postUtils';
@@ -75,7 +77,14 @@ const Posts = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [showMyPosts, setShowMyPosts] = useState(false);
+  // The tab lives in the address (?tab=mine), so a refresh, Back or a shared link keeps "My posts".
+  const [searchParams, setSearchParams] = useSearchParams();
+  const showMyPosts = searchParams.get('tab') === 'mine';
+  const setShowMyPosts = (mine) => setSearchParams((p) => {
+    const next = new URLSearchParams(p);
+    if (mine) next.set('tab', 'mine'); else next.delete('tab');
+    return next;
+  }, { replace: true });
   const [locationData, setLocationData] = useState({});
 
   const [query, setQuery] = useState('');
@@ -92,6 +101,7 @@ const Posts = () => {
   const [deletingPost, setDeletingPost] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
   const [profile, setProfile] = useState(null);
   const [detail, setDetail] = useState(null); // post opened in full
   const [activeChat, setActiveChat] = useState(null);
@@ -300,12 +310,28 @@ const Posts = () => {
   const hour = new Date().getHours();
   const greeting = hour < 12 ? c.morning : hour < 17 ? c.afternoon : c.evening;
   const firstName = (user?.name || '').split(' ')[0];
+  // Next to the greeting: what's on the board, or how many match once filters are on.
+  const subtitle = filtersActive || showMyPosts
+    ? (results.length === 1 ? c.oneResult : fmt(c.results, { n: results.length }))
+    : [fmt(c.statAvailable, { n: stats.total }), stats.fresh > 0 && fmt(c.statNew, { n: stats.fresh }),
+      stats.cities > 0 && (stats.cities === 1 ? c.statCity : fmt(c.statCities, { n: stats.cities }))].filter(Boolean).join(' · ');
   const quickFilters = viewingTrips
     ? [['any', c.any], ['week', c.thisWeek], ['month', c.thisMonth], ['later', c.later]]
     : [[0, c.anyPrice], [500, c.under500], [1000, c.under1000], [2000, c.under2000]];
   const quickValue = viewingTrips ? timeFilter : priceFilter;
   const setQuick = viewingTrips ? setTimeFilter : setPriceFilter;
   const sortOptions = viewingTrips ? [['soonest', c.sortSoonest], ['newest', c.sortNewest]] : [['newest', c.sortNewest], ['price', c.sortPrice]];
+
+  // Ad spots: advertisers' cards first; our own cards fill whatever is left.
+  const houseCards = [
+    { id: 'house-invite', icon: Gift, title: c.houseInviteTitle, text: c.houseInviteText, cta: c.houseInviteCta, onClick: () => setShowInvite(true) },
+    { id: 'house-advertise', icon: Megaphone, title: c.houseAdTitle, text: c.houseAdText, cta: c.houseAdCta, href: 'mailto:customer-support@festiveguest.com?subject=Advertising%20on%20FestiveGuest' },
+  ];
+  const railCards = [...ads.slice(0, 2), ...houseCards].slice(0, 2);
+  const feedCards = ads.length ? ads : houseCards;
+  const adCard = (card) => (card.icon
+    ? <HouseCard key={card.id} card={card} label={c.houseLabel} />
+    : <SponsoredCard key={card.id} ad={card} label={c.sponsored} visit={c.sponsoredVisit} />);
 
   const emptyState = () => {
     if (filtersActive && posts.length) {
@@ -325,44 +351,36 @@ const Posts = () => {
         <div className="rg-aurora" aria-hidden="true"><span className="a1" /><span className="a2" /><span className="a3" /></div>
 
         <div className="pb-shell">
-          <main className="pb-main">
-            {/* ═════ Greeting ═════ */}
+          <div className="pb-top">
+            {/* ═════ Greeting, tabs and actions ═════ */}
             <motion.section className="pb-hero" initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: EASE }}>
               <div className="pb-hero-text">
-                <h1>{greeting}{firstName && <>, <span className="pb-grad">{firstName}</span></>} <span aria-hidden="true">👋</span></h1>
-                <p>{isHost ? c.hostSub : c.guestSub}</p>
-                <div className="pb-stats">
-                  <span className="pb-stat"><strong>{stats.total}</strong> {fmt(c.statAvailable, { n: '' }).trim()}</span>
-                  {stats.fresh > 0 && <span className="pb-stat pb-stat--fresh"><Sparkles size={13} /> {fmt(c.statNew, { n: stats.fresh })}</span>}
-                  {stats.cities > 0 && <span className="pb-stat"><MapPin size={13} /> {stats.cities === 1 ? c.statCity : fmt(c.statCities, { n: stats.cities })}</span>}
-                </div>
+                <h1>{greeting}{firstName && <>, <span className="pb-grad">{firstName}</span></>}</h1>
+                {!loading && <p>{subtitle}</p>}
               </div>
               <div className="pb-hero-actions">
-                <button type="button" className="rg-btn rg-btn-primary pb-cta" onClick={openCreate}><Plus size={18} /> {isHost ? c.ctaHost : c.ctaGuest}</button>
+                <div className="rg-seg pb-tabs">
+                  {[[false, isHost ? c.tabExploreHost : c.tabExploreGuest], [true, c.tabMine]].map(([mine, label]) => (
+                    <button key={String(mine)} type="button" aria-pressed={showMyPosts === mine} onClick={() => switchTab(mine)}>
+                      {showMyPosts === mine && <motion.span layoutId="pb-tab-pill" className="rg-seg-pill" transition={{ type: 'spring', stiffness: 420, damping: 32 }} />}
+                      {label}
+                    </button>
+                  ))}
+                </div>
                 <button type="button" className="pb-howto" onClick={() => setShowHowItWorks(true)}><HelpCircle size={16} /> {c.howTitle}</button>
+                <button type="button" className="rg-btn rg-btn-primary pb-cta" onClick={openCreate}><Plus size={17} /> {isHost ? c.ctaHost : c.ctaGuest}</button>
               </div>
             </motion.section>
 
             <VerifyPhoneBanner />
             {user && !showMyPosts && <UpcomingTrip meId={user.userId} isHost={isHost} />}
+          </div>
 
-            {/* ═════ Tabs ═════ */}
-            <div className="pb-tabs-row">
-              <div className="rg-seg pb-tabs">
-                {[[false, isHost ? c.tabExploreHost : c.tabExploreGuest], [true, c.tabMine]].map(([mine, label]) => (
-                  <button key={String(mine)} type="button" aria-pressed={showMyPosts === mine} onClick={() => switchTab(mine)}>
-                    {showMyPosts === mine && <motion.span layoutId="pb-tab-pill" className="rg-seg-pill" transition={{ type: 'spring', stiffness: 420, damping: 32 }} />}
-                    {label}
-                  </button>
-                ))}
-              </div>
-              {!loading && <span className="pb-count">{results.length === 1 ? c.oneResult : fmt(c.results, { n: results.length })}</span>}
-            </div>
-
-            {/* ═════ Toolbar ═════ */}
+          <main className="pb-main">
+            {/* ═════ Toolbar: search, filters, sort and view in one wrapping row ═════ */}
             <div className="pb-toolbar">
               <div className="pb-search" ref={searchWrap}>
-                <Search size={18} className="pb-search-icon" aria-hidden="true" />
+                <Search size={16} className="pb-search-icon" aria-hidden="true" />
                 <input
                   type="search" value={query} placeholder={c.search} aria-label={c.search}
                   role="combobox" aria-expanded={suggestOpen && suggestions.length > 0} aria-controls="pb-suggest" aria-autocomplete="list"
@@ -406,12 +424,10 @@ const Posts = () => {
                   ))}
                 </div>
                 <div className="pb-toolbar-end">
-                  <select className="pb-select" value={effectiveSort} onChange={(e) => setSort(e.target.value)} aria-label="Sort">
-                    {sortOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-                  </select>
+                  <SortMenu value={effectiveSort} options={sortOptions} onChange={setSort} />
                   <div className="pb-view" role="group" aria-label="View">
-                    <button type="button" aria-pressed={view === 'cards'} onClick={() => setView('cards')} title={c.cards}><LayoutGrid size={16} /><span>{c.cards}</span></button>
-                    <button type="button" aria-pressed={view === 'map'} onClick={() => setView('map')} title={c.map}><MapIcon size={16} /><span>{c.map}</span></button>
+                    <button type="button" aria-pressed={view === 'cards'} onClick={() => setView('cards')} title={c.cards} aria-label={c.cards}><LayoutGrid size={16} /></button>
+                    <button type="button" aria-pressed={view === 'map'} onClick={() => setView('map')} title={c.map} aria-label={c.map}><MapIcon size={16} /></button>
                   </div>
                 </div>
               </div>
@@ -441,7 +457,7 @@ const Posts = () => {
               <>
                 <CityMap counts={cityCounts} selected={selectedLocations} onToggle={toggleLocation} c={c} />
                 {selectedLocations.length > 0 && results.length > 0 && (
-                  <div className="pb-grid pb-grid--below-map">
+                  <div className={`pb-grid pb-grid--below-map${viewingTrips ? ' pb-grid--tickets' : ''}`}>
                     {results.map((post, i) => (
                       <PostCard key={post.id} index={i} post={post} c={c} locale={locale} isOwn={user && post.userId === user.userId}
                         onOpen={setDetail} onContact={(p) => openChat(p.userId, p.userName)} onProfile={openProfile} onEdit={openEdit} onDelete={setDeletingPost} />
@@ -460,15 +476,16 @@ const Posts = () => {
                 </motion.div>
               );
             })() : (
-              <div className="pb-grid">
+              <div className={`pb-grid${viewingTrips ? ' pb-grid--tickets' : ''}`}>
                 {results.map((post, i) => {
-                  // After every 6 posts on tablets and phones (hidden on wide screens, where the right column has them).
-                  const ad = !showMyPosts && ads.length > 0 && (i + 1) % 6 === 0 ? ads[((i + 1) / 6 - 1) % ads.length] : null;
+                  // Below 1280px (no right column): an ad after every 6 posts, or after the last one when there are fewer.
+                  const slot = (i + 1) % 6 === 0 ? (i + 1) / 6 - 1 : results.length < 6 && i === results.length - 1 ? 0 : -1;
+                  const ad = !showMyPosts && slot >= 0 ? feedCards[slot % feedCards.length] : null;
                   return (
                     <Fragment key={post.id}>
                       <PostCard index={i} post={post} c={c} locale={locale} isOwn={user && post.userId === user.userId}
                         onOpen={setDetail} onContact={(p) => openChat(p.userId, p.userName)} onProfile={openProfile} onEdit={openEdit} onDelete={setDeletingPost} />
-                      {ad && <SponsoredCard ad={ad} variant="feed" label={c.sponsored} visit={c.sponsoredVisit} />}
+                      {ad && adCard(ad)}
                     </Fragment>
                   );
                 })}
@@ -476,16 +493,9 @@ const Posts = () => {
             )}
           </main>
 
-          {/* ═════ Side rail (wide screens) ═════ */}
-          <aside className="pb-rail">
-            {ads.slice(0, 2).map((ad) => <SponsoredCard key={ad.id} ad={ad} variant="rail" label={c.sponsored} visit={c.sponsoredVisit} />)}
-
-            <section className="pb-panel pb-panel--safety">
-              <span className="pb-safety-icon" aria-hidden="true"><ShieldCheck size={20} /></span>
-              <h2>{c.safetyTitle}</h2>
-              <p>{c.safetyText}</p>
-              <Link to="/safety-guidelines" className="pb-panel-link">{c.safetyLink} <ArrowRight size={15} /></Link>
-            </section>
+          {/* ═════ Right column (1280px and up): two ads, topped up with our own cards ═════ */}
+          <aside className="pb-rail" aria-label={c.sponsored}>
+            {railCards.map(adCard)}
           </aside>
         </div>
 
@@ -526,6 +536,8 @@ const Posts = () => {
             <p className="rg-modal-text">{t('areYouSureDelete')} <strong>“{deletingPost.title}”</strong>? {t('thisActionCannotBeUndone')}</p>
           )}
         </GlassDialog>
+
+        {showInvite && <InviteFriendsModal user={user} onClose={() => setShowInvite(false)} />}
 
         <GlassDialog open={showHowItWorks} onClose={() => setShowHowItWorks(false)} size="md"
           icon={<HelpCircle size={18} style={{ color: '#ffc163' }} />} title={c.howTitle}

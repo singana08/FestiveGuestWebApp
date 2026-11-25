@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
-import { Flag, Users, MapPin, Search, ShieldCheck, Ban, RotateCcw, Check, AlertTriangle, Plus, X, Phone, MessageCircle, Copy, EyeOff, Star, Megaphone, ImagePlus } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef, createContext, useContext } from 'react';
+import { Flag, Users, MapPin, Search, ShieldCheck, ShieldOff, Ban, RotateCcw, Check, AlertTriangle, Plus, X, Phone, MessageCircle, Copy, EyeOff, Star, Megaphone, ImagePlus } from 'lucide-react';
 import api from '../utils/api';
 import locationService from '../utils/locationService';
 import { toJpeg, putJpeg } from '../utils/image';
 import ImageWithSas from '../components/ImageWithSas';
+import { VERIFY_HOW } from '../components/posts/postUtils';
 import useSEO from '../hooks/useSEO';
 import '../styles/Register.css'; // the shared aurora background
 import '../styles/Admin.css';
@@ -15,9 +16,69 @@ const REASONS = {
 const day = (d) => (d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
 const errText = (err) => err.response?.data?.message || err.message;
 
-const StatusChip = ({ status }) => (
-  <span className={`ad-chip ad-chip--${(status || 'unknown').toLowerCase()}`}>{status || 'Unknown'}</span>
+const StatusChip = ({ status, why }) => (
+  <span className={`ad-chip ad-chip--${(status || 'unknown').toLowerCase()}`} title={why}>{status || 'Unknown'}</span>
 );
+const suspendedWhy = (u) => (u.status === 'Suspended' && u.suspendedReason ? `Suspended for ${REASONS[u.suspendedReason] || u.suspendedReason}` : undefined);
+
+// Every "are you sure?" on this page goes through one styled dialog (the browser's confirm box can't be themed).
+const AskContext = createContext(async () => null);
+const useAsk = () => useContext(AskContext);
+
+/**
+ * The confirm dialog. With `reasons` it also asks why (required) and for a private note, and resolves to
+ * { reason, note }; otherwise it resolves to true. Cancel, Esc or a click outside resolve to null.
+ */
+function ConfirmDialog({ req, onDone }) {
+  const ref = useRef(null);
+  const done = useRef(false);
+  const [reason, setReason] = useState(req.reasons?.[req.reason] ? req.reason : '');
+  const [note, setNote] = useState('');
+  useEffect(() => { ref.current?.showModal(); }, []);
+  const finish = (value) => {
+    if (done.current) return;
+    done.current = true;
+    ref.current?.close();
+    onDone(value);
+  };
+  const submit = (e) => {
+    e.preventDefault();
+    if (req.reasons && !reason) return;
+    finish(req.reasons ? { reason, note: note.trim() } : true);
+  };
+  return (
+    <dialog ref={ref} className="ad-dialog ad-confirm" aria-labelledby="ad-confirm-title" onClose={() => finish(null)}
+      onClick={(e) => { if (e.target === ref.current) finish(null); }}>
+      <form className="ad-confirm-body" onSubmit={submit}>
+        <div className="ad-confirm-head">
+          <span className={`ad-confirm-icon${req.danger ? ' is-danger' : ''}`} aria-hidden="true">{req.icon || <AlertTriangle size={20} />}</span>
+          <h2 id="ad-confirm-title">{req.title}</h2>
+        </div>
+        {req.text && <p className="ad-confirm-text">{req.text}</p>}
+        {req.reasons && (
+          <>
+            <fieldset className={`ad-confirm-reasons${req.danger ? '' : ' is-calm'}`}>
+              <legend>{req.pickLabel || 'Reason'} <span>{req.pickHint ?? '— we tell them this, never who reported them'}</span></legend>
+              {Object.entries(req.reasons).map(([key, label]) => (
+                <label key={key} className={reason === key ? 'is-on' : undefined}>
+                  <input type="radio" name="ad-confirm-reason" value={key} checked={reason === key} onChange={() => setReason(key)} />{label}
+                </label>
+              ))}
+            </fieldset>
+            <label className="ad-confirm-note">
+              <span>Note for admins <small>(optional · never shown to them)</small></span>
+              <textarea rows={3} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} placeholder="What happened, what you checked…" />
+            </label>
+          </>
+        )}
+        <div className="ad-confirm-actions">
+          {!req.noCancel && <button type="button" className="ad-btn" onClick={() => finish(null)}>Cancel</button>}
+          <button type="submit" className={`ad-btn ${req.danger ? 'ad-btn--danger-solid' : 'ad-btn--primary'}`} disabled={!!req.reasons && !reason}>{req.confirmLabel || 'OK'}</button>
+        </div>
+      </form>
+    </dialog>
+  );
+}
 
 const PHONE_SHOWN_FOR = 60_000; // the full number hides itself again after a minute
 const waNumber = (phone) => { const d = (phone || '').replace(/\D/g, ''); return d.length === 10 ? `91${d}` : d; };
@@ -38,6 +99,8 @@ function Admin() {
   const [busy, setBusy] = useState('');
   const [openId, setOpenId] = useState('');
   const openMember = users.find((u) => u.userId === openId);
+  const [asking, setAsking] = useState(null);
+  const ask = (opts) => new Promise((resolve) => setAsking({ ...opts, resolve }));
 
   const load = async () => {
     setLoading(true); setError('');
@@ -52,19 +115,58 @@ function Admin() {
   };
   useEffect(() => { load(); }, []);
 
-  const setMemberStatus = async (userId, name, status) => {
-    const verb = status === 'Suspended' ? 'Suspend' : 'Reactivate';
-    const what = status === 'Suspended'
-      ? `${name} will be signed out, can’t sign in or send messages, and their posts will be hidden. They’ll get an email saying their account is suspended (not who reported them).`
-      : `${name} will be able to sign in and use FestiveGuest again. They’ll get an email saying their account is active.`;
-    if (!window.confirm(`${verb} ${name}?\n\n${what}`)) return;
+  // presetReason: when suspending from a report, that report's reason is picked already.
+  const setMemberStatus = async (userId, name, status, presetReason) => {
+    const suspending = status === 'Suspended';
+    const verb = suspending ? 'Suspend' : 'Reactivate';
+    const answer = await ask(suspending
+      ? {
+        title: `Suspend ${name}?`, danger: true, icon: <Ban size={20} />, confirmLabel: 'Suspend', reasons: REASONS, reason: presetReason,
+        text: 'They’ll be signed out, can’t sign in or send messages, and their posts will be hidden. We’ll email them that their account is suspended, and why.',
+      }
+      : {
+        title: `Reactivate ${name}?`, icon: <RotateCcw size={20} />, confirmLabel: 'Reactivate',
+        text: 'They’ll be able to sign in and use FestiveGuest again. We’ll email them that their account is active.',
+      });
+    if (!answer) return;
     setBusy(userId); setError('');
     try {
-      await api.post(`admin/users/${encodeURIComponent(userId)}/status`, { status });
-      setUsers((list) => list.map((u) => (u.userId === userId ? { ...u, status } : u)));
+      await api.post(`admin/users/${encodeURIComponent(userId)}/status`, suspending ? { status, reason: answer.reason, note: answer.note } : { status });
+      const why = suspending
+        ? { suspendedReason: answer.reason, suspendedNote: answer.note, suspendedAt: new Date().toISOString() }
+        : { suspendedReason: '', suspendedNote: '', suspendedAt: null };
+      setUsers((list) => list.map((u) => (u.userId === userId ? { ...u, status, ...why } : u)));
       setReports((list) => list.map((r) => (r.reportedUserId === userId ? { ...r, reportedStatus: status } : r)));
     } catch (err) {
       setError(`${verb} failed: ${errText(err)}`);
+    } finally {
+      setBusy('');
+    }
+  };
+
+  // "Verified by FestiveGuest": say how you checked them (and a private note); members see the shield.
+  const setTrust = async (member, verified) => {
+    const answer = await ask(verified
+      ? {
+        title: `Verify ${member.name}?`, icon: <ShieldCheck size={20} />, confirmLabel: 'Mark as verified', reasons: VERIFY_HOW,
+        pickLabel: 'How did you check?', pickHint: '— members see this next to the badge',
+        text: 'They get the “Verified by FestiveGuest” shield on their posts and profile. Only do this once you’ve checked who they are.',
+      }
+      : {
+        title: `Remove ${member.name}’s verification?`, icon: <ShieldOff size={20} />, danger: true, confirmLabel: 'Remove',
+        text: 'The “Verified by FestiveGuest” shield disappears from their posts and profile.',
+      });
+    if (!answer) return;
+    setBusy(member.userId); setError('');
+    try {
+      const res = await api.post(`admin/users/${encodeURIComponent(member.userId)}/verify`,
+        verified ? { verified: true, how: answer.reason, note: answer.note } : { verified: false });
+      setUsers((list) => list.map((u) => (u.userId === member.userId ? {
+        ...u, adminVerified: verified, adminVerifiedHow: verified ? answer.reason : '', adminVerifiedNote: verified ? answer.note : '',
+        adminVerifiedAt: verified ? (res.data?.adminVerifiedAt || new Date().toISOString()) : null,
+      } : u)));
+    } catch (err) {
+      setError(`${verified ? 'Verifying' : 'Removing the verification'} failed: ${errText(err)}`);
     } finally {
       setBusy('');
     }
@@ -90,6 +192,7 @@ function Admin() {
   ];
 
   return (
+    <AskContext.Provider value={ask}>
     <div className="ad">
       <div className="rg-aurora" aria-hidden="true"><span className="a1" /><span className="a2" /><span className="a3" /></div>
       <div className="ad-shell">
@@ -124,14 +227,16 @@ function Admin() {
 
       {openMember && (
         <MemberDialog key={openMember.userId} member={openMember} reports={reports} busy={busy}
-          onMember={setMemberStatus} onClose={() => setOpenId('')} />
+          onMember={setMemberStatus} onVerify={setTrust} onClose={() => setOpenId('')} />
       )}
+      {asking && <ConfirmDialog req={asking} onDone={(value) => { asking.resolve(value); setAsking(null); }} />}
       </div>
     </div>
+    </AskContext.Provider>
   );
 }
 
-function MemberDialog({ member, reports, busy, onMember, onClose }) {
+function MemberDialog({ member, reports, busy, onMember, onVerify, onClose }) {
   const ref = useRef(null);
   const [phone, setPhone] = useState(null); // the full number, only after "View"
   const [loadingPhone, setLoadingPhone] = useState(false);
@@ -152,20 +257,22 @@ function MemberDialog({ member, reports, busy, onMember, onClose }) {
     return () => { live = false; };
   }, [member.userId]);
 
+  const ask = useAsk();
+  const failed = (title, err) => ask({ title, text: errText(err), confirmLabel: 'OK', noCancel: true });
   const removePhoto = async (photo, n) => {
-    if (!window.confirm(`Remove photo ${n} from ${member.name}’s gallery? This deletes it.`)) return;
+    if (!await ask({ title: `Remove photo ${n}?`, text: `It’s deleted from ${member.name}’s gallery.`, danger: true, confirmLabel: 'Remove' })) return;
     try {
       await api.delete(`admin/users/${encodeURIComponent(member.userId)}/gallery/${encodeURIComponent(photo.id)}`);
       setProfile((p) => ({ ...p, gallery: p.gallery.filter((x) => x.id !== photo.id) }));
-    } catch (err) { window.alert(`Couldn’t remove the photo: ${errText(err)}`); }
+    } catch (err) { failed('Couldn’t remove the photo', err); }
   };
   const removeReview = async (review) => {
-    if (!window.confirm(`Remove ${review.reviewerName}’s ${review.rating}-star review? This deletes it.`)) return;
+    if (!await ask({ title: `Remove ${review.reviewerName}’s review?`, text: `The ${review.rating}-star review is deleted.`, danger: true, confirmLabel: 'Remove' })) return;
     try {
       await api.delete(`admin/reviews/${encodeURIComponent(review.revieweeId)}/${encodeURIComponent(review.id)}`);
       const keep = (r) => r.id !== review.id;
       setMemberReviews((m) => ({ about: (m.about || []).filter(keep), by: (m.by || []).filter(keep) }));
-    } catch (err) { window.alert(`Couldn’t remove the review: ${errText(err)}`); }
+    } catch (err) { failed('Couldn’t remove the review', err); }
   };
   const allReviews = [...(memberReviews?.about || []).map((r) => ({ ...r, about: true })), ...(memberReviews?.by || [])];
   useEffect(() => {
@@ -205,6 +312,18 @@ function MemberDialog({ member, reports, busy, onMember, onClose }) {
         <div className="ad-dialog-title">
           <h2 id="ad-member-name">{member.name}</h2>
           <p className="ad-muted">{member.userType} · joined {day(member.createdDate)} · <StatusChip status={member.status} /></p>
+          {member.status === 'Suspended' && member.suspendedReason && (
+            <p className="ad-suspended-why">
+              <Ban size={13} aria-hidden="true" /> Suspended{member.suspendedAt ? ` on ${day(member.suspendedAt)}` : ''} for <strong>{REASONS[member.suspendedReason] || member.suspendedReason}</strong>
+              {member.suspendedNote && <span> · “{member.suspendedNote}”</span>}
+            </p>
+          )}
+          {member.adminVerified && (
+            <p className="ad-trust-why">
+              <ShieldCheck size={13} aria-hidden="true" /> Verified by FestiveGuest{member.adminVerifiedAt ? ` on ${day(member.adminVerifiedAt)}` : ''} · <strong>{VERIFY_HOW[member.adminVerifiedHow] || member.adminVerifiedHow}</strong>
+              {member.adminVerifiedNote && <span> · “{member.adminVerifiedNote}”</span>}
+            </p>
+          )}
         </div>
         <button type="button" className="ad-x" onClick={() => ref.current.close()} aria-label="Close"><X size={18} /></button>
       </header>
@@ -290,6 +409,9 @@ function MemberDialog({ member, reports, busy, onMember, onClose }) {
         )}
 
         <div className="ad-actions">
+          {member.adminVerified
+            ? <button type="button" className="ad-btn" disabled={busy === member.userId} onClick={() => onVerify(member, false)}><ShieldOff size={14} /> Remove verification</button>
+            : <button type="button" className="ad-btn ad-btn--trust" disabled={busy === member.userId} onClick={() => onVerify(member, true)}><ShieldCheck size={14} /> Mark as verified</button>}
           {member.userType !== 'Admin' && (member.status === 'Suspended'
             ? <button type="button" className="ad-btn" disabled={busy === member.userId} onClick={() => onMember(member.userId, member.name, 'Active')}><RotateCcw size={14} /> Reactivate</button>
             : <button type="button" className="ad-btn ad-btn--danger" disabled={busy === member.userId} onClick={() => onMember(member.userId, member.name, 'Suspended')}><Ban size={14} /> Suspend</button>)}
@@ -325,7 +447,7 @@ function Reports({ reports, users, busy, onMember, onReport, onOpen }) {
               {r.details ? <p className="ad-details">“{r.details}”</p> : <p className="ad-muted">No details given.</p>}
               <div className="ad-actions">
                 {r.reportedStatus === 'Active' && (
-                  <button type="button" className="ad-btn ad-btn--danger" disabled={busy === r.reportedUserId} onClick={() => onMember(r.reportedUserId, r.reportedName, 'Suspended')}><Ban size={14} /> Suspend member</button>
+                  <button type="button" className="ad-btn ad-btn--danger" disabled={busy === r.reportedUserId} onClick={() => onMember(r.reportedUserId, r.reportedName, 'Suspended', r.reason)}><Ban size={14} /> Suspend member</button>
                 )}
                 {r.reportedStatus === 'Suspended' && (
                   <button type="button" className="ad-btn" disabled={busy === r.reportedUserId} onClick={() => onMember(r.reportedUserId, r.reportedName, 'Active')}><RotateCcw size={14} /> Reactivate</button>
@@ -374,11 +496,11 @@ function Members({ users, busy, onMember, onOpen }) {
           <tbody>
             {list.length === 0 ? <tr><td colSpan={6} className="ad-empty">No members match.</td></tr> : list.map((u) => (
               <tr key={u.userId}>
-                <td><button type="button" className="ad-name" onClick={() => onOpen(u.userId)}>{u.name}</button>{u.isVerified && <span className="ad-tick" title="Phone verified"> ✓</span>}</td>
+                <td><button type="button" className="ad-name" onClick={() => onOpen(u.userId)}>{u.name}</button>{u.isVerified && <span className="ad-tick" title="Phone verified"> ✓</span>}{u.adminVerified && <span className="ad-shield" title={`Verified by FestiveGuest · ${VERIFY_HOW[u.adminVerifiedHow] || ""}`}><ShieldCheck size={12} /></span>}</td>
                 <td>{u.userType}</td>
                 <td>{day(u.createdDate)}</td>
                 <td>{u.successfulReferrals || 0}</td>
-                <td><StatusChip status={u.status} /></td>
+                <td><StatusChip status={u.status} why={suspendedWhy(u)} /></td>
                 <td>
                   {u.userType !== 'Admin' && (u.status === 'Suspended'
                     ? <button type="button" className="ad-btn ad-btn--sm" disabled={busy === u.userId} onClick={() => onMember(u.userId, u.name, 'Active')}>Reactivate</button>
@@ -399,6 +521,7 @@ function Cities() {
   const [error, setError] = useState('');
   const [open, setOpen] = useState('');
   const [newCity, setNewCity] = useState('');
+  const ask = useAsk();
 
   const load = async () => {
     setLoading(true); setError('');
@@ -415,7 +538,7 @@ function Cities() {
     catch (err) { setError(`Couldn’t add the city: ${errText(err)}`); }
   };
   const remove = async (state, city) => {
-    if (!window.confirm(`Remove ${city}, ${state}? Members can no longer pick it.`)) return;
+    if (!await ask({ title: `Remove ${city}?`, text: `Members can no longer pick ${city}, ${state}.`, danger: true, confirmLabel: 'Remove' })) return;
     try { await api.delete(`location/delete?state=${encodeURIComponent(state)}&city=${encodeURIComponent(city)}`); load(); }
     catch (err) { setError(`Couldn’t remove the city: ${errText(err)}`); }
   };
@@ -457,6 +580,7 @@ function Sponsored() {
   const [list, setList] = useState(null);
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(null); // {} = new card
+  const ask = useAsk();
 
   const load = () => api.get('sponsored/admin')
     .then((r) => { setList(r.data || []); setError(''); })
@@ -468,7 +592,7 @@ function Sponsored() {
     catch (err) { setError(`Couldn’t update “${s.title}”: ${errText(err)}`); }
   };
   const remove = async (s) => {
-    if (!window.confirm(`Delete “${s.title}”? Its image and view / click counts are deleted too. To stop it for now, use Pause instead.`)) return;
+    if (!await ask({ title: `Delete “${s.title}”?`, text: 'Its image and view / click counts are deleted too. To stop it for now, use Pause instead.', danger: true, confirmLabel: 'Delete' })) return;
     try { await api.delete(`sponsored/admin/${encodeURIComponent(s.id)}`); setList((l) => l.filter((x) => x.id !== s.id)); }
     catch (err) { setError(`Couldn’t delete “${s.title}”: ${errText(err)}`); }
   };

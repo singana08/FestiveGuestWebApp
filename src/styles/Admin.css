@@ -181,3 +181,52 @@
 .ad-sp-img input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .ad-sp-img:focus-within { outline: 2px solid var(--ad-amber); outline-offset: 2px; }
 .ad-form .ad-cities { padding: 0; }
+
+/* ── Confirm dialog (replaces the browser's confirm box) ── */
+.ad-confirm { width: min(440px, calc(100vw - 2rem)); }
+.ad-confirm-body { display: grid; gap: 0.9rem; margin: 0; padding: 1.25rem 1.25rem 1.1rem; }
+.ad-confirm-head { display: flex; align-items: center; gap: 0.75rem; }
+.ad-confirm-head h2 { margin: 0; font: 800 1.1rem/1.25 'Plus Jakarta Sans', sans-serif; color: var(--ad-ink); overflow-wrap: anywhere; }
+.ad-confirm-icon {
+  flex-shrink: 0; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center;
+  color: var(--ad-amber); background: rgba(255, 193, 99, 0.14); border: 1px solid rgba(255, 193, 99, 0.3);
+}
+.ad-confirm-icon.is-danger { color: #fca5a5; background: rgba(239, 68, 68, 0.14); border-color: rgba(248, 113, 113, 0.35); }
+.ad-confirm-text { margin: 0; font-size: 0.88rem; line-height: 1.55; color: var(--ad-soft); }
+.ad-confirm-reasons { margin: 0; padding: 0; border: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.4rem; }
+.ad-confirm-reasons legend { padding: 0; margin-bottom: 0.45rem; font-size: 0.8rem; font-weight: 700; color: var(--ad-ink); }
+.ad-confirm-reasons legend span { font-weight: 500; color: var(--ad-mute); }
+.ad-confirm-reasons label {
+  display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.65rem; border-radius: 10px; cursor: pointer;
+  font-size: 0.82rem; font-weight: 600; color: var(--ad-soft);
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); transition: border-color 0.15s, background 0.15s;
+}
+.ad-confirm-reasons label:hover { border-color: rgba(255, 255, 255, 0.28); }
+.ad-confirm-reasons label.is-on { color: #fecaca; background: rgba(239, 68, 68, 0.12); border-color: rgba(248, 113, 113, 0.55); }
+.ad-confirm-reasons input { margin: 0; accent-color: #f87171; }
+.ad-confirm-note { display: grid; gap: 0.35rem; font-size: 0.8rem; font-weight: 700; color: var(--ad-ink); }
+.ad-confirm-note small { font-weight: 500; color: var(--ad-mute); }
+.ad-confirm-note textarea {
+  min-height: 4.2rem; resize: vertical; padding: 0.55rem 0.7rem; border-radius: 10px;
+  font: 400 0.85rem/1.45 'Inter', sans-serif; color: var(--ad-ink);
+  background: rgba(0, 0, 0, 0.22); border: 1px solid rgba(255, 255, 255, 0.16); outline: none;
+}
+.ad-confirm-note textarea:focus { border-color: rgba(255, 193, 99, 0.6); }
+.ad-confirm-note textarea::placeholder { color: rgba(255, 240, 230, 0.4); }
+.ad-confirm-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.2rem; }
+.ad-btn--danger-solid { color: #fff; background: linear-gradient(135deg, #f87171, #dc2626); border-color: transparent; }
+.ad-btn--danger-solid:hover:not(:disabled) { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+@media (max-width: 480px) { .ad-confirm-reasons { grid-template-columns: minmax(0, 1fr); } }
+/* Why a member is suspended, in their popup */
+.ad-suspended-why { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; margin: 0.35rem 0 0; font-size: 0.8rem; color: #fecaca; }
+.ad-suspended-why strong { color: #fff; }
+.ad-suspended-why span { color: var(--ad-soft); }
+/* "Verified by FestiveGuest" */
+.ad-btn--trust { color: #ffe2b0; border-color: rgba(255, 193, 99, 0.5); background: rgba(255, 193, 99, 0.12); }
+.ad-btn--trust:hover:not(:disabled) { background: rgba(255, 193, 99, 0.22); }
+.ad-confirm-reasons.is-calm label.is-on { color: #ffe2b0; background: rgba(255, 193, 99, 0.12); border-color: rgba(255, 193, 99, 0.55); }
+.ad-confirm-reasons.is-calm input { accent-color: #ffc163; }
+.ad-trust-why { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; margin: 0.35rem 0 0; font-size: 0.8rem; color: #ffe2b0; }
+.ad-trust-why strong { color: #fff; }
+.ad-trust-why span { color: var(--ad-soft); }
+.ad-shield { display: inline-grid; place-items: center; width: 16px; height: 16px; margin-left: 0.3rem; vertical-align: -2px; border-radius: 5px; color: #2a1206; background: linear-gradient(135deg, #ffd38a, #ff9a4d 60%, #ff6b35); }
