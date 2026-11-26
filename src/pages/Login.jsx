@@ -3,9 +3,10 @@ import { createPortal } from 'react-dom';
 import useSEO from '../hooks/useSEO';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, Key, ArrowRight, Check, CheckCircle2, AlertTriangle, X, Sparkles } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Key, ArrowRight, Check, AlertTriangle, X, Sparkles } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import api from '../utils/api';
+import { toast as showToast } from '../utils/feedback';
 import { useLanguage } from '../i18n/LanguageContext';
 import '../styles/Register.css';
 
@@ -49,7 +50,6 @@ const Login = ({ setUser }) => {
   const [showPw, setShowPw]         = useState(false);
   const [loading, setLoading]       = useState(false);
   const [emailError, setEmailError] = useState('');
-  const [toast, setToast]           = useState(null);
 
   // Login with phone OTP (alternative to password)
   const [loginMethod, setLoginMethod]           = useState('password'); // 'password' | 'phone'
@@ -74,10 +74,6 @@ const Login = ({ setUser }) => {
   const [resetting, setResetting]         = useState(false);
   const [modalError, setModalError]       = useState('');
 
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-    if (type === 'success') setTimeout(() => setToast(null), 4500);
-  };
 
   const validateEmail = (val) => {
     if (!val) { setEmailError(''); return true; }
@@ -409,22 +405,6 @@ const Login = ({ setUser }) => {
           </motion.section>
         </div>
 
-        {createPortal(
-          <AnimatePresence>
-            {toast && (
-              <motion.div key="toast" className={`rg-toast is-${toast.type}`} role={toast.type === 'error' ? 'alert' : 'status'}
-                initial={{ x: 120, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 120, opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 28 }}>
-                <span className="rg-toast-icon">{toast.type === 'success' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}</span>
-                <span>{toast.message}</span>
-                {toast.type !== 'success' && (
-                  <button type="button" className="rg-toast-close" onClick={() => setToast(null)} aria-label="Dismiss"><X size={16} /></button>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>,
-          document.body,
-        )}
 
         {/* ── Reset password dialog ── */}
         {createPortal(

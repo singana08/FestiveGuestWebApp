@@ -179,6 +179,11 @@
 .tc .tg-share-btn, .tc .tg-share { margin-top: 0.2rem; }
 .tc .tg-share-btn { justify-self: start; width: auto; }
 .tc--compact .tc-pic { width: 76px; height: 76px; }
+/* My trips: a ticket, date stub | photo | the trip (the stub styles come from PostsBoard.css) */
+.tc--ticket { position: relative; overflow: hidden; gap: 0; padding: 0; }
+.tc--ticket .tc-stub { flex: 0 0 78px; }
+.tc--ticket .tc-pic { width: 96px; height: 96px; margin: 0.85rem 0 0.85rem 0.85rem; }
+.tc--ticket .tc-body { padding: 0.85rem 0.95rem; }
 
 /* ── Top-of-page banner ── */
 .ut { display: grid; gap: 0.6rem; margin: 0 0 1rem; padding: 0.9rem; border-radius: 20px; background: linear-gradient(135deg, rgba(255, 138, 76, 0.14), rgba(139, 108, 255, 0.12)); border: 1px solid rgba(255, 193, 99, 0.25); }
@@ -190,13 +195,32 @@
 
 /* ── My trips / Saved pages ── */
 .tp { display: grid; gap: 1rem; align-content: start; }
-.tp-head h1 { display: flex; align-items: center; gap: 0.5rem; margin: 0; font: 800 1.6rem 'Plus Jakarta Sans', sans-serif; color: #fff7f0; }
+.tp-head h1 { display: flex; align-items: center; gap: 0.5rem; margin: 0; font: 800 1.35rem 'Plus Jakarta Sans', sans-serif; color: #fff7f0; }
 .tp-head h1 svg { color: #ffc163; }
-.tp-head p { margin: 0.25rem 0 0; color: rgba(255, 240, 230, 0.7); }
+.tp-head p { margin: 0.2rem 0 0; font-size: 0.867rem; color: rgba(255, 240, 230, 0.7); }
 .tp-tabs { justify-self: start; }
 .tp-tabs button { display: inline-flex; align-items: center; white-space: nowrap; }
 .tp-count { margin-left: 0.3rem; padding: 0 0.4rem; border-radius: 999px; font-size: 0.72rem; line-height: 1.25rem; color: #1b0f2d; background: #ffc163; }
-.tp-list { display: grid; gap: 0.7rem; }
+.tp-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 470px), 1fr)); align-items: start; gap: 0.8rem; }
+/* Tickets and saved hosts: lift a little on hover; lists fade up one after another */
+.tc--ticket, .sv-card { transition: transform 0.2s ease, border-color 0.2s, box-shadow 0.2s; }
+.tc--ticket:hover, .sv-card:hover { transform: translateY(-2px); border-color: rgba(255, 255, 255, 0.2); box-shadow: 0 16px 32px -20px rgba(0, 0, 0, 0.85); }
+.tp-list > *, .sv-grid > * { animation: tp-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.tp-list > :nth-child(2), .sv-grid > :nth-child(2) { animation-delay: 50ms; }
+.tp-list > :nth-child(3), .sv-grid > :nth-child(3) { animation-delay: 100ms; }
+.tp-list > :nth-child(n+4), .sv-grid > :nth-child(n+4) { animation-delay: 150ms; }
+@keyframes tp-in { from { opacity: 0; transform: translateY(8px); } }
+@media (prefers-reduced-motion: reduce) {
+  .tc--ticket, .sv-card, .tc--ticket:hover, .sv-card:hover { transition: none; transform: none; }
+  .tp-list > *, .sv-grid > * { animation: none; }
+}
+
+/* Loading placeholders (the shimmer is .pb-sk from PostsBoard.css) */
+.tp-sk .tc-stub { min-height: 130px; border-radius: 0; }
+.tp-sk .tc-body { gap: 0.55rem; }
+/* the photo boxes have their own gradient; put the shimmer back */
+.tp-sk .pb-sk.tc-pic, .tp-sk .pb-sk.tc-stub, .sv-card .pb-sk.sv-pic { border-radius: 0; background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.11) 50%, rgba(255, 255, 255, 0.05) 75%) 0 0 / 200% 100%; }
+.tp-sk .pb-sk.tc-pic { border-radius: 14px; }
 .tp-empty { display: grid; justify-items: start; gap: 0.7rem; padding: 1.5rem; border-radius: 18px; color: rgba(255, 240, 230, 0.75); background: rgba(255, 255, 255, 0.04); border: 1px dashed rgba(255, 255, 255, 0.16); }
 .tp-empty p { margin: 0; }
 .tp-empty a { text-decoration: none; }
@@ -231,7 +255,14 @@
 
 @media (max-width: 520px) {
   .tc-pic { width: 76px; height: 76px; }
-  .tp-head h1 { font-size: 1.35rem; }
+  .tc--ticket .tc-stub { flex-basis: 64px; }
+  .tc--ticket .tc-pic { width: 48px; height: 48px; margin: 0.7rem 0 0 0.65rem; border-radius: 12px; }
+  .tc--ticket .tc-initial { font-size: 1.3rem; }
+  .tc--ticket .tc-pic-tag, .tc--ticket .tc-status.is-ok { display: none; }
+  .tc--ticket .tc-body { padding: 0.7rem 0.7rem 0.8rem 0.65rem; }
+  .tc--ticket .tc-top h3 { font-size: 0.95rem; }
+  .tc--ticket .tc-meta { gap: 0.2rem 0.7rem; font-size: 0.78rem; }
+  .tp-head h1 { font-size: 1.25rem; }
 }
 
 /* ── Photos per place: city chips (editor and profile), the Place picker, inline "Remove?" ── */

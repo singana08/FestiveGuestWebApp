@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Heart } from 'lucide-react';
 import { useSavedIds, toggleSaved } from '../utils/saved';
+import { toast } from '../utils/feedback';
 import '../styles/Trust.css';
 
 /** ♡ Save a host (icon-only on cards, with a word on profiles). */
@@ -13,7 +14,7 @@ export default function SaveButton({ userId, name, compact = false }) {
     e.stopPropagation();
     setBusy(true);
     try { await toggleSaved(userId); }
-    catch (err) { window.alert(err.response?.data?.message || 'Couldn’t update your saved hosts. Please try again.'); }
+    catch (err) { toast(err.response?.data?.message || 'Couldn’t update your saved hosts. Please try again.', 'error'); }
     finally { setBusy(false); }
   };
 

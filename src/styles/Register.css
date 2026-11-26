@@ -392,6 +392,9 @@
   box-shadow: 0 14px 30px -12px rgba(255, 107, 53, 0.85), inset 0 1px 0 rgba(255, 255, 255, 0.65), inset 0 -3px 0 rgba(150, 50, 0, 0.28);
 }
 .rg-btn-primary:hover:not(:disabled) { transform: translateY(-2px); }
+/* every button gives a little under the finger */
+.rg-btn:active:not(:disabled) { transform: scale(0.97); transition-duration: 0.08s; }
+.rg-btn-ghost:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); }
 .rg-btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }
 .rg-btn-ghost { color: #fff7f0; background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.18); }
 .rg-btn-ghost:hover { background: rgba(255, 255, 255, 0.13); }
@@ -419,23 +422,7 @@
 .rg .rg-success h2 { font-size: 1.8rem; font-weight: 800; }
 .rg .rg-success p { margin-top: 0.6rem; }
 
-/* ── Portalled: toast + hosting-areas dialog ── */
-.rg-toast {
-  position: fixed; top: calc(var(--nav-height, 68px) + 1rem); right: 1.25rem; z-index: 10001;
-  display: flex; align-items: flex-start; gap: 0.7rem; max-width: 340px;
-  padding: 0.85rem 1rem; border-radius: 16px;
-  font: 500 0.88rem/1.45 'Inter', sans-serif; color: #fff7f0;
-  background: linear-gradient(160deg, #2b1a46, #1b0f2d);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.7);
-}
-.rg-toast.is-success { border-color: rgba(52, 211, 153, 0.5); }
-.rg-toast.is-error { border-color: rgba(248, 113, 113, 0.55); }
-.rg-toast-icon { flex-shrink: 0; display: flex; margin-top: 0.1rem; }
-.rg-toast.is-success .rg-toast-icon { color: #6ee7b7; }
-.rg-toast.is-error .rg-toast-icon { color: #fca5a5; }
-.rg-toast small { display: block; margin-top: 0.2rem; color: rgba(255, 240, 230, 0.55); }
-.rg-toast-close { margin-left: auto; display: flex; padding: 0; border: 0; border-radius: 0; background: none; cursor: pointer; color: rgba(255, 240, 230, 0.6); }
+/* ── Portalled: hosting-areas dialog ── */
 
 .rg-modal-overlay {
   position: fixed; inset: 0; z-index: 10000;
@@ -555,11 +542,11 @@
   .rg-role-icon { grid-row: auto; margin-bottom: 0.3rem; }
   .rg-reqs { grid-template-columns: 1fr; }
   .rg-input.has-action { padding-right: 8rem; }
-  .rg-toast { left: 0.85rem; right: 0.85rem; max-width: none; }
   .rg-modal-overlay { align-items: flex-end; padding: 0; }
   .rg-modal { max-height: 90vh; border-radius: 24px 24px 0 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .rg-aurora span { animation: none; }
+  .rg-btn:active:not(:disabled), .rg-btn-primary:hover:not(:disabled) { transform: none; }
 }

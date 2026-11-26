@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, X, Flag, MapPin } from 'lucide-react';
 import api from '../utils/api';
+import { ask, toast } from '../utils/feedback';
 import '../styles/Trust.css';
 
 /** Full-size viewer: arrows / ← → keys to move, Esc or the backdrop to close. */
@@ -14,14 +15,14 @@ function Lightbox({ photos, start, ownerId, ownerName, canReport, onClose }) {
   const go = (by) => { setI((n) => (n + by + photos.length) % photos.length); setReported(false); };
 
   const report = async () => {
-    if (!window.confirm('Report this photo to the FestiveGuest team?')) return;
+    if (!(await ask({ title: 'Report this photo?', text: 'The FestiveGuest team will look at it. The host won’t be told who reported it.', confirmLabel: 'Report photo' }))) return;
     try {
       await api.post('safety/report', {
         reportedUserId: ownerId, reason: 'inappropriate', context: 'photo',
         details: `Gallery photo ${i + 1}${photo.caption ? ` (“${photo.caption}”)` : ''}, id ${photo.id}`,
       });
       setReported(true);
-    } catch { window.alert('Couldn’t send the report. Please try again.'); }
+    } catch { toast('Couldn’t send the report. Please try again.', 'error'); }
   };
 
   return (

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import api from '../utils/api';
+import { toast as showToast } from '../utils/feedback';
 import locationService from '../utils/locationService';
 import '../styles/Register.css';
 
@@ -106,7 +107,6 @@ const Registration = () => {
   });
 
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState(null);
   const [verificationOTP, setVerificationOTP] = useState('');
   const [serverError, setServerError] = useState(null);
   const [otpSent, setOtpSent] = useState(false);
@@ -160,14 +160,6 @@ const Registration = () => {
     setPhoneError(''); return true;
   };
 
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-    const duration = type === 'success' ? 5000 : 4000;
-    setTimeout(() => {
-      setToast(prev => prev ? { ...prev, hiding: true } : null);
-      setTimeout(() => setToast(null), 300);
-    }, duration);
-  };
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -924,31 +916,7 @@ const Registration = () => {
           </motion.section>
         </div>
 
-        {/* Toast + hosting-areas dialog render into <body> so they sit above everything. */}
-        {createPortal(
-          <AnimatePresence>
-            {toast && (
-              <motion.div
-                key="toast"
-                className={`rg-toast is-${toast.type}`}
-                role={toast.type === 'error' ? 'alert' : 'status'}
-                initial={{ x: 120, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 120, opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-              >
-                <span className="rg-toast-icon">{toast.type === 'success' ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}</span>
-                <span>
-                  {toast.message}
-                  {registrationSuccessCountdown > 0 && <small>Redirecting in {registrationSuccessCountdown}s…</small>}
-                </span>
-                {toast.type !== 'success' && (
-                  <button type="button" className="rg-toast-close" onClick={() => setToast(null)} aria-label="Dismiss"><X size={16} /></button>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>,
-          document.body,
-        )}
-
+        {/* The hosting-areas dialog renders into <body> so it sits above everything. */}
         {showHostingModal && createPortal(
           <div className="rg-modal-overlay rg-portal" onMouseDown={e => { if (e.target === e.currentTarget) setShowHostingModal(false); }}>
             <motion.div className="rg-modal" role="dialog" aria-modal="true" aria-labelledby="rg-areas-title"

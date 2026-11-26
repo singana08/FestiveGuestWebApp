@@ -3,7 +3,7 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import {
   Plus, Search, X, LayoutGrid, Map as MapIcon, HelpCircle, Gift, Megaphone,
-  MapPin, Sparkles, RefreshCw, Trash2, CheckCircle2, AlertTriangle, Compass,
+  MapPin, Sparkles, RefreshCw, Trash2, AlertTriangle, Compass,
 } from 'lucide-react';
 import postsService from '../utils/postsService';
 import locationService from '../utils/locationService';
@@ -22,6 +22,7 @@ import VerifyPhoneBanner from '../components/VerifyPhoneBanner';
 import SponsoredCard, { HouseCard } from '../components/SponsoredCard';
 import InviteFriendsModal from '../components/InviteFriendsModal';
 import api from '../utils/api';
+import { toast as showToast } from '../utils/feedback';
 import { CITY_COORDS } from '../components/posts/cityCoords';
 import { fmt, daysUntil, citiesInLocation, splitCsv } from '../components/posts/postUtils';
 import '../styles/Register.css';
@@ -105,7 +106,6 @@ const Posts = () => {
   const [profile, setProfile] = useState(null);
   const [detail, setDetail] = useState(null); // post opened in full
   const [activeChat, setActiveChat] = useState(null);
-  const [toast, setToast] = useState(null);
   const fetchId = useRef(0);
   const searchWrap = useRef(null);
 
@@ -113,14 +113,6 @@ const Posts = () => {
   const viewingTrips = showMyPosts ? !isHost : isHost;
   const effectiveSort = sort || (viewingTrips ? 'soonest' : 'newest');
 
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type, id: Date.now() });
-  };
-  useEffect(() => {
-    if (!toast) return undefined;
-    const id = setTimeout(() => setToast(null), 3500);
-    return () => clearTimeout(id);
-  }, [toast]);
 
   const fetchPosts = async () => {
     // Ignore responses from an earlier tab if the user switched tabs mid-load.
@@ -367,7 +359,7 @@ const Posts = () => {
                     </button>
                   ))}
                 </div>
-                <button type="button" className="pb-howto" onClick={() => setShowHowItWorks(true)}><HelpCircle size={16} /> {c.howTitle}</button>
+                <button type="button" className="pb-howto" onClick={() => setShowHowItWorks(true)} title={c.howTitle}><HelpCircle size={16} /> <span className="pb-howto-label">{c.howTitle}</span></button>
                 <button type="button" className="rg-btn rg-btn-primary pb-cta" onClick={openCreate}><Plus size={17} /> {isHost ? c.ctaHost : c.ctaGuest}</button>
               </div>
             </motion.section>
@@ -512,15 +504,6 @@ const Posts = () => {
           </div>
         )}
 
-        <AnimatePresence>
-          {toast && (
-            <motion.div key={toast.id} className={`rg-toast is-${toast.type}`} role={toast.type === 'error' ? 'alert' : 'status'}
-              initial={{ x: 120, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 120, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 28 }}>
-              <span className="rg-toast-icon">{toast.type === 'error' ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}</span>
-              <span>{toast.message}</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* ═════ Dialogs ═════ */}
         <PostFormModal key={form.key} open={form.open} kind={form.kind} isEditing={form.isEditing} initialData={form.initialData}

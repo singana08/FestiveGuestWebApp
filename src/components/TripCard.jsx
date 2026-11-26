@@ -2,11 +2,29 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MessageCircle, Check, Star, MapPin, CalendarDays, Images } from 'lucide-react';
 import api from '../utils/api';
+import { ask, toast } from '../utils/feedback';
 import { stayDates, stayWord, whenLabel, daysUntil } from '../utils/stays';
 import ShareStay from './ShareStay';
 import '../styles/Trust.css';
 
 const first = (name) => (name || '').split(' ')[0] || 'them';
+
+/** The ticket's date stub on My trips (same look as the trip cards on Posts). Stay dates are UTC dates. */
+function Stub({ stay }) {
+  const d = daysUntil(stay);
+  const tone = stay.ended ? 'past' : stay.status === 'Pending' ? 'flex' : d <= 3 ? 'soon' : 'later';
+  const when = stay.ended ? 'Done' : stay.status === 'Pending' ? 'Requested' : d > 1 ? `in ${d} days` : d === 1 ? 'Tomorrow' : d === 0 ? 'Today' : 'Now';
+  const part = (o) => new Date(stay.startDate).toLocaleDateString('en-IN', { ...o, timeZone: 'UTC' });
+  return (
+    <div className={`pb-tk-stub pb-tk-stub--${tone} tc-stub`} aria-hidden="true">
+      <span className="pb-tk-mon">{part({ month: 'short' })}</span>
+      <span className="pb-tk-day">{part({ day: 'numeric' })}</span>
+      <span className="pb-tk-wk">{part({ weekday: 'short' })}</span>
+      <span className="pb-tk-rule" />
+      <span className="pb-tk-when">{when}</span>
+    </div>
+  );
+}
 
 /**
  * One trip as both people see it. A traveller sees the host and their place; a host sees the guest and their note.
@@ -24,10 +42,10 @@ export default function TripCard({ trip, meId, onChanged, compact = false }) {
   const word = stayWord(stay);
 
   const act = async (what) => {
-    if (what === 'cancel' && stay.status === 'Confirmed' && !window.confirm(`Cancel your ${word} with ${first(other.name)}?`)) return;
+    if (what === 'cancel' && stay.status === 'Confirmed' && !(await ask({ title: `Cancel your ${word} with ${first(other.name)}?`, text: 'We’ll let them know. You can request a new one any time.', confirmLabel: `Cancel ${word}`, cancelLabel: 'Keep it', danger: true }))) return;
     setBusy(true);
     try { await api.post(`stays/${encodeURIComponent(stay.id)}/${what}`); onChanged?.(); }
-    catch (err) { window.alert(err.response?.data?.message || 'Something went wrong. Please try again.'); }
+    catch (err) { toast(err.response?.data?.message || 'Something went wrong. Please try again.', 'error'); }
     finally { setBusy(false); }
   };
 
@@ -36,10 +54,11 @@ export default function TripCard({ trip, meId, onChanged, compact = false }) {
     : `${stay.kind === 'meetup' ? 'Meet-up' : 'Stay'} with ${other.name}`;
   const status = stay.ended ? (reviewed ? 'Reviewed' : 'Done')
     : stay.status === 'Pending' ? (askingMe ? 'Waiting for you' : `Waiting for ${first(other.name)}`)
-      : whenLabel(stay) || 'Confirmed';
+      : (compact && whenLabel(stay)) || 'Confirmed'; // a ticket's stub already says when
 
   return (
-    <article className={`tc${compact ? ' tc--compact' : ''}${askingMe ? ' is-ask' : ''}`}>
+    <article className={`tc${compact ? ' tc--compact' : ' tc--ticket'}${askingMe ? ' is-ask' : ''}`}>
+      {!compact && <Stub stay={stay} />}
       <Link to={profile} className="tc-pic" aria-label={`${other.name}’s profile`}>
         {picture ? <img src={picture} alt="" loading="lazy" /> : <span className="tc-initial">{(other.name || '?').charAt(0).toUpperCase()}</span>}
         {!iAmHost && other.coverUrl && <span className="tc-pic-tag"><Images size={11} /> Photos</span>}
@@ -47,7 +66,7 @@ export default function TripCard({ trip, meId, onChanged, compact = false }) {
       <div className="tc-body">
         <div className="tc-top">
           <h3>{title}</h3>
-          <span className={`tc-status${upcoming && daysUntil(stay) <= 1 ? ' is-soon' : ''}${stay.ended ? ' is-done' : ''}${stay.status === 'Pending' ? ' is-pending' : ''}`}>{status}</span>
+          <span className={`tc-status${upcoming && daysUntil(stay) <= 1 ? ' is-soon' : ''}${stay.ended ? ' is-done' : ''}${stay.status === 'Pending' ? ' is-pending' : ''}${status === 'Confirmed' ? ' is-ok' : ''}`}>{status}</span>
         </div>
         <p className="tc-meta">
           <span><CalendarDays size={13} /> {stayDates(stay)}{stay.kind === 'stay' && nights > 0 && ` · ${nights} night${nights === 1 ? '' : 's'}`}</span>

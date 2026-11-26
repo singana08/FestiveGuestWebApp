@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Star, AlertTriangle, Reply, Flag, Clock, Sparkles } from 'lucide-react';
 import api from '../utils/api';
+import { ask, toast } from '../utils/feedback';
 import '../styles/Trust.css';
 
 const firstName = (name) => (name || '').split(' ')[0] || 'They';
@@ -64,14 +65,14 @@ export default function ReviewsSection({ userId, name, reviews = [], meId, onCha
       setReplying(null);
       onChanged?.();
     } catch (err) {
-      window.alert(err.response?.data?.message || 'Couldn’t post your reply.');
+      toast(err.response?.data?.message || 'Couldn’t post your reply. Please try again.', 'error');
     } finally {
       setBusy(false);
     }
   };
 
   const report = async (review) => {
-    if (!window.confirm(`Report ${review.reviewerName}’s review to the FestiveGuest team?`)) return;
+    if (!(await ask({ title: `Report ${review.reviewerName}’s review?`, text: 'The FestiveGuest team will look at it. They won’t be told who reported it.', confirmLabel: 'Report review' }))) return;
     try {
       await api.post('safety/report', {
         reportedUserId: review.reviewerId, reason: 'inappropriate', context: 'review',
@@ -79,7 +80,7 @@ export default function ReviewsSection({ userId, name, reviews = [], meId, onCha
       });
       setReported((r) => ({ ...r, [review.id]: true }));
     } catch {
-      window.alert('Couldn’t send the report. Please try again.');
+      toast('Couldn’t send the report. Please try again.', 'error');
     }
   };
 

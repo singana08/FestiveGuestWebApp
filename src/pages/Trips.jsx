@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Luggage, Users, Search } from 'lucide-react';
 import api from '../utils/api';
+import { LoadError } from '../components/Feedback';
 import TripCard from '../components/TripCard';
 import useSEO from '../hooks/useSEO';
 import '../styles/Register.css';
@@ -17,12 +18,13 @@ export default function Trips() {
   const isHost = (user.userType || user.role) === 'Host';
   useSEO({ title: isHost ? 'My guests' : 'My trips', noindex: true });
   const [trips, setTrips] = useState(null);
+  const [failed, setFailed] = useState(false);
   const [reload, setReload] = useState(0);
   const [tab, setTab] = useState(null); // picked once the trips load
 
   useEffect(() => {
     let live = true;
-    api.get('stays/trips').then((res) => { if (live) setTrips(res.data || []); }).catch(() => { if (live) setTrips([]); });
+    api.get('stays/trips').then((res) => { if (live) setTrips(res.data || []); }).catch(() => { if (live) setFailed(true); });
     return () => { live = false; };
   }, [reload]);
 
@@ -57,8 +59,17 @@ export default function Trips() {
           ))}
         </div>
 
-        {trips === null ? (
-          <p className="tp-empty"><span className="rg-spinner pb-spinner-light" /> Loading…</p>
+        {trips === null && failed ? (
+          <LoadError what="your trips" onRetry={() => { setFailed(false); setReload((n) => n + 1); }} />
+        ) : trips === null ? (
+          <div className="tp-list" role="status" aria-label="Loading your trips">
+            {[0, 1].map((i) => (
+              <div key={i} className="tc tc--ticket tp-sk" aria-hidden="true">
+                <span className="pb-sk tc-stub" /><span className="pb-sk tc-pic" />
+                <span className="tc-body"><span className="pb-sk pb-sk--line" /><span className="pb-sk pb-sk--line pb-sk--short" /><span className="pb-sk pb-sk--btn" /></span>
+              </div>
+            ))}
+          </div>
         ) : list.length === 0 ? (
           <div className="tp-empty">
             <p>{empty}</p>

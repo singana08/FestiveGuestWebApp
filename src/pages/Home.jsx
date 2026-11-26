@@ -4,12 +4,19 @@ import {
   motion, AnimatePresence, MotionConfig,
   useMotionValue, useSpring, useTransform, useReducedMotion,
 } from 'framer-motion';
-import { ArrowRight, Sparkles, MapPin, CalendarDays, CheckCircle2, BadgeCheck, ShieldCheck, Home as HomeIcon } from 'lucide-react';
+import {
+  ArrowRight, Sparkles, MapPin, CalendarDays, CheckCircle2, BadgeCheck, ShieldCheck, Home as HomeIcon,
+  Briefcase, Hospital, NotebookPen, Luggage, Flame, Building2, Smartphone, MessageCircle, Star,
+} from 'lucide-react';
 import DisclaimerModal from '../components/DisclaimerModal';
 import { useLanguage } from '../i18n/LanguageContext';
 import { homeCopy } from '../i18n/homeCopy';
 import useSEO from '../hooks/useSEO';
 import '../styles/Home.css';
+
+// Line icons for the tiles (the copy keeps its emoji as the key, so both languages share them).
+const TILE_ICONS = { '💼': Briefcase, '🏥': Hospital, '📝': NotebookPen, '🧳': Luggage, '🪔': Flame, '🏙️': Building2, '📱': Smartphone, '💬': MessageCircle, '⭐': Star, '🛡️': ShieldCheck, '🏡': HomeIcon };
+const TileIcon = ({ icon }) => { const Icon = TILE_ICONS[icon]; return Icon ? <Icon size={26} strokeWidth={1.75} /> : icon; };
 
 const EASE = [0.22, 1, 0.36, 1];
 const TILT_SPRING = { stiffness: 110, damping: 18, mass: 0.6 };
@@ -154,7 +161,7 @@ const HeroScene = ({ s, interactive }) => {
                     <div className="hm-name">{s.postName} <span className="hm-role">{s.postRole}</span></div>
                     <div className="hm-meta"><MapPin size={12} /> {s.postCity}</div>
                   </div>
-                  <span className="hm-tag">💼 {s.postTag}</span>
+                  <span className="hm-tag"><Briefcase size={11} aria-hidden="true" /> {s.postTag}</span>
                 </div>
                 <p className="hm-card-text">{s.postText}</p>
                 <div className="hm-card-foot"><CalendarDays size={13} /> {s.postDates}</div>
@@ -315,7 +322,7 @@ const Home = ({ user }) => {
                       whileHover={finePointer ? { y: -8, rotateX: 7, rotateY: i % 2 ? 7 : -7 } : undefined}
                       transition={{ type: 'spring', stiffness: 300, damping: 22 }}
                     >
-                      <span className="hm-icon-tile" aria-hidden="true">{p.icon}</span>
+                      <span className="hm-icon-tile" aria-hidden="true"><TileIcon icon={p.icon} /></span>
                       <h3>{p.title}</h3>
                       <p>{p.desc}</p>
                     </motion.article>
@@ -382,7 +389,7 @@ const Home = ({ user }) => {
                 <ul className="hm-safety-list">
                   {c.safety.map((item) => (
                     <li key={item.icon} className="hm-safety-item">
-                      <span className="hm-icon-tile" aria-hidden="true">{item.icon}</span>
+                      <span className="hm-icon-tile" aria-hidden="true"><TileIcon icon={item.icon} /></span>
                       <div>
                         <h3>{item.title}</h3>
                         <p>{item.desc}</p>
@@ -434,7 +441,7 @@ const Home = ({ user }) => {
                   <div className="hm-final-grid">
                     <Reveal>
                       <button className="hm-glass hm-choice hm-choice--guest" onClick={() => setModalRole('Guest')}>
-                        <span className="hm-icon-tile" aria-hidden="true">🧳</span>
+                        <span className="hm-icon-tile" aria-hidden="true"><TileIcon icon="🧳" /></span>
                         <span className="hm-choice-title">{c.finalGuestTitle}</span>
                         <span className="hm-choice-desc">{c.finalGuestDesc}</span>
                         <span className="hm-choice-go">{c.ctaGuest} <ArrowRight size={17} /></span>
@@ -442,7 +449,7 @@ const Home = ({ user }) => {
                     </Reveal>
                     <Reveal delay={0.1}>
                       <button className="hm-glass hm-choice hm-choice--host" onClick={() => setModalRole('Host')}>
-                        <span className="hm-icon-tile" aria-hidden="true">🏡</span>
+                        <span className="hm-icon-tile" aria-hidden="true"><TileIcon icon="🏡" /></span>
                         <span className="hm-choice-title">{c.finalHostTitle}</span>
                         <span className="hm-choice-desc">{c.finalHostDesc}</span>
                         <span className="hm-choice-go">{c.ctaHost} <ArrowRight size={17} /></span>

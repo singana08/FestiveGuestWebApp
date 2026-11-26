@@ -2,14 +2,16 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import {
   Camera, Pencil, KeyRound, Lock, Eye, EyeOff, MapPin, Mail, Phone, Bell, Check, X, Copy, Share2,
-  Gift, ShieldCheck, CalendarDays, Sparkles, CheckCircle2, AlertTriangle, Upload, Ban,
+  Gift, ShieldCheck, CalendarDays, Sparkles, AlertTriangle, Upload, Ban,
 } from 'lucide-react';
 import api from '../utils/api';
+import { toast as showToast } from '../utils/feedback';
 import ImageWithSas from '../components/ImageWithSas';
 import GlassDialog from '../components/posts/GlassDialog';
 import ProgressRing from '../components/ProgressRing';
 import VerifyPhoneDialog from '../components/VerifyPhoneDialog';
 import GalleryEditor from '../components/GalleryEditor';
+import { LoadError } from '../components/Feedback';
 import UpcomingTrip from '../components/UpcomingTrip';
 import { toJpeg, putJpeg } from '../utils/image';
 import { VerifiedChip, TrustChip } from '../components/VerifiedBadge';
@@ -31,6 +33,7 @@ function Profile() {
   useSEO({ title: 'My Profile', noindex: true });
   const { t } = useLanguage();
   const [user, setUser] = useState(null);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [successfulReferrals, setSuccessfulReferrals] = useState(0);
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
@@ -52,7 +55,6 @@ function Profile() {
   const [galleryCount, setGalleryCount] = useState(null);
   const [updateError, setUpdateError] = useState('');
   const [locationData, setLocationData] = useState(null);
-  const [toast, setToast] = useState(null);
   const [blocks, setBlocks] = useState([]);
   const [showVerify, setShowVerify] = useState(false);
   const fileInputRef = useRef(null);
@@ -65,15 +67,9 @@ function Profile() {
     { label: t('oneSpecialChar'), test: (pw) => /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(pw) },
   ];
 
-  const showToast = (message, type = 'success') => setToast({ message, type, id: Date.now() });
-  useEffect(() => {
-    if (!toast) return undefined;
-    const id = setTimeout(() => setToast(null), 3500);
-    return () => clearTimeout(id);
-  }, [toast]);
 
   useEffect(() => {
-    if (localStorage.getItem('userId')) fetchUser();
+    fetchUser();
     api.get('safety/blocks').then((res) => setBlocks(res.data || [])).catch(() => {});
     locationService.getLocations().then(setLocationData).catch((err) => console.error('Failed to load locations:', err));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -98,6 +94,7 @@ function Profile() {
   };
 
   const fetchUser = async () => {
+    setLoadFailed(false);
     try {
       const res = await api.get('user/profile');
       const fetchedUser = res.data;
@@ -110,7 +107,7 @@ function Profile() {
       setReferralCode(updatedUser.referralCode || '');
       window.dispatchEvent(new Event('storage')); // sync App.jsx state
     } catch {
-      console.error('User not found');
+      setLoadFailed(true);
     }
   };
 
@@ -251,7 +248,7 @@ function Profile() {
     return (
       <div className="pf pf--loading">
         <div className="rg-aurora" aria-hidden="true"><span className="a1" /><span className="a2" /><span className="a3" /></div>
-        <span className="rg-spinner pb-spinner-light" /> <p>{t('loadingProfile')}</p>
+        {loadFailed ? <LoadError what="your profile" onRetry={fetchUser} /> : <><span className="rg-spinner pb-spinner-light" /> <p>{t('loadingProfile')}</p></>}
       </div>
     );
   }
@@ -365,7 +362,7 @@ function Profile() {
 
               {isHost && (
                 <motion.section id="pf-gallery" className="pf-card" {...rise(0.12)}>
-                  <GalleryEditor userId={user.userId} places={(user.hostingAreas || []).flatMap((a) => a.cities || [])} onToast={showToast} onCount={setGalleryCount} />
+                  <GalleryEditor userId={user.userId} places={(user.hostingAreas || []).flatMap((a) => a.cities || [])} onCount={setGalleryCount} />
                 </motion.section>
               )}
 
@@ -449,15 +446,6 @@ function Profile() {
           </div>
         </div>
 
-        <AnimatePresence>
-          {toast && (
-            <motion.div key={toast.id} className={`rg-toast is-${toast.type}`} role={toast.type === 'error' ? 'alert' : 'status'}
-              initial={{ x: 120, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 120, opacity: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 28 }}>
-              <span className="rg-toast-icon">{toast.type === 'error' ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}</span>
-              <span>{toast.message}</span>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* ═════ Edit profile ═════ */}
         <GlassDialog open={isEditingProfile} onClose={() => !updatingProfile && setIsEditingProfile(false)} size="lg"

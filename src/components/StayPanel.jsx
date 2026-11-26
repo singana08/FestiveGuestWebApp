@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CalendarCheck, CalendarPlus, Check, Star, AlertTriangle } from 'lucide-react';
 import api from '../utils/api';
+import { ask } from '../utils/feedback';
 import { stayDates, stayWord } from '../utils/stays';
 import '../styles/Trust.css';
 
@@ -93,7 +94,7 @@ export default function StayPanel({ otherUserId, otherName, meId, onMessage }) {
           <span className="ts-actions">
             {latest.ended
               ? <Link className="rg-btn rg-btn-primary rg-btn-sm" to={`/profile/${encodeURIComponent(otherName)}`}><Star size={14} /> Write a review</Link>
-              : !started(latest) && <button type="button" className="rg-link-btn" onClick={() => { if (window.confirm(`Cancel your ${stayWord(latest)} with ${first}?`)) answer(latest, 'cancel'); }} disabled={busy}>Cancel</button>}
+              : !started(latest) && <button type="button" className="rg-link-btn" onClick={async () => { if (await ask({ title: `Cancel your ${stayWord(latest)} with ${first}?`, text: 'We’ll let them know. You can request a new one any time.', confirmLabel: `Cancel ${stayWord(latest)}`, cancelLabel: 'Keep it', danger: true })) answer(latest, 'cancel'); }} disabled={busy}>Cancel</button>}
           </span>
         </div>
       )}

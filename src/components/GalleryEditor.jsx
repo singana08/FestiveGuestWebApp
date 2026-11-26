@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ImagePlus, Trash2, ArrowLeft, ArrowRight, Star, ShieldCheck, MapPin } from 'lucide-react';
 import api from '../utils/api';
+import { toast } from '../utils/feedback';
 import { toJpeg, putJpeg } from '../utils/image';
 import '../styles/Trust.css';
 
@@ -13,7 +14,7 @@ const samePlace = (a, b) => (a || '').toLowerCase() === (b || '').toLowerCase();
  * reorder within a place (its first photo is that place's cover), move to another place, remove.
  * places: the cities on their profile.
  */
-export default function GalleryEditor({ userId, places = [], onToast, onCount }) {
+export default function GalleryEditor({ userId, places = [], onCount }) {
   const [photos, setPhotos] = useState(null); // null while loading
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState(places[0] || ALL);
@@ -44,7 +45,7 @@ export default function GalleryEditor({ userId, places = [], onToast, onCount })
   const shown = (photos || []).filter((p) => samePlace(placeOf(p), tab));
   const tabName = tab || 'All places';
 
-  const fail = (err, fallback) => onToast(err.response?.data?.message || err.message || fallback, 'error');
+  const fail = (err, fallback) => toast(err.response?.data?.message || err.message || fallback, 'error');
 
   const add = async (fileList) => {
     const files = [...(fileList || [])];
@@ -59,8 +60,8 @@ export default function GalleryEditor({ userId, places = [], onToast, onCount })
         await putJpeg(uploadUrl, jpeg);
         show((await api.post('gallery', { photoId, caption: '', city })).data);
       }
-      onToast(chosen.length > 1 ? `${chosen.length} photos added to ${tabName}` : `Photo added to ${tabName}`);
-      if (files.length > chosen.length) onToast(`Only ${PER_PLACE} photos fit in ${tabName}, so the rest weren’t added.`, 'error');
+      toast(chosen.length > 1 ? `${chosen.length} photos added to ${tabName}` : `Photo added to ${tabName}`);
+      if (files.length > chosen.length) toast(`Only ${PER_PLACE} photos fit in ${tabName}, so the rest weren’t added.`, 'error');
     } catch (err) {
       fail(err, 'Couldn’t add the photo.');
     } finally {
@@ -100,7 +101,7 @@ export default function GalleryEditor({ userId, places = [], onToast, onCount })
     try {
       await api.delete(`gallery/${encodeURIComponent(photo.id)}`);
       show(saved.current.filter((p) => p.id !== photo.id));
-      onToast('Photo removed');
+      toast('Photo removed');
     } catch (err) {
       fail(err, 'Couldn’t remove the photo.');
     }

@@ -8,20 +8,23 @@ import ReviewsSection, { Stars } from '../ReviewsSection';
 import ShareStay from '../ShareStay';
 import SaveButton from '../SaveButton';
 import MemberPosts from '../MemberPosts';
+import { LoadError } from '../Feedback';
 import { VerifiedChip, TrustChip } from '../VerifiedBadge';
 
 /** A post author's profile: photos of their place, reviews, reply speed, and safety tools. */
 const ProfileModal = ({ open, userId, userName, onClose, onBlockChange }) => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
   const me = JSON.parse(localStorage.getItem('user') || '{}');
 
   const fetchProfile = async () => {
+    setLoading(true); setLoadFailed(false);
     try {
       setProfile((await api.post('user/public-profile', { userId })).data);
     } catch (error) {
-      console.error('Failed to fetch profile:', error);
+      if (error.response?.status !== 404) setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -49,6 +52,8 @@ const ProfileModal = ({ open, userId, userName, onClose, onBlockChange }) => {
     >
       {loading ? (
         <div className="pb-profile-loading"><span className="rg-spinner pb-spinner-light" /> Loading profile…</div>
+      ) : loadFailed ? (
+        <LoadError what="this profile" onRetry={fetchProfile} />
       ) : !profile ? (
         <p className="pb-muted">Profile not found.</p>
       ) : (

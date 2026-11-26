@@ -6,6 +6,32 @@
 /* width:auto (not 100%) and margin-right 0 (not the old "auto") so the page fills the space beside the sidebar exactly */
 .has-shell .content, .has-shell .promo-wrap { width: auto; min-width: 0; margin-left: var(--side); margin-right: 0; transition: margin-left 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
 
+/* ── Launch banner: one line, with a slow shine ── */
+.promo-bar {
+  position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; gap: 0.55rem;
+  padding: 0.38rem 2.75rem; color: #fff; background: linear-gradient(90deg, #7c3aed 0%, #ff6b35 50%, #f59e0b 100%);
+}
+.promo-bar::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.14) 50%, transparent 100%);
+  transform: translateX(-100%); animation: promo-shine 5s linear infinite;
+}
+@keyframes promo-shine { 60%, 100% { transform: translateX(100%); } }
+.promo-bar p { margin: 0; font-size: 0.8rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.promo-bar strong { font-weight: 700; }
+.promo-short { display: none; }
+.promo-close {
+  position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 24px; height: 24px; padding: 0;
+  border: 0; border-radius: 50%; cursor: pointer; color: #fff; background: rgba(255, 255, 255, 0.2); transition: background 0.15s;
+}
+.promo-close:hover { background: rgba(255, 255, 255, 0.32); }
+@media (max-width: 600px) {
+  .promo-bar { justify-content: flex-start; padding: 0.32rem 2.6rem 0.32rem 0.9rem; }
+  .promo-long { display: none; }
+  .promo-short { display: inline; }
+}
+@media (prefers-reduced-motion: reduce) { .promo-bar::before { animation: none; display: none; } }
+
 .sn {
   position: fixed; inset: 0 auto 0 0; z-index: 900; width: var(--side);
   display: flex; flex-direction: column; gap: 0.35rem; padding: 0.9rem 0.7rem;

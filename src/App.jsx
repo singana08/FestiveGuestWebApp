@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import { Menu, X, HelpCircle, Globe, MessageSquare, LogOut } from 'lucide-react';
+import { Menu, X, HelpCircle, Globe, MessageSquare, LogOut, Gift } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { LanguageProvider, useLanguage } from './i18n/LanguageContext';
 import Logo from './components/Logo';
 import InviteFriendsModal from './components/InviteFriendsModal';
 import SideNav from './components/SideNav';
+import FeedbackHost, { ErrorBoundary } from './components/Feedback';
+import { ask } from './utils/feedback';
 // Not lazy: it's the landing page, so it renders straight away on a first
 // visit instead of showing a loading spinner while its chunk downloads.
 import Home from './pages/Home';
@@ -89,7 +91,6 @@ const AppContent = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [user, setUser] = useState(readStoredUser);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
   // Persisted so the "Limited-time offer" banner stays dismissed across
   // reloads/navigations instead of nagging the user every single visit.
   const [promoDismissed, setPromoDismissed] = useState(() => localStorage.getItem('promoDismissed') === 'true');
@@ -188,10 +189,10 @@ const AppContent = () => {
   const isAdmin = user?.role === 'Admin' || user?.userType === 'Admin';
   const isActive = (path) => location.pathname === path;
 
-  const confirmLogout = () => {
+  const logout = async () => {
+    if (!(await ask({ title: 'Log out of FestiveGuest?', text: 'You’ll need to sign in again to see your posts and chats.', icon: <LogOut size={20} />, confirmLabel: t('logout'), cancelLabel: t('cancel'), danger: true }))) return;
     localStorage.clear();
     setUser(null);
-    setShowLogoutModal(false);
     window.location.href = '/login';
   };
 
@@ -202,7 +203,7 @@ const AppContent = () => {
       {user ? (
         <SideNav user={user} isAdmin={isAdmin} collapsed={navCollapsed} onToggle={toggleNav} unread={unreadCount}
           language={language} onLanguage={toggleLanguage} onInvite={() => setShowInviteModal(true)}
-          onLogout={() => setShowLogoutModal(true)} Avatar={NavAvatar} />
+          onLogout={logout} Avatar={NavAvatar} />
       ) : (
       <nav className="navbar navbar--glass">
         <Link to="/" className="nav-logo">
@@ -283,44 +284,14 @@ const AppContent = () => {
             transition={{ duration: 0.3, ease: 'easeInOut' }}
             style={{ overflow: 'hidden' }}
           >
-            <div style={{
-              background: 'linear-gradient(90deg, #7C3AED 0%, #FF6B35 50%, #F59E0B 100%)',
-              padding: '0.38rem 1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '0.75rem',
-              position: 'relative'
-            }}>
-              {/* Subtle shimmer overlay */}
-              <motion.div
-                animate={{ x: ['−100%', '200%'] }}
-                transition={{ repeat: Infinity, duration: 3, ease: 'linear', repeatDelay: 2 }}
-                style={{
-                  position: 'absolute', inset: 0,
-                  background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.12) 50%, transparent 100%)',
-                  pointerEvents: 'none'
-                }}
-              />
-              <span style={{ fontSize: '1rem' }}>🎁</span>
-              <p style={{ margin: 0, color: 'white', fontSize: '0.8rem', fontWeight: 500, letterSpacing: '0.01em' }}>
-                <strong style={{ fontWeight: 700 }}>FestiveGuest is completely free</strong> during our launch — no subscriptions, no fees.
+            <div className="promo-bar">
+              <Gift size={15} aria-hidden="true" />
+              <p>
+                <span className="promo-long"><strong>FestiveGuest is completely free</strong> during our launch — no subscriptions, no fees.</span>
+                <span className="promo-short"><strong>Free</strong> during our launch — no fees.</span>
               </p>
-              <button
-                onClick={() => { setPromoDismissed(true); localStorage.setItem('promoDismissed', 'true'); }}
-                style={{
-                  position: 'absolute', right: '1rem',
-                  background: 'rgba(255,255,255,0.2)',
-                  border: 'none', color: 'white',
-                  width: 24, height: 24, borderRadius: '50%',
-                  cursor: 'pointer', display: 'flex',
-                  alignItems: 'center', justifyContent: 'center',
-                  fontSize: '0.85rem', lineHeight: 1,
-                  flexShrink: 0
-                }}
-                aria-label="Dismiss"
-              >
-                ×
+              <button type="button" className="promo-close" onClick={() => { setPromoDismissed(true); localStorage.setItem('promoDismissed', 'true'); }} aria-label="Dismiss">
+                <X size={14} />
               </button>
             </div>
           </motion.div>
@@ -329,6 +300,7 @@ const AppContent = () => {
 
       {/* ── Routes ── */}
       <main className="content full-width">
+        <ErrorBoundary resetKey={location.pathname}>
         <Suspense fallback={<PageLoader />}>
             <Routes location={backgroundLocation || location}>
               <Route path="/" element={<PageTransition><Home user={user} /></PageTransition>} />
@@ -354,61 +326,8 @@ const AppContent = () => {
               <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
             </Routes>
         </Suspense>
+        </ErrorBoundary>
       </main>
-
-      {/* ── Logout modal ── */}
-      <AnimatePresence>
-        {showLogoutModal && (
-          <motion.div
-            className="modal-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setShowLogoutModal(false)}
-          >
-            <motion.div
-              className="modal-content"
-              initial={{ scale: 0.92, y: 16 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.92, y: 16 }}
-              transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-              onClick={e => e.stopPropagation()}
-              style={{ maxWidth: '380px' }}
-            >
-              <div className="modal-header">
-                <h3 style={{ color: 'var(--error)' }}>
-                  <LogOut size={20} /> Confirm Logout
-                </h3>
-                <button className="modal-close" onClick={() => setShowLogoutModal(false)}>×</button>
-              </div>
-              <div className="modal-body">
-                <p style={{ color: 'var(--text)', marginBottom: '0.5rem' }}>
-                  Are you sure you want to logout?
-                </p>
-                <p style={{ color: 'var(--text-light)', fontSize: '0.875rem', marginBottom: '1.5rem' }}>
-                  You'll need to sign in again to access your account.
-                </p>
-                <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => setShowLogoutModal(false)}
-                    className="btn btn-outline"
-                    style={{ minWidth: '90px', padding: '0.6rem 1.25rem' }}
-                  >
-                    {t('cancel')}
-                  </button>
-                  <button
-                    onClick={confirmLogout}
-                    className="btn"
-                    style={{ minWidth: '90px', padding: '0.6rem 1.25rem', background: 'var(--error)', color: 'white' }}
-                  >
-                    {t('logout')}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* ── Invite Friends Modal ── */}
       <AnimatePresence>
@@ -422,13 +341,16 @@ const AppContent = () => {
 
 function App() {
   return (
-    <Router>
-      <NotificationProvider>
-        <LanguageProvider>
-          <AppContent />
-        </LanguageProvider>
-      </NotificationProvider>
-    </Router>
+    <ErrorBoundary full>
+      <Router>
+        <NotificationProvider>
+          <LanguageProvider>
+            <AppContent />
+          </LanguageProvider>
+        </NotificationProvider>
+      </Router>
+      <FeedbackHost />
+    </ErrorBoundary>
   );
 }
 

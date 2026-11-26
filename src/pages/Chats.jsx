@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { MessageCircle, Send, ArrowLeft, Search, Lock, UserRound, ShieldCheck, X, ArrowRight } from 'lucide-react';
 import useSEO from '../hooks/useSEO';
 import api from '../utils/api';
+import { toast } from '../utils/feedback';
+import { LoadError } from '../components/Feedback';
 import ImageWithSas from '../components/ImageWithSas';
 import ProfileModal from '../components/posts/ProfileModal';
 import SafetyActions from '../components/SafetyActions';
@@ -40,6 +42,7 @@ const Chats = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
+  const [listFailed, setListFailed] = useState(false);
   const [sending, setSending] = useState(false);
   const [showChatView, setShowChatView] = useState(false);
   const [profile, setProfile] = useState(null);
@@ -112,8 +115,9 @@ const Chats = () => {
         timestamp: conv.timestamp || new Date().toISOString(),
         unreadCount: conv.unreadCount || 0,
       })));
-    } catch (error) {
-      console.error('Failed to fetch conversations:', error);
+      setListFailed(false);
+    } catch {
+      setListFailed(true); // the 30-second refresh keeps retrying
     } finally {
       if (showLoader) setLoading(false);
     }
@@ -144,9 +148,9 @@ const Chats = () => {
     try {
       const response = await api.get(`chat/messages/${recipientId}`);
       setMessages(Array.isArray(response.data) ? toMessages(response.data) : []);
-    } catch (error) {
-      console.error('Failed to load messages:', error);
+    } catch {
       setMessages([]);
+      toast('Couldn’t load this chat. Check your connection and try again.', 'error');
     }
   };
 
@@ -220,6 +224,8 @@ const Chats = () => {
             [0, 1, 2, 3].map((i) => (
               <div key={i} className="ch-conv-sk" aria-hidden="true"><span className="pb-sk ch-sk-avatar" /><span className="ch-sk-lines"><span className="pb-sk pb-sk--line" /><span className="pb-sk pb-sk--line pb-sk--short" /></span></div>
             ))
+          ) : listFailed && conversations.length === 0 ? (
+            <LoadError what="your chats" onRetry={() => fetchConversations(true)} />
           ) : conversations.length === 0 ? (
             <div className="ch-list-empty">
               <span className="ch-empty-icon"><MessageCircle size={22} /></span>

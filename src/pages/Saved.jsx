@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, MapPin, Star, CalendarCheck, FileText, Search } from 'lucide-react';
 import api from '../utils/api';
+import { LoadError } from '../components/Feedback';
 import SaveButton from '../components/SaveButton';
 import { useSavedIds } from '../utils/saved';
 import { VerifiedTick, TrustShield } from '../components/VerifiedBadge';
@@ -15,13 +16,15 @@ import '../styles/Trust.css';
 export default function Saved() {
   useSEO({ title: 'Saved hosts', noindex: true });
   const [hosts, setHosts] = useState(null);
+  const [failed, setFailed] = useState(false);
+  const [reload, setReload] = useState(0);
   const savedIds = useSavedIds();
 
   useEffect(() => {
     let live = true;
-    api.get('saved').then((res) => { if (live) setHosts(res.data || []); }).catch(() => { if (live) setHosts([]); });
+    api.get('saved').then((res) => { if (live) setHosts(res.data || []); }).catch(() => { if (live) setFailed(true); });
     return () => { live = false; };
-  }, []);
+  }, [reload]);
 
   // Un-saving here removes the card straight away (the ♡ store is the source of truth).
   const shown = (hosts || []).filter((h) => !savedIds || savedIds.has(h.id));
@@ -35,8 +38,17 @@ export default function Saved() {
           <p>Hosts you’ve saved with ♡. Open one to see their place, reviews and current posts.</p>
         </header>
 
-        {hosts === null ? (
-          <p className="tp-empty"><span className="rg-spinner pb-spinner-light" /> Loading…</p>
+        {hosts === null && failed ? (
+          <LoadError what="your saved hosts" onRetry={() => { setFailed(false); setReload((n) => n + 1); }} />
+        ) : hosts === null ? (
+          <ul className="sv-grid" role="status" aria-label="Loading your saved hosts">
+            {[0, 1, 2].map((i) => (
+              <li key={i} className="sv-card" aria-hidden="true">
+                <span className="pb-sk sv-pic" />
+                <span className="sv-body"><span className="pb-sk pb-sk--line" /><span className="pb-sk pb-sk--line pb-sk--short" /></span>
+              </li>
+            ))}
+          </ul>
         ) : shown.length === 0 ? (
           <div className="tp-empty">
             <p>No saved hosts yet. Tap ♡ on a host’s post or profile to keep them here.</p>

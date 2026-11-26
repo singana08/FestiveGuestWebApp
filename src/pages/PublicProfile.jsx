@@ -14,6 +14,7 @@ import MemberPosts from '../components/MemberPosts';
 import useIsBlocked from '../hooks/useIsBlocked';
 import { VerifiedChip, TrustChip } from '../components/VerifiedBadge';
 import useSEO from '../hooks/useSEO';
+import { LoadError } from '../components/Feedback';
 import '../styles/Register.css';
 import '../styles/PostsBoard.css';
 import '../styles/Profile.css';
@@ -32,6 +33,7 @@ function PublicProfile() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [blocked, setBlocked] = useIsBlocked(profile?.userId);
   const me = (() => { try { return JSON.parse(localStorage.getItem('user')); } catch { return null; } })();
@@ -47,17 +49,18 @@ function PublicProfile() {
   }, [userName]);
 
   const fetchPublicProfile = async () => {
+    setLoading(true); setLoadFailed(false);
     try {
       // Published reviews, the gallery and the reply badge all come with the profile.
       setProfile((await api.get(`user/public-profile-by-name/${encodeURIComponent(userName)}`)).data);
     } catch (error) {
-      console.error('Failed to fetch profile:', error);
       // The backend requires auth for these endpoints, so a logged-out visitor
       // gets a 401 — send them to log in and back here afterwards.
       if (error.response?.status === 401) {
         navigate(`/login?redirect=${encodeURIComponent(`/profile/${userName}`)}`);
         return;
       }
+      if (error.response?.status !== 404) setLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -76,6 +79,8 @@ function PublicProfile() {
   );
 
   if (loading) return shell(<div className="pf-state"><span className="rg-spinner pb-spinner-light" /> Loading profile…</div>);
+
+  if (loadFailed) return shell(<LoadError what="this profile" onRetry={fetchPublicProfile} />);
 
   if (!profile) {
     return shell(
