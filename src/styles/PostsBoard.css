@@ -35,6 +35,24 @@
   .pb-top { grid-column: 1 / -1; }
   .pb-rail { display: flex; flex-direction: column; gap: 0.7rem; margin-top: 0.75rem; position: sticky; top: calc(var(--nav-height, 68px) + 0.6rem); }
   .pb-grid > .sp { display: none; } /* the right column has them */
+  /* A traveller's upcoming trip tops the right column: the trip card stacks, picture strip then details */
+  .pb-rail .ut { margin: 0; padding: 0.7rem; gap: 0.5rem; border-radius: 14px; }
+  .pb-rail .ut-head h2 { font-size: 0.82rem; }
+  .pb-rail .ut-all { font-size: 0.72rem; }
+  .pb-rail .ut .tc { flex-direction: column; gap: 0.5rem; padding: 0.6rem; border-radius: 12px; }
+  .pb-rail .ut .tc-pic { width: 100%; height: 56px; border-radius: 10px; }
+  .pb-rail .ut .tc-initial { font-size: 1.4rem; }
+  .pb-rail .ut .tc-top h3 { font-size: 0.85rem; }
+  .pb-rail .ut .tc-meta, .pb-rail .ut .tc-note { font-size: 0.733rem; }
+  .pb-rail .ut .tc-actions .rg-btn { padding: 0.35rem 0.7rem; font-size: 0.733rem; }
+}
+/* Below 1280px there's no right column: it shows only the traveller's upcoming trip, lifted above the posts */
+@media (max-width: 1279px) {
+  .pb-shell { display: flex; flex-direction: column; }
+  .pb-rail { order: 1; display: block; }
+  .pb-main { order: 2; }
+  .pb-rail > :not(.ut) { display: none; }
+  .pb-rail .ut { margin: 0.75rem 0 0; }
 }
 
 /* ── Greeting: one line, no card ── */
