@@ -83,11 +83,16 @@ const Rating = ({ poster }) => (
 
 const ReplyBadge = ({ poster }) => (poster?.responseBadge ? <p className="pb-reply"><Clock size={12} /> {poster.responseBadge}</p> : null);
 
-/** The host's gallery as a strip at the top of their card: cover large, two small, "+N". Opens their profile. */
-const Photos = ({ post, onProfile }) => {
+/**
+ * The host's photos for this listing's cities (then "All places") as a strip: cover large, two small, "+N".
+ * When the guest has picked cities, those cities' photos lead. Opens their profile.
+ */
+const Photos = ({ post, onProfile, focusCities = [] }) => {
   const photos = post.poster?.photos || [];
   if (!photos.length) return null;
-  const shown = photos.slice(0, 3);
+  const cityOf = post.poster.photoCities || [];
+  const focused = (i) => focusCities.some((f) => f.toLowerCase() === (cityOf[i] || '').toLowerCase());
+  const shown = photos.map((url, i) => ({ url, i })).sort((a, b) => focused(b.i) - focused(a.i)).slice(0, 3).map((x) => x.url);
   const more = (post.poster.photoCount || photos.length) - shown.length;
   return (
     <button type="button" className={`pb-photos pb-photos--${shown.length}`} onClick={() => onProfile(post)} aria-label={`See photos of ${post.userName}’s place`}>
@@ -176,12 +181,12 @@ const TripCard = ({ post, c, locale, isOwn, full, onOpen, onContact, onProfile, 
 };
 
 /** A host's listing (what guests browse). */
-const HostCard = ({ post, c, locale, isOwn, full, onOpen, onContact, onProfile, onEdit, onDelete }) => {
+const HostCard = ({ post, c, locale, isOwn, full, onOpen, onContact, onProfile, onEdit, onDelete, focusCities }) => {
   const cities = citiesInLocation(post.location);
   const since = post.commenceDate ? new Date(post.commenceDate) : null;
   return (
     <>
-      <Photos post={post} onProfile={onProfile} />
+      <Photos post={post} onProfile={onProfile} focusCities={focusCities} />
       <div className="pb-card-top">
         <button type="button" className="pb-avatar pb-avatar--host pb-avatar--lg" onClick={() => onProfile(post)} aria-label={post.userName}>
           {(post.userName || '?').charAt(0).toUpperCase()}

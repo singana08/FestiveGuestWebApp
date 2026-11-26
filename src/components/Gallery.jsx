@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, X, Flag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Flag, MapPin } from 'lucide-react';
 import api from '../utils/api';
 import '../styles/Trust.css';
 
@@ -36,7 +36,7 @@ function Lightbox({ photos, start, ownerId, ownerName, canReport, onClose }) {
       <figure>
         <img src={photo.url} alt={photo.caption || `${ownerName}’s place, photo ${i + 1}`} />
         <figcaption>
-          <span>{photo.caption}</span>
+          <span>{photo.city && <span className="tg-city"><MapPin size={12} /> {photo.city}</span>}{photo.caption}</span>
           <span className="tg-count">{i + 1} / {photos.length}</span>
         </figcaption>
       </figure>
@@ -56,23 +56,38 @@ function Lightbox({ photos, start, ownerId, ownerName, canReport, onClose }) {
   );
 }
 
-/** A host's photos as a mosaic (cover large); opens the viewer. */
+/**
+ * A host's photos as a mosaic (cover large); opens the viewer. When photos belong to cities, chips pick one:
+ * that city's photos first, then the "All places" ones.
+ */
 export default function Gallery({ photos, ownerId, ownerName, canReport = false }) {
   const [open, setOpen] = useState(-1);
+  const [place, setPlace] = useState('');
   if (!photos?.length) return null;
-  const shown = photos.slice(0, 5);
+  const places = [...new Set(photos.map((p) => p.city).filter(Boolean))];
+  const list = place ? [...photos.filter((p) => p.city === place), ...photos.filter((p) => !p.city)] : photos;
+  const shown = list.slice(0, 5);
   return (
     <>
+      {places.length > 0 && (
+        <div className="tg-places" role="group" aria-label="Photos by place">
+          {['', ...places].map((c) => (
+            <button key={c || 'all'} type="button" aria-pressed={place === c} className={place === c ? 'is-on' : undefined} onClick={() => setPlace(c)}>
+              {c ? <><MapPin size={12} /> {c}</> : 'All photos'}
+            </button>
+          ))}
+        </div>
+      )}
       <div className={`tg-grid tg-grid--${shown.length}`}>
         {shown.map((p, i) => (
           <button key={p.id} type="button" className="tg-thumb" onClick={() => setOpen(i)}
-            aria-label={`Open photo ${i + 1} of ${photos.length}${p.caption ? `: ${p.caption}` : ''}`}>
+            aria-label={`Open photo ${i + 1} of ${list.length}${p.caption ? `: ${p.caption}` : ''}${p.city ? ` (${p.city})` : ''}`}>
             <img src={p.url} alt="" loading="lazy" />
-            {i === shown.length - 1 && photos.length > shown.length && <span className="tg-more">+{photos.length - shown.length}</span>}
+            {i === shown.length - 1 && list.length > shown.length && <span className="tg-more">+{list.length - shown.length}</span>}
           </button>
         ))}
       </div>
-      {open >= 0 && <Lightbox photos={photos} start={open} ownerId={ownerId} ownerName={ownerName} canReport={canReport} onClose={() => setOpen(-1)} />}
+      {open >= 0 && <Lightbox photos={list} start={open} ownerId={ownerId} ownerName={ownerName} canReport={canReport} onClose={() => setOpen(-1)} />}
     </>
   );
 }

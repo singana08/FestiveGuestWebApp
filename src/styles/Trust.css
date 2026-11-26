@@ -233,3 +233,26 @@
   .tc-pic { width: 76px; height: 76px; }
   .tp-head h1 { font-size: 1.35rem; }
 }
+
+/* ── Photos per place: city chips (editor and profile), the Place picker, inline "Remove?" ── */
+.tg-places { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0 0 0.7rem; }
+.tg-places button {
+  display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.32rem 0.7rem; border-radius: 999px; cursor: pointer;
+  font: 600 0.8rem 'Inter', sans-serif; color: rgba(255, 240, 230, 0.75);
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.tg-places button:hover { border-color: rgba(255, 255, 255, 0.3); color: #fff7f0; }
+.tg-places button.is-on { color: #ffd9a0; background: rgba(255, 193, 99, 0.14); border-color: rgba(255, 193, 99, 0.5); }
+.tg-places button svg { color: #ffc163; }
+.tg-places small { font-size: 0.72rem; font-weight: 500; color: rgba(255, 240, 230, 0.5); }
+.tg-place-pick { display: flex; align-items: center; gap: 0.4rem; font-size: 0.74rem; color: rgba(255, 240, 230, 0.6); }
+.tg-place-pick select {
+  flex: 1; min-width: 0; padding: 0.3rem 0.45rem; border-radius: 8px; cursor: pointer;
+  font: 500 0.78rem 'Inter', sans-serif; color: #fff7f0; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.tg-place-pick option { color: #fff7f0; background: #22143a; }
+.tg-confirm { flex-wrap: wrap; align-items: center; font-size: 0.76rem; color: #fecaca; }
+.tg-confirm button { padding: 0.25rem 0.6rem; border-radius: 999px; cursor: pointer; font: 700 0.74rem 'Inter', sans-serif; }
+.tg-confirm-yes { color: #fff; background: #dc2626; border: 0; }
+.tg-confirm-no { color: #fff7f0; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); }
+.tg-city { display: inline-flex; align-items: center; gap: 0.2rem; margin-right: 0.5rem; font-weight: 700; color: #ffc163; }

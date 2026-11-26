@@ -373,7 +373,8 @@ const Posts = () => {
             </motion.section>
 
             <VerifyPhoneBanner />
-            {user && !showMyPosts && <UpcomingTrip meId={user.userId} isHost={isHost} />}
+            {/* Hosts: "Your next guest" across the top. Travellers see their upcoming trip in the right column (below). */}
+            {user && !showMyPosts && isHost && <UpcomingTrip meId={user.userId} isHost />}
           </div>
 
           <main className="pb-main">
@@ -459,7 +460,7 @@ const Posts = () => {
                 {selectedLocations.length > 0 && results.length > 0 && (
                   <div className={`pb-grid pb-grid--below-map${viewingTrips ? ' pb-grid--tickets' : ''}`}>
                     {results.map((post, i) => (
-                      <PostCard key={post.id} index={i} post={post} c={c} locale={locale} isOwn={user && post.userId === user.userId}
+                      <PostCard key={post.id} index={i} post={post} c={c} locale={locale} focusCities={selectedLocations} isOwn={user && post.userId === user.userId}
                         onOpen={setDetail} onContact={(p) => openChat(p.userId, p.userName)} onProfile={openProfile} onEdit={openEdit} onDelete={setDeletingPost} />
                     ))}
                   </div>
@@ -483,7 +484,7 @@ const Posts = () => {
                   const ad = !showMyPosts && slot >= 0 ? feedCards[slot % feedCards.length] : null;
                   return (
                     <Fragment key={post.id}>
-                      <PostCard index={i} post={post} c={c} locale={locale} isOwn={user && post.userId === user.userId}
+                      <PostCard index={i} post={post} c={c} locale={locale} focusCities={selectedLocations} isOwn={user && post.userId === user.userId}
                         onOpen={setDetail} onContact={(p) => openChat(p.userId, p.userName)} onProfile={openProfile} onEdit={openEdit} onDelete={setDeletingPost} />
                       {ad && adCard(ad)}
                     </Fragment>
@@ -495,6 +496,7 @@ const Posts = () => {
 
           {/* ═════ Right column (1280px and up): two ads, topped up with our own cards ═════ */}
           <aside className="pb-rail" aria-label={c.sponsored}>
+            {user && !showMyPosts && !isHost && <UpcomingTrip meId={user.userId} isHost={false} />}
             {railCards.map(adCard)}
           </aside>
         </div>

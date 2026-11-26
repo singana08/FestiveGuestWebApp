@@ -365,7 +365,7 @@ function Profile() {
 
               {isHost && (
                 <motion.section id="pf-gallery" className="pf-card" {...rise(0.12)}>
-                  <GalleryEditor userId={user.userId} onToast={showToast} onCount={setGalleryCount} />
+                  <GalleryEditor userId={user.userId} places={(user.hostingAreas || []).flatMap((a) => a.cities || [])} onToast={showToast} onCount={setGalleryCount} />
                 </motion.section>
               )}
 
