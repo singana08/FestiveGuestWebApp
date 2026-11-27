@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import { Menu, X, HelpCircle, Globe, MessageSquare, LogOut, Gift, Search } from 'lucide-react';
+import { Menu, X, HelpCircle, Globe, MessageSquare, LogOut, Gift } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { LanguageProvider, useLanguage } from './i18n/LanguageContext';
@@ -229,9 +229,6 @@ const AppContent = () => {
         </button>
 
         <div className={`nav-links ${menuOpen ? 'mobile-open' : ''}`} data-lang={language}>
-              <Link to="/explore" className={`nav-item ${isActive('/explore') ? 'active' : ''}`}>
-                <Search size={17} /> {t('browseHosts')}
-              </Link>
               <Link to="/help" className={`nav-item ${isActive('/help') ? 'active' : ''}`}>
                 <HelpCircle size={17} /> {t('help')}
               </Link>

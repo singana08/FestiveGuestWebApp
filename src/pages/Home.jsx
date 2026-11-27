@@ -296,11 +296,6 @@ const Home = ({ user }) => {
                     </>
                   )}
                 </motion.div>
-                {!user && (
-                  <motion.div {...enter(0.46)}>
-                    <Link to="/explore" className="hm-link hm-browse">{c.browseLink} <ArrowRight size={16} /></Link>
-                  </motion.div>
-                )}
 
                 <motion.ul className="hm-trust" {...enter(0.52)}>
                   {c.trust.map((item) => (
