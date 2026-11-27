@@ -9,6 +9,8 @@ import ImageWithSas from '../components/ImageWithSas';
 import ProfileModal from '../components/posts/ProfileModal';
 import SafetyActions from '../components/SafetyActions';
 import StayPanel from '../components/StayPanel';
+import ChatAbout from '../components/ChatAbout';
+import { aboutStarts } from '../utils/chatAbout';
 import { useNotifications } from '../contexts/NotificationContext';
 import '../styles/Register.css';
 import '../styles/PostsBoard.css';
@@ -133,6 +135,7 @@ const Chats = () => {
     text: msg.message || '',
     timestamp: new Date(msg.timestamp),
     status: msg.status || 'sent',
+    about: msg.about || null,
   }));
 
   const refreshMessages = async (recipientId) => {
@@ -203,6 +206,7 @@ const Chats = () => {
   const unreadTotal = conversations.reduce((s, cv) => s + (cv.unreadCount || 0), 0);
   const lastMsg = messages[messages.length - 1];
   const showQuick = !newMessage && lastMsg && lastMsg.sender !== 'Me';
+  const aboutAt = aboutStarts(messages); // where an "About: (post)" line goes
 
   return (
     <div className="ch">
@@ -297,6 +301,7 @@ const Chats = () => {
                 return (
                   <Fragment key={msg.id || i}>
                     {newDay && <div className="ch-day"><span>{dayLabel(msg.timestamp)}</span></div>}
+                    {aboutAt[i] && <ChatAbout about={msg.about} />}
                     <div className={`ch-msg${mine ? ' is-me' : ''}${first ? ' is-first' : ''}${last ? ' is-last' : ''}`}>
                       <div className="ch-bubble">{msg.text}</div>
                       {(last || failed) && (

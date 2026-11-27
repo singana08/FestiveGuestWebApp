@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { House, MessageCircle, Luggage, Users, Heart, User, HelpCircle, ShieldCheck, UserPlus, Globe, LogOut, ChevronsLeft, ChevronsRight, Menu, X } from 'lucide-react';
-import Logo from './Logo';
 import '../styles/Shell.css';
+
+/** The brand: the emblem in a white tile, and the name as real text so it stays sharp at any size. */
+const Brand = ({ name = true }) => (
+  <>
+    <span className="sn-mark" aria-hidden="true" />
+    {name && <span className="sn-word"><span className="sn-word-name"><span>Festive</span><span>Guest</span></span><small>Find a Local Host</small></span>}
+  </>
+);
 
 /**
  * The signed-in app's navigation: a left sidebar on desktop (collapses to icons, names on hover),
@@ -39,7 +46,7 @@ export default function SideNav(props) {
       <aside className={`sn${collapsed ? ' is-collapsed' : ''}`} aria-label="Main menu">
         <div className="sn-head">
           <Link to="/posts" className="sn-logo" aria-label="FestiveGuest home">
-            {collapsed ? <span className="sn-mark"><img src="/assets/login-logo.png" alt="" /></span> : <Logo className="sn-logo-img" />}
+            <Brand name={!collapsed} />
           </Link>
           <button type="button" className="sn-toggle" onClick={onToggle} aria-label={collapsed ? 'Expand menu' : 'Collapse menu'} aria-expanded={!collapsed}>
             {collapsed ? <ChevronsRight size={17} /> : <ChevronsLeft size={17} />}
@@ -49,7 +56,7 @@ export default function SideNav(props) {
         <nav className="sn-items">
           {items.map(({ to, icon, label, badge: n, end }) => { const Icon = icon; return (
             <NavLink key={to} to={to} end={end} className="sn-item" data-tip={label} aria-label={collapsed ? label : undefined}>
-              <Icon size={19} aria-hidden="true" />
+              <Icon size={20} aria-hidden="true" />
               <span className="sn-label">{label}</span>
               {badge(n)}
             </NavLink>
@@ -74,7 +81,7 @@ export default function SideNav(props) {
 
       {/* ── Phone: slim top bar + bottom tabs ── */}
       <header className="sn-phone-top">
-        <Link to="/posts" className="sn-logo" aria-label="FestiveGuest home"><Logo className="sn-logo-img" /></Link>
+        <Link to="/posts" className="sn-logo" aria-label="FestiveGuest home"><Brand /></Link>
         <button type="button" className="sn-more-btn" onClick={() => setMoreOpen((o) => !o)} aria-label="More" aria-expanded={moreOpen}>
           {moreOpen ? <X size={20} /> : <Menu size={20} />}
         </button>

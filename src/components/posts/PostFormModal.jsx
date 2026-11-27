@@ -14,7 +14,7 @@ const FALLBACK_LOCATIONS = {
   'Delhi': ['New Delhi', 'Other'],
 };
 
-const Stepper = ({ id, value, min, max, onChange, label }) => (
+export const Stepper = ({ id, value, min, max, onChange, label }) => (
   <div className="pb-stepper" role="group" aria-labelledby={id}>
     <button type="button" onClick={() => onChange(Math.max(min, value - 1))} disabled={value <= min} aria-label={`Fewer ${label}`}><Minus size={16} /></button>
     <output aria-live="polite">{value}</output>
@@ -323,6 +323,8 @@ const PostFormModal = ({ open, kind, isEditing, initialData, user, locationData,
       subtitle={subtitle}
       footer={(
         <>
+          {/* in the footer, beside the button just pressed, so it's seen even when the form is scrolled */}
+          {error && <div className="rg-alert pb-form-error" role="alert"><AlertTriangle size={17} /> {error}</div>}
           <button type="button" className="rg-btn rg-btn-ghost" onClick={onClose} disabled={saving}>Cancel</button>
           <button type="submit" form="pb-post-form" className="rg-btn rg-btn-primary pb-submit" disabled={saving}>
             {saving ? <><span className="rg-spinner" /> Saving…</> : isEditing ? 'Save changes' : isTrip ? 'Post trip' : 'Publish listing'}
@@ -330,7 +332,6 @@ const PostFormModal = ({ open, kind, isEditing, initialData, user, locationData,
         </>
       )}
     >
-      {error && <div className="rg-alert" role="alert"><AlertTriangle size={17} /> {error}</div>}
       {open && (isTrip
         ? <TripForm initialData={initialData} locationData={locationData} onSubmit={submit} setError={setError} />
         : <ListingForm initialData={initialData} user={user} onSubmit={submit} setError={setError} />)}

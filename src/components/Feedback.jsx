@@ -1,7 +1,7 @@
 import { Component, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, MotionConfig, motion } from 'framer-motion';
 import { AlertTriangle, CheckCircle2, RotateCw, WifiOff, X } from 'lucide-react';
-import { connectFeedback } from '../utils/feedback';
+import { connectFeedback, connectLoader } from '../utils/feedback';
 import '../styles/Feedback.css';
 
 const LIFE = { success: 3500, error: 6000 };
@@ -67,6 +67,39 @@ export default function FeedbackHost() {
       <AnimatePresence>{note && <Toast key={note.id} note={note} onClose={() => setNote(null)} />}</AnimatePresence>
       {req && <AskDialog key={req.id} req={req} onDone={(yes) => { req.resolve(yes); setAsks((q) => q.slice(1)); }} />}
     </MotionConfig>
+  );
+}
+
+const ROUND = 1800; // one round of /assets/loader.svg: the handshake, "f g" and the ring filling once
+const LOADER_DELAY = 200; // a page that loads quicker than this shows no loader at all
+
+/**
+ * The branded loader, over the page area while a page loads. Once it's on screen it never stops mid-round:
+ * it finishes the round in progress, so you always see the ring complete at least once.
+ */
+export function LoaderHost() {
+  const [busy, setBusy] = useState(false);
+  const [shown, setShown] = useState(false);
+  const since = useRef(0);
+  useEffect(() => connectLoader(setBusy), []);
+  useEffect(() => {
+    if (busy && shown) return undefined;
+    if (busy) {
+      const t = setTimeout(() => { since.current = performance.now(); setShown(true); }, LOADER_DELAY);
+      return () => clearTimeout(t);
+    }
+    if (!shown) return undefined;
+    const t = setTimeout(() => setShown(false), ROUND - ((performance.now() - since.current) % ROUND));
+    return () => clearTimeout(t);
+  }, [busy, shown]);
+  return (
+    <AnimatePresence>
+      {shown && (
+        <motion.div className="fb-loading" role="status" aria-label="Loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+          <img src="/assets/loader.svg" alt="" width="144" height="144" />
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 

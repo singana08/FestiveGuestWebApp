@@ -10,8 +10,8 @@
     linear-gradient(160deg, rgba(43, 26, 70, 0.9) 0%, rgba(27, 15, 45, 0.93) 100%);
 
   position: relative; isolation: isolate;
-  min-height: calc(100vh - var(--nav-height, 68px));
-  padding: clamp(0.85rem, 1.8vw, 1.25rem) 1.25rem 2.5rem;
+  min-height: calc(100vh / var(--z, 1) - var(--nav-height, 68px));
+  padding: clamp(0.85rem, 1.8vw, 1.25rem) 1rem 2.5rem;
   background: #120a1f; color: var(--rg-ink); font-family: 'Inter', sans-serif;
   overflow-x: clip;
 }
@@ -21,7 +21,8 @@
 .pf--loading { display: flex; align-items: center; justify-content: center; gap: 0.6rem; color: var(--rg-soft); }
 .pf--loading > * { position: relative; z-index: 1; }
 
-.pf-shell { position: relative; z-index: 1; width: min(1080px, 100%); margin: 0 auto; }
+/* fills the space beside the sidebar like Posts; capped only on very wide screens */
+.pf-shell { position: relative; z-index: 1; width: min(1500px, 100%); margin: 0 auto; }
 
 .pf-card, .pf-hero {
   border-radius: 20px; background: var(--pf-glass);
@@ -167,8 +168,8 @@
   background: rgba(255, 255, 255, 0.07); border: 1px solid rgba(255, 255, 255, 0.14);
 }
 .pf-back:hover { background: rgba(255, 255, 255, 0.13); }
-.pf-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem; min-height: 50vh; text-align: center; color: var(--rg-soft); }
-.pf-state.pf-card { min-height: 0; max-width: 420px; margin: 12vh auto 0; padding: 2rem 1.5rem; }
+.pf-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem; min-height: calc(50vh / var(--z, 1)); text-align: center; color: var(--rg-soft); }
+.pf-state.pf-card { min-height: 0; max-width: 420px; margin: calc(12vh / var(--z, 1)) auto 0; padding: 2rem 1.5rem; }
 .pf-state h1 { font-size: 1.25rem; font-weight: 800; }
 .pf-state p { font-size: 0.9rem; color: var(--rg-soft); }
 .pf-state-icon { width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; color: var(--rg-amber); background: rgba(255, 193, 99, 0.1); border: 1px solid rgba(255, 193, 99, 0.3); }

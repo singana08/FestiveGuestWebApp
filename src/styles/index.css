@@ -34,7 +34,7 @@ body {
   margin: 0;
   padding: 0;
   min-width: 320px;
-  min-height: 100vh;
+  min-height: calc(100vh / var(--z, 1));
   background: transparent; /* Let html background show; allows z-index:-1 blobs to sit above it */
   isolation: isolate;      /* Creates stacking context so AppBackground blobs at z-index:-1 are behind content but above html background */
   color: #2C1810;

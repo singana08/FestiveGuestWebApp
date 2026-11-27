@@ -156,7 +156,7 @@ const InviteFriendsModal = ({ user, onClose }) => {
         animate={{ scale: 1, y: 0 }}
         exit={{ scale: 0.92, y: 24 }}
         transition={{ type: 'spring', stiffness: 340, damping: 28 }}
-        style={{ ...DARK, position: 'relative', color: 'var(--text)', background: 'linear-gradient(115deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 45%), linear-gradient(160deg, #2b1a46 0%, #1b0f2d 100%)', border: '1px solid rgba(255,255,255,0.16)', borderRadius: '22px', boxShadow: '0 30px 70px -20px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.14)', width: '100%', maxWidth: '520px', maxHeight: '88vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+        style={{ ...DARK, position: 'relative', color: 'var(--text)', background: 'linear-gradient(115deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 45%), linear-gradient(160deg, #2b1a46 0%, #1b0f2d 100%)', border: '1px solid rgba(255,255,255,0.16)', borderRadius: '22px', boxShadow: '0 30px 70px -20px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.14)', width: '100%', maxWidth: '520px', maxHeight: 'calc(88vh / var(--z, 1))', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}

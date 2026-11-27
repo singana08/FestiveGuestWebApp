@@ -79,6 +79,12 @@ class ChatService {
     }
   }
 
+  // Sent from a post's card: the message shows "About: (post title)".
+  async sendMessageAbout(otherUserId, message, postId) {
+    if (!this.isConnected) await this.connect();
+    await this.connection.invoke("SendMessageAbout", otherUserId, message, postId);
+  }
+
   onReceiveMessage(callback) {
     if (this.connection) {
       this.connection.on("ReceiveMessage", callback);

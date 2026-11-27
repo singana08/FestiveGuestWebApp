@@ -54,7 +54,10 @@ export default function TripCard({ trip, meId, onChanged, compact = false }) {
     : `${stay.kind === 'meetup' ? 'Meet-up' : 'Stay'} with ${other.name}`;
   const status = stay.ended ? (reviewed ? 'Reviewed' : 'Done')
     : stay.status === 'Pending' ? (askingMe ? 'Waiting for you' : `Waiting for ${first(other.name)}`)
-      : (compact && whenLabel(stay)) || 'Confirmed'; // a ticket's stub already says when
+      : (compact && whenLabel(stay)) || 'Confirmed';
+  // A ticket's date stub already says the day and "Done" / "in 3 days": don't repeat them beside the name.
+  const showStatus = compact || !['Done', 'Confirmed'].includes(status);
+  const showDates = compact || stay.startDate.slice(0, 10) !== stay.endDate.slice(0, 10);
 
   return (
     <article className={`tc${compact ? ' tc--compact' : ' tc--ticket'}${askingMe ? ' is-ask' : ''}`}>
@@ -66,12 +69,14 @@ export default function TripCard({ trip, meId, onChanged, compact = false }) {
       <div className="tc-body">
         <div className="tc-top">
           <h3>{title}</h3>
-          <span className={`tc-status${upcoming && daysUntil(stay) <= 1 ? ' is-soon' : ''}${stay.ended ? ' is-done' : ''}${stay.status === 'Pending' ? ' is-pending' : ''}${status === 'Confirmed' ? ' is-ok' : ''}`}>{status}</span>
+          {showStatus && <span className={`tc-status${upcoming && daysUntil(stay) <= 1 ? ' is-soon' : ''}${stay.ended ? ' is-done' : ''}${stay.status === 'Pending' ? ' is-pending' : ''}${status === 'Confirmed' ? ' is-ok' : ''}`}>{status}</span>}
         </div>
-        <p className="tc-meta">
-          <span><CalendarDays size={13} /> {stayDates(stay)}{stay.kind === 'stay' && nights > 0 && ` · ${nights} night${nights === 1 ? '' : 's'}`}</span>
-          {other.location && <span><MapPin size={13} /> {other.location}</span>}
-        </p>
+        {(showDates || other.location) && (
+          <p className="tc-meta">
+            {showDates && <span><CalendarDays size={13} /> {stayDates(stay)}{stay.kind === 'stay' && nights > 0 && ` · ${nights} night${nights === 1 ? '' : 's'}`}</span>}
+            {other.location && <span><MapPin size={13} /> {other.location}</span>}
+          </p>
+        )}
         {stay.note && (iAmHost || stay.requesterId === meId) && <p className="tc-note">“{stay.note}”</p>}
         <div className="tc-actions">
           {askingMe && (

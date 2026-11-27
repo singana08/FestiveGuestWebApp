@@ -59,3 +59,22 @@ export const citiesInLocation = (location = '') => {
   }
   return [location.split(',')[0].trim()].filter(Boolean);
 };
+
+const CONTACT_RANK = { messaged: 0, stayed: 1, requested: 2, asked: 3, confirmed: 4 };
+/**
+ * How you're already in touch with each member, from your chats and stays: { [userId]: { kind, unread } }.
+ * kind: 'confirmed' (a stay or meet-up is on) > 'asked' (they asked you, waiting for your answer) >
+ * 'requested' (you asked them) > 'stayed' (one is done) > 'messaged'. Cancelled or declined ones don't count.
+ */
+export const contactStatus = (meId, conversations = [], trips = []) => {
+  const out = {};
+  for (const cv of conversations) if (cv.otherUserId) out[cv.otherUserId] = { kind: 'messaged', unread: cv.unreadCount || 0 };
+  for (const { stay, other } of trips) {
+    const kind = stay.status === 'Confirmed' && !stay.ended ? 'confirmed'
+      : stay.status === 'Pending' ? (stay.partnerId === meId ? 'asked' : 'requested')
+        : stay.ended ? 'stayed' : null;
+    const cur = other?.id && out[other.id];
+    if (kind && other?.id && (!cur || CONTACT_RANK[kind] > CONTACT_RANK[cur.kind])) out[other.id] = { kind, unread: cur?.unread || 0 };
+  }
+  return out;
+};

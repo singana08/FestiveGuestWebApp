@@ -43,10 +43,14 @@
 .sn :focus-visible { outline: 2px solid #ffc163; outline-offset: 2px; }
 .sn-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0 0.2rem 0.6rem; }
 .is-collapsed .sn-head { flex-direction: column; gap: 0.7rem; padding-bottom: 0.4rem; }
-.sn-logo { display: flex; align-items: center; min-width: 0; text-decoration: none; }
-.sn-logo-img { display: block; height: 40px; width: auto; max-width: 150px; padding: 4px 10px; border-radius: 14px; background: #fff; object-fit: contain; }
-.sn-mark { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 13px; overflow: hidden; background: #fff; box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.6); }
-.sn-mark img { width: 175%; height: 175%; object-fit: cover; object-position: 50% 38%; }
+/* Brand: emblem tile + the name as text (orange "Festive", green "Guest", like the logo) */
+.sn-logo { display: flex; align-items: center; gap: 0.6rem; min-width: 0; text-decoration: none; }
+.sn-word { display: grid; min-width: 0; gap: 0.1rem; }
+.sn-word-name { font: 800 1.2rem/1.05 'Plus Jakarta Sans', sans-serif; letter-spacing: -0.02em; white-space: nowrap; }
+.sn-word-name > :first-child { color: #ff9a4d; }
+.sn-word-name > :last-child { color: #86d957; }
+.sn-word small { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; color: rgba(255, 240, 230, 0.6); }
+.sn-mark { flex-shrink: 0; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 13px; overflow: hidden; background: #fff url('/assets/login-logo.png') no-repeat 56% 23% / 190%; box-shadow: 0 6px 18px -8px rgba(0, 0, 0, 0.6); }
 .sn-toggle { flex-shrink: 0; display: grid; place-items: center; width: 34px; height: 34px; padding: 0; border: 0; border-radius: 10px; cursor: pointer; color: rgba(255, 240, 230, 0.7); background: rgba(255, 255, 255, 0.06); }
 .sn-toggle:hover { color: #fff; background: rgba(255, 255, 255, 0.12); }
 
@@ -54,27 +58,34 @@
 .sn-item {
   position: relative; display: flex; align-items: center; gap: 0.75rem; width: 100%;
   padding: 0.68rem 0.8rem; border: 0; border-radius: 14px; background: none; cursor: pointer; text-decoration: none; text-align: left;
-  font: 600 0.92rem 'Inter', sans-serif; color: rgba(255, 240, 230, 0.7);
+  font: 600 1rem 'Inter', sans-serif; color: rgba(255, 240, 230, 0.72);
+  transition: color 0.2s, background 0.2s;
 }
-.sn-item:hover { color: #fff7f0; background: rgba(255, 255, 255, 0.06); }
+.sn-item:hover, .sn-item:focus-visible { color: #fff7f0; background: linear-gradient(90deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03)); }
 .sn-item.active { color: #fff; background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04)); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); }
 .sn-item.active::before { content: ''; position: absolute; left: -0.7rem; top: 20%; bottom: 20%; width: 4px; border-radius: 0 4px 4px 0; background: linear-gradient(180deg, #ff8a4c, #8b6cff); }
 .sn-item svg { flex-shrink: 0; }
-/* Icons grow a little on hover or keyboard focus, with a small bounce */
-.sn-item svg, .sn-me > :first-child { transition: transform 0.25s cubic-bezier(0.34, 1.8, 0.64, 1); }
-.sn-item:hover svg, .sn-item:focus-visible svg { transform: scale(1.25); }
-.sn-me:hover > :first-child, .sn-me:focus-visible > :first-child { transform: scale(1.12); }
-@media (prefers-reduced-motion: reduce) { .sn-item svg, .sn-me > :first-child { transition: none; transform: none !important; } }
+/* Hover / keyboard focus moves the whole row: the icon pops (with a small bounce) and turns amber,
+   the name slides a little to the right and brightens, the row lights up. */
+.sn-item svg, .sn-me > :first-child { transition: transform 0.25s cubic-bezier(0.34, 1.8, 0.64, 1), color 0.2s; }
+.sn-item .sn-label, .sn-me .sn-label { transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
+.sn-item:hover svg, .sn-item:focus-visible svg { transform: scale(1.18); color: #ffc163; }
+.sn-item:hover .sn-label, .sn-item:focus-visible .sn-label, .sn-me:hover .sn-label, .sn-me:focus-visible .sn-label { transform: translateX(3px); }
+.sn-me:hover > :first-child, .sn-me:focus-visible > :first-child { transform: scale(1.1); }
+.sn-logout:hover svg, .sn-logout:focus-visible svg { color: #fca5a5; }
+.sn-logo .sn-mark { transition: transform 0.25s cubic-bezier(0.34, 1.8, 0.64, 1); }
+.sn-logo:hover .sn-mark { transform: rotate(-4deg) scale(1.05); }
+@media (prefers-reduced-motion: reduce) { .sn-item svg, .sn-me > :first-child, .sn-item .sn-label, .sn-me .sn-label, .sn-logo .sn-mark { transition: none; transform: none !important; } }
 .sn-label { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .sn-badge { margin-left: auto; min-width: 1.3rem; padding: 0 0.35rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700; line-height: 1.3rem; text-align: center; color: #fff; background: #ff4f8b; }
 
 .sn-foot { margin-top: auto; display: grid; gap: 0.15rem; padding-top: 0.6rem; border-top: 1px solid rgba(255, 255, 255, 0.08); }
-.sn-foot .sn-item { padding-top: 0.55rem; padding-bottom: 0.55rem; font-size: 0.86rem; }
+.sn-foot .sn-item { padding-top: 0.55rem; padding-bottom: 0.55rem; font-size: 0.95rem; }
 .sn-me { position: relative; display: flex; align-items: center; gap: 0.65rem; padding: 0.55rem 0.6rem; border-radius: 14px; text-decoration: none; color: #fff7f0; }
 .sn-me:hover { background: rgba(255, 255, 255, 0.06); }
 .sn-me .sn-label { display: grid; }
-.sn-me strong { overflow: hidden; text-overflow: ellipsis; font-size: 0.88rem; }
-.sn-me small { font-size: 0.74rem; color: rgba(255, 240, 230, 0.55); }
+.sn-me strong { overflow: hidden; text-overflow: ellipsis; font-size: 0.95rem; }
+.sn-me small { font-size: 0.8rem; color: rgba(255, 240, 230, 0.55); }
 .sn-logout:hover { color: #fca5a5; }
 
 /* Collapsed: icons only; the name appears beside the icon on hover or keyboard focus */
@@ -103,7 +114,8 @@
     height: var(--nav-height); padding: 0 0.9rem;
     background: rgba(18, 10, 31, 0.92); backdrop-filter: blur(14px); border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
-  .sn-phone-top .sn-logo-img { height: 34px; }
+  .sn-phone-top .sn-mark { width: 38px; height: 38px; border-radius: 11px; }
+  .sn-phone-top .sn-word-name { font-size: 1.1rem; }
   .sn-more-btn { display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 12px; cursor: pointer; color: #fff7f0; background: rgba(255, 255, 255, 0.08); }
   .sn-more {
     position: absolute; top: calc(100% + 6px); right: 0.7rem; min-width: 210px; display: grid; padding: 0.35rem;

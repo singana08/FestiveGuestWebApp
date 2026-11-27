@@ -13,7 +13,7 @@
 
   position: relative;
   isolation: isolate;
-  min-height: calc(100vh - var(--nav-height, 68px));
+  min-height: calc(100vh / var(--z, 1) - var(--nav-height, 68px));
   padding: clamp(1.5rem, 4vw, 3.5rem) 1.25rem clamp(2.5rem, 5vw, 4rem);
   background: #120a1f;
   color: var(--rg-ink);
@@ -431,7 +431,7 @@
   -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
 }
 .rg-modal {
-  width: min(700px, 100%); max-height: min(84vh, 820px);
+  width: min(700px, 100%); max-height: min(calc(84vh / var(--z, 1)), 820px);
   display: flex; flex-direction: column; overflow: hidden; border-radius: 26px;
   font-family: 'Inter', sans-serif; color: #fff7f0;
   background:
@@ -462,7 +462,7 @@
 .rg-modal-foot .rg-btn-primary { flex: 0 0 auto; }
 
 /* ═══ Login page (shares everything above) ═══ */
-.lg-shell { grid-template-columns: minmax(0, 1fr) minmax(0, 470px); align-items: center; min-height: calc(100vh - var(--nav-height, 68px) - 6rem); }
+.lg-shell { grid-template-columns: minmax(0, 1fr) minmax(0, 470px); align-items: center; min-height: calc(100vh / var(--z, 1) - var(--nav-height, 68px) - 6rem); }
 .lg-tiles { display: grid; gap: 0.7rem; margin-top: 1.5rem; max-width: 30rem; }
 .lg-tile {
   display: flex; align-items: center; gap: 0.85rem; padding: 0.8rem 1rem; border-radius: 18px;
@@ -513,7 +513,7 @@
 /* Laptop screens: slightly more compact controls and spacing so the login
    card fits a 768px-tall screen. Phones keep 48px touch targets. */
 @media (min-width: 1001px) {
-  .rg { padding-top: clamp(0.9rem, 2.2vh, 1.5rem); padding-bottom: 1.5rem; }
+  .rg { padding-top: clamp(0.9rem, calc(2.2vh / var(--z, 1)), 1.5rem); padding-bottom: 1.5rem; }
   .rg-card { padding: 1.4rem 1.7rem; }
   .rg .rg-card-title { font-size: 1.3rem; }
   .rg-input { padding-top: 0.55rem; padding-bottom: 0.55rem; }
@@ -523,7 +523,7 @@
   .rg-divider { margin: 0.8rem 0 0.9rem; }
   .rg-actions { margin-top: 1.25rem; }
   .rg .rg-title { font-size: clamp(1.55rem, 2.1vw, 1.85rem); }
-  .lg-shell { min-height: calc(100vh - var(--nav-height, 68px) - 4.5rem); }
+  .lg-shell { min-height: calc(100vh / var(--z, 1) - var(--nav-height, 68px) - 4.5rem); }
 }
 @media (max-width: 1000px) {
   .lg-shell { grid-template-columns: minmax(0, 1fr); max-width: 520px; min-height: 0; }
@@ -543,7 +543,7 @@
   .rg-reqs { grid-template-columns: 1fr; }
   .rg-input.has-action { padding-right: 8rem; }
   .rg-modal-overlay { align-items: flex-end; padding: 0; }
-  .rg-modal { max-height: 90vh; border-radius: 24px 24px 0 0; }
+  .rg-modal { max-height: calc(90vh / var(--z, 1)); border-radius: 24px 24px 0 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

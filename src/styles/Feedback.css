@@ -67,13 +67,18 @@
 @keyframes fb-pop { from { opacity: 0; transform: translateY(10px) scale(0.96); } }
 @keyframes fb-fade { from { opacity: 0; } }
 
+/* ── Branded page loader: over the page area (the sidebar stays), see LoaderHost ── */
+.fb-loading { position: fixed; inset: 0; z-index: 800; display: grid; place-items: center; background: #120a1f; pointer-events: none; }
+@media (min-width: 768px) { .has-shell .fb-loading { left: var(--side); } }
+.fb-loading img { display: block; filter: drop-shadow(0 12px 28px rgba(255, 107, 53, 0.25)); }
+
 /* ── "Couldn't load" (in place of a list) + crash screen ── */
 .fb-load, .fb-crash { display: flex; flex-direction: column; align-items: center; gap: 0.7rem; text-align: center; }
 .fb-load { margin: 1.5rem auto; max-width: 420px; padding: 1.5rem 1.25rem; border-radius: 18px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); }
 .fb-load p { margin: 0; font-size: 0.88rem; line-height: 1.5; color: var(--fb-soft); }
 .fb-load strong { display: block; color: var(--fb-ink); font-size: 0.95rem; margin-bottom: 0.15rem; }
-.fb-crash { max-width: 440px; margin: 12vh auto 0; padding: 2rem 1.5rem; }
-.fb-crash.is-full { min-height: 100vh; max-width: none; margin: 0; justify-content: center; background: linear-gradient(160deg, #2b1a46, #120a1f); }
+.fb-crash { max-width: 440px; margin: calc(12vh / var(--z, 1)) auto 0; padding: 2rem 1.5rem; }
+.fb-crash.is-full { min-height: calc(100vh / var(--z, 1)); max-width: none; margin: 0; justify-content: center; background: linear-gradient(160deg, #2b1a46, #120a1f); }
 .fb-crash h1 { margin: 0.3rem 0 0; font: 800 1.3rem 'Plus Jakarta Sans', sans-serif; color: var(--fb-ink); }
 .fb-crash p { margin: 0 0 0.6rem; max-width: 380px; font-size: 0.9rem; line-height: 1.55; color: var(--fb-soft); }
 

@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">
+  <!-- FestiveGuest loader, one 1.8s round: the two figures from the logo walk in, shake hands, their bodies curl
+       into "f" and "g", the map pin pops up, and the ring around them fills once. Still image with reduced motion. -->
+  <defs>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffb347"/><stop offset="0.5" stop-color="#ff6b35"/><stop offset="1" stop-color="#5cb83a"/>
+    </linearGradient>
+  </defs>
+  <style>
+    .t { animation-duration: 1.8s; animation-iteration-count: infinite; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+    .track { fill: none; stroke: rgba(255, 255, 255, 0.1); stroke-width: 4; }
+    .ring { fill: none; stroke: url(#ring); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 1; transform: rotate(-90deg); transform-origin: 60px 60px; animation-name: ring; }
+    .o, .g { fill: none; stroke-width: 6.5; stroke-linecap: round; stroke-linejoin: round; }
+    .o { stroke: #ff7a1a; } .g { stroke: #3fae2a; }
+    .ho { fill: #ff7a1a; } .hg { fill: #3fae2a; }
+    .head { transform-box: fill-box; transform-origin: center; animation-name: head; }
+    .stick { stroke-dasharray: 1; animation-name: stick; }
+    .arm { stroke-dasharray: 1; animation-name: arm; }
+    .letter { stroke-dasharray: 1; animation-name: letter; }
+    .left { animation-name: in-left; } .right { animation-name: in-right; }
+    .shake { animation-name: shake; }
+    .pin { transform-box: fill-box; transform-origin: 50% 100%; animation-name: pin; }
+    @keyframes ring { 0% { stroke-dashoffset: 1; opacity: 0; } 2% { opacity: 1; } 90%, 100% { stroke-dashoffset: 0; } }
+    @keyframes head { 0% { transform: scale(0); } 12%, 100% { transform: scale(1); } }
+    @keyframes stick { 0% { stroke-dashoffset: 1; opacity: 0; } 1% { opacity: 1; } 14% { stroke-dashoffset: 0; } 46% { opacity: 1; } 62%, 100% { stroke-dashoffset: 0; opacity: 0; } }
+    @keyframes arm { 0%, 12% { stroke-dashoffset: 1; opacity: 0; } 13% { opacity: 1; } 32%, 100% { stroke-dashoffset: 0; opacity: 1; } }
+    @keyframes in-left { 0% { transform: translateX(-9px); } 28%, 100% { transform: translateX(0); } }
+    @keyframes in-right { 0% { transform: translateX(9px); } 28%, 100% { transform: translateX(0); } }
+    @keyframes shake { 0%, 32% { transform: translateY(0); } 37% { transform: translateY(-3px); } 42% { transform: translateY(2.5px); } 47% { transform: translateY(-1.5px); } 52%, 100% { transform: translateY(0); } }
+    @keyframes letter { 0%, 46% { stroke-dashoffset: 1; opacity: 0; } 47% { opacity: 1; } 74%, 100% { stroke-dashoffset: 0; opacity: 1; } }
+    @keyframes pin { 0%, 70% { transform: scale(0) translateY(6px); } 80% { transform: scale(1.15) translateY(-1px); } 86%, 100% { transform: scale(1) translateY(0); } }
+    @media (prefers-reduced-motion: reduce) { .t { animation: none !important; } .stick { opacity: 0; } }
+  </style>
+
+  <circle class="track" cx="60" cy="60" r="54"/>
+  <circle class="ring t" cx="60" cy="60" r="54" pathLength="1"/>
+
+  <!-- the "f" person (orange), from the left -->
+  <g class="left t">
+    <circle class="head ho t" cx="40" cy="33" r="7"/>
+    <path class="o stick t" d="M42 45 V90" pathLength="1"/>
+    <path class="o letter t" d="M42 92 V57 C42 45 50 41 58 45" pathLength="1"/>
+  </g>
+  <!-- the "g" person (green), from the right -->
+  <g class="right t">
+    <circle class="head hg t" cx="80" cy="33" r="7"/>
+    <path class="g stick t" d="M80 45 V90" pathLength="1"/>
+    <path class="g letter t" d="M88 60 A9 9 0 1 0 70 60 A9 9 0 1 0 88 60 M88 53 V84 C88 95 76 97 70 90" pathLength="1"/>
+  </g>
+  <!-- their arms meet in a handshake (the f's crossbar is the orange arm) -->
+  <g class="shake t">
+    <path class="o arm t" d="M32 64 C42 63 50 64 59 69" pathLength="1"/>
+    <path class="g arm t" d="M72 63 C68 66 64 68 61 69" pathLength="1"/>
+  </g>
+  <!-- the map pin from the logo -->
+  <g class="pin t">
+    <path d="M60 31 C55 25 53 22 53 19 A7 7 0 0 1 67 19 C67 22 65 25 60 31 Z" fill="#ff6b35"/>
+    <circle cx="60" cy="19" r="2.6" fill="#fff7f0"/>
+  </g>
+</svg>

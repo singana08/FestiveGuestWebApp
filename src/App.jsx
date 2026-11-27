@@ -7,29 +7,33 @@ import { LanguageProvider, useLanguage } from './i18n/LanguageContext';
 import Logo from './components/Logo';
 import InviteFriendsModal from './components/InviteFriendsModal';
 import SideNav from './components/SideNav';
-import FeedbackHost, { ErrorBoundary } from './components/Feedback';
-import { ask } from './utils/feedback';
+import FeedbackHost, { ErrorBoundary, LoaderHost } from './components/Feedback';
+import { ask, loadingStarted, loadingDone } from './utils/feedback';
 // Not lazy: it's the landing page, so it renders straight away on a first
 // visit instead of showing a loading spinner while its chunk downloads.
 import Home from './pages/Home';
 import './styles/App.css';
 
 // ── Lazy-loaded pages (code splitting for faster initial load) ──
-const Login           = lazy(() => import('./pages/Login'));
-const Registration    = lazy(() => import('./pages/Registration'));
-const Chats           = lazy(() => import('./pages/Chats'));
-const Admin           = lazy(() => import('./pages/Admin'));
-const Profile         = lazy(() => import('./pages/Profile'));
-const PublicProfile   = lazy(() => import('./pages/PublicProfile'));
-const Help            = lazy(() => import('./pages/Help'));
-const Posts           = lazy(() => import('./pages/Posts'));
-const PrivacyPolicy   = lazy(() => import('./pages/PrivacyPolicy'));
-const ReferralRedirect = lazy(() => import('./pages/ReferralRedirect'));
-const TermsOfService  = lazy(() => import('./pages/TermsOfService'));
-const SafetyGuidelines = lazy(() => import('./pages/SafetyGuidelines'));
-const NotFound        = lazy(() => import('./pages/NotFound'));
-const Trips           = lazy(() => import('./pages/Trips'));
-const Saved           = lazy(() => import('./pages/Saved'));
+// A page whose code downloads on first visit. While it downloads, the branded loader shows (LoaderHost);
+// this reports from the download itself, so it works on first load and on in-app navigation alike.
+const page = (load) => lazy(() => { queueMicrotask(loadingStarted); return load().finally(() => queueMicrotask(loadingDone)); });
+
+const Login           = page(() => import('./pages/Login'));
+const Registration    = page(() => import('./pages/Registration'));
+const Chats           = page(() => import('./pages/Chats'));
+const Admin           = page(() => import('./pages/Admin'));
+const Profile         = page(() => import('./pages/Profile'));
+const PublicProfile   = page(() => import('./pages/PublicProfile'));
+const Help            = page(() => import('./pages/Help'));
+const Posts           = page(() => import('./pages/Posts'));
+const PrivacyPolicy   = page(() => import('./pages/PrivacyPolicy'));
+const ReferralRedirect = page(() => import('./pages/ReferralRedirect'));
+const TermsOfService  = page(() => import('./pages/TermsOfService'));
+const SafetyGuidelines = page(() => import('./pages/SafetyGuidelines'));
+const NotFound        = page(() => import('./pages/NotFound'));
+const Trips           = page(() => import('./pages/Trips'));
+const Saved           = page(() => import('./pages/Saved'));
 
 // ── Static ambient background (CSS-only — no scroll-time repaint cost) ──
 const AppBackground = () => (
@@ -48,14 +52,8 @@ const PageTransition = ({ children }) => (
   </motion.div>
 );
 
-// ── Suspense fallback for lazily loaded pages ──
-// Transparent so it suits light and dark pages, and it only fades in after a
-// short delay, so a quick chunk load shows nothing at all.
-const PageLoader = () => (
-  <div className="page-loader" role="status" aria-label="Loading">
-    <span className="page-loader-spin" />
-  </div>
-);
+// ── Suspense fallback: nothing; the branded loader is drawn by LoaderHost while a page downloads (see page()) ──
+const PageLoader = () => null;
 
 // Saved session, or null (a corrupt entry is cleared). Read synchronously so
 // the first render already knows who's logged in — no splash screen needed.
@@ -328,6 +326,8 @@ const AppContent = () => {
         </Suspense>
         </ErrorBoundary>
       </main>
+
+      <LoaderHost />
 
       {/* ── Invite Friends Modal ── */}
       <AnimatePresence>

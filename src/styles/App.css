@@ -52,7 +52,7 @@
 * { box-sizing: border-box; }
 
 .app-container {
-  min-height: 100vh;
+  min-height: calc(100vh / var(--z, 1));
   display: flex;
   flex-direction: column;
   background: transparent; /* Body is isolated — let html background and AppBackground blobs show */
@@ -276,7 +276,7 @@
     gap: 0.25rem;
     box-shadow: 0 20px 40px rgba(0,0,0,0.1);
     border-bottom: 1px solid var(--border);
-    max-height: calc(100vh - var(--nav-height));
+    max-height: calc(100vh / var(--z, 1) - var(--nav-height));
     overflow-y: auto;
     z-index: 100;
   }
@@ -314,10 +314,16 @@
    light background) sits in its own cream capsule so it stays legible.
    ============================================ */
 html:has(.app-container.theme-dark) { background: #120a1f; }
-/* Desktop density: a 15px root scales every rem size (type, spacing,
-   controls, portalled dialogs) on the dark pages; phones keep 16px. */
+/* Desktop density, by page. The frame (sidebar, banner, pop-ups) is drawn at 75%, like browser zoom at 75%.
+   Posts, a grid you scan, stays at 75% so more fits; its cards carry their own larger type.
+   Every other page (chats, trips, profile, forms you read and type in) shows its content at 90% (0.75 x 1.2).
+   zoom shrinks vh too, so every vh is written as calc(Nvh / var(--z, 1)), --z being the zoom in effect there.
+   Phones and tablets (under 1001px) are drawn at full size. */
 @media (min-width: 1001px) {
-  html:has(.app-container.theme-dark) { font-size: 15px; }
+  html:has(.app-container.theme-dark) { font-size: 15px; zoom: 0.75; --z: 0.75; }
+  .app-container.theme-dark .content:not(:has(.pb)) { zoom: 1.2; --z: 0.9; }
+  /* zoom scales the page's own margin too: keep it flush with the (unscaled) sidebar */
+  .app-container.theme-dark.has-shell .content:not(:has(.pb)) { margin-left: calc(var(--side) / 1.2); }
 }
 .app-container.theme-dark {
   --nav-height: 58px;
@@ -435,7 +441,7 @@ html:has(.app-container.theme-dark) { background: #120a1f; }
 @media (max-width: 1100px) {
   .navbar--glass .nav-links {
     top: calc(var(--nav-height) + 8px); left: 1.25rem; right: 1.25rem;
-    max-height: calc(100vh - var(--nav-height) - 24px);
+    max-height: calc(100vh / var(--z, 1) - var(--nav-height) - 24px);
     padding: 0.75rem; border-radius: 24px;
     background: rgba(28, 16, 46, 0.97);
     border: 1px solid rgba(255, 255, 255, 0.14);
@@ -452,15 +458,6 @@ html:has(.app-container.theme-dark) { background: #120a1f; }
   .navbar--glass .nav-links { left: 0.75rem; right: 0.75rem; }
 }
 
-/* Suspense fallback: transparent, and hidden for the first 300ms */
-.page-loader { min-height: calc(100vh - var(--nav-height)); display: flex; align-items: center; justify-content: center; }
-.page-loader-spin {
-  width: 40px; height: 40px; border-radius: 50%;
-  border: 3px solid rgba(160, 136, 122, 0.25); border-top-color: var(--primary);
-  opacity: 0;
-  animation: spin 0.8s linear infinite, page-loader-in 0.2s ease 0.3s forwards;
-}
-@keyframes page-loader-in { to { opacity: 1; } }
 
 /* ============================================
    MAIN CONTENT
@@ -588,7 +585,7 @@ html:has(.app-container.theme-dark) { background: #120a1f; }
    LANDING PAGE
    ============================================ */
 
-.landing-page { background: var(--background); min-height: 100vh; }
+.landing-page { background: var(--background); min-height: calc(100vh / var(--z, 1)); }
 
 /* ── Stats bar ── */
 .stats-bar {
@@ -643,7 +640,7 @@ html:has(.app-container.theme-dark) { background: #120a1f; }
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 90vh;
+  min-height: calc(90vh / var(--z, 1));
   padding: 4rem 2rem;
   background: var(--gradient-hero);
   color: white;
@@ -954,7 +951,7 @@ html:has(.app-container.theme-dark) { background: #120a1f; }
 
 /* Lock the entire app to the viewport when chat is open */
 body.chat-active                          { overflow: hidden; }
-body.chat-active .app-container           { height: 100dvh; height: 100vh; overflow: hidden; }
+body.chat-active .app-container           { height: calc(100dvh / var(--z, 1)); height: calc(100vh / var(--z, 1)); overflow: hidden; }
 body.chat-active .content.full-width      { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
 /* PageTransition motion.div is the direct child */
 body.chat-active .content.full-width > *  { flex: 1; min-height: 0; display: flex; flex-direction: column; }
@@ -982,6 +979,11 @@ body.chat-active .content.full-width > *  { flex: 1; min-height: 0; display: fle
 .chat-widget .message-time { font-size: 0.68rem; color: var(--text-muted); margin-top: 0.15rem; display: flex; align-items: center; gap: 0.25rem; }
 .chat-widget .message.sent .message-time { justify-content: flex-end; }
 .chat-widget .user-avatar--initial { display: grid; place-items: center; font: 800 0.85rem 'Plus Jakarta Sans', sans-serif; color: #fff; background: linear-gradient(135deg, #a78bfa, #7c5cf0); }
+/* "About: (post title)" over messages sent from a post's card (chat pop-up and Chats page), set like a date line */
+.chat-about { align-self: center; max-width: 92%; margin: 0.45rem 0 0.15rem; }
+.chat-about span { display: inline-flex; align-items: center; gap: 0.3rem; max-width: 100%; padding: 0.2rem 0.7rem; border-radius: 999px; font-size: 0.72rem; color: rgba(255, 240, 230, 0.74); background: rgba(255, 193, 99, 0.1); border: 1px solid rgba(255, 193, 99, 0.3); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.chat-about strong { overflow: hidden; text-overflow: ellipsis; color: #ffd9a0; font-weight: 600; }
+.chat-about svg { flex: none; color: #ffc163; }
 .chat-widget .cw-state { margin: auto 0; padding: 2rem 1.25rem; text-align: center; font-size: 0.86rem; line-height: 1.5; color: var(--text-light); }
 .chat-widget .cw-state.is-error { color: var(--error); }
 .chat-widget .cw-state-icon { display: block; margin-bottom: 0.5rem; font-size: 1.4rem; }
@@ -999,7 +1001,7 @@ body.chat-active .content.full-width > *  { flex: 1; min-height: 0; display: fle
    CHAT FULL PAGE
    ============================================ */
 
-.modern-chat-page { padding: 2rem; max-width: 800px; margin: 0 auto; height: calc(100vh - var(--nav-height)); display: flex; flex-direction: column; }
+.modern-chat-page { padding: 2rem; max-width: 800px; margin: 0 auto; height: calc(100vh / var(--z, 1) - var(--nav-height)); display: flex; flex-direction: column; }
 .chat-window-full { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-lg); display: flex; flex-direction: column; height: 100%; border: 1px solid var(--border); overflow: hidden; }
 .chat-header-full { padding: 1rem 1.5rem; background: var(--gradient-primary); color: white; display: flex; justify-content: space-between; align-items: center; }
 .chat-user-info-full { display: flex; align-items: center; gap: 1rem; }
@@ -1034,7 +1036,7 @@ body.chat-active .content.full-width > *  { flex: 1; min-height: 0; display: fle
 .modern-chat-container .send-btn:hover { transform: scale(1.1); }
 .modern-chat-container .send-btn:disabled { background: #d1d5db; cursor: not-allowed; transform: none; }
 @keyframes messageSlide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@media (max-width: 768px) { .modern-chat-container { position: fixed; inset: 0; width: 100%; height: 100%; right: 0; } .modern-chat-container .chat-window { border-radius: 0; height: 100vh; } }
+@media (max-width: 768px) { .modern-chat-container { position: fixed; inset: 0; width: 100%; height: 100%; right: 0; } .modern-chat-container .chat-window { border-radius: 0; height: calc(100vh / var(--z, 1)); } }
 
 /* ============================================
    BROWSE / DASHBOARD LAYOUT
@@ -1215,7 +1217,7 @@ body.chat-active .content.full-width > *  { flex: 1; min-height: 0; display: fle
   border: 1px solid rgba(255,107,53,0.12);
   width: 100%;
   max-width: 500px;
-  max-height: 90vh;
+  max-height: calc(90vh / var(--z, 1));
   overflow-y: auto;
 }
 .modal-header { padding: 1.5rem 1.5rem 0; display: flex; justify-content: space-between; align-items: center; }
@@ -1282,7 +1284,7 @@ body.chat-active .content.full-width > *  { flex: 1; min-height: 0; display: fle
    LEGAL DOCUMENTS
    ============================================ */
 
-.legal-document { background: var(--surface); min-height: 100vh; padding: 2rem 0; }
+.legal-document { background: var(--surface); min-height: calc(100vh / var(--z, 1)); padding: 2rem 0; }
 .legal-document .container { max-width: 800px; margin: 0 auto; padding: 0 2rem; }
 .legal-document h1 { color: var(--primary); font-size: 2.25rem; margin-bottom: 0.5rem; text-align: center; }
 .legal-document .last-updated { text-align: center; color: var(--text-light); font-style: italic; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid var(--border); }

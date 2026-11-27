@@ -4,9 +4,13 @@ import chatService from '../utils/chatService';
 import api from '../utils/api';
 import ImageWithSas from '../components/ImageWithSas';
 import StayPanel from './StayPanel';
+import ChatAbout from './ChatAbout';
+import { aboutStarts, lastAbout } from '../utils/chatAbout';
 
-const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) => {
+// about: the post this chat was opened from ({ postId, kind, title }); the next message sent is marked as about it.
+const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, about, onClose }) => {
   const [messages, setMessages] = useState([]);
+  const [pendingAbout, setPendingAbout] = useState(about || null);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -62,7 +66,8 @@ const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) 
               sender: 'Recipient',
               text: data.message,
               timestamp: new Date(data.timestamp),
-              status: 'delivered'
+              status: 'delivered',
+              about: data.about || null
             }];
           });
         }
@@ -79,7 +84,8 @@ const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) 
             sender: msg.senderId === userId ? 'Me' : 'Recipient',
             text: msg.message,
             timestamp: new Date(msg.timestamp),
-            status: msg.status?.toLowerCase() || 'sent'
+            status: msg.status?.toLowerCase() || 'sent',
+            about: msg.about || null
           }));
           setMessages(formattedHistory);
           console.log('Loaded message history:', formattedHistory.length, 'messages');
@@ -116,40 +122,46 @@ const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) 
       console.log('Sending message:', messageText, 'to:', recipientId);
       
       // Add message to UI immediately for better UX
+      const sendAbout = pendingAbout; // only the first message sent from the post carries it
       const tempMessage = {
         id: Date.now(),
         sender: 'Me',
         text: messageText,
         timestamp: new Date(),
-        status: 'sending'
+        status: 'sending',
+        about: sendAbout
       };
-      
+
       setMessages(prev => [...prev, tempMessage]);
-      
+
       try {
-        await chatService.sendMessage(recipientId, messageText);
+        if (sendAbout) await chatService.sendMessageAbout(recipientId, messageText, sendAbout.postId);
+        else await chatService.sendMessage(recipientId, messageText);
         console.log('Message sent successfully via SignalR');
-        
+        setPendingAbout(null);
+
         // Update message status to sent
-        setMessages(prev => prev.map(msg => 
-          msg.id === tempMessage.id 
+        setMessages(prev => prev.map(msg =>
+          msg.id === tempMessage.id
             ? { ...msg, status: 'sent' }
             : msg
         ));
       } catch (sendError) {
         console.error('Failed to send message via chat service:', sendError);
-        
+
         // Try sending via API as fallback
         try {
           console.log('Attempting API fallback for message send');
           await api.post('chat/send', {
             recipientId,
-            message: messageText
+            message: messageText,
+            ...(sendAbout && { aboutPostId: sendAbout.postId })
           });
           console.log('Message sent via API fallback');
-          
-          setMessages(prev => prev.map(msg => 
-            msg.id === tempMessage.id 
+          setPendingAbout(null);
+
+          setMessages(prev => prev.map(msg =>
+            msg.id === tempMessage.id
               ? { ...msg, status: 'sent' }
               : msg
           ));
@@ -176,6 +188,7 @@ const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) 
     }
   };
 
+  const starts = aboutStarts(messages);
   return (
     <div className="chat-widget">
       <div className="chat-header">
@@ -220,7 +233,9 @@ const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) 
           </div>
         ) : (
           messages.map((m, i) => (
-            <div key={m.id || i} className={`message ${m.sender === 'Me' ? 'sent' : 'received'}`}>
+            <React.Fragment key={m.id || i}>
+            {starts[i] && <ChatAbout about={m.about} />}
+            <div className={`message ${m.sender === 'Me' ? 'sent' : 'received'}`}>
               <div className="message-content">{m.text}</div>
               <div className="message-time">
                 {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -234,8 +249,11 @@ const ChatWidget = ({ recipientId, recipientName, recipientImageUrl, onClose }) 
                 )}
               </div>
             </div>
+            </React.Fragment>
           ))
         )}
+        {/* opened from a post: says what the next message will be about */}
+        {!loading && !error && pendingAbout && lastAbout(messages) !== pendingAbout.postId && <ChatAbout about={pendingAbout} />}
         <div ref={messagesEndRef} />
       </div>
 

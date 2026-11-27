@@ -14,8 +14,8 @@
 
   position: relative;
   isolation: isolate;
-  min-height: calc(100vh - var(--nav-height, 68px));
-  padding: clamp(0.85rem, 1.8vw, 1.25rem) 1.25rem 2.5rem;
+  min-height: calc(100vh / var(--z, 1) - var(--nav-height, 68px));
+  padding: clamp(0.85rem, 1.8vw, 1.25rem) 1rem 2.5rem;
   background: #120a1f;
   color: var(--rg-ink);
   font-family: 'Inter', sans-serif;
@@ -26,28 +26,31 @@
 .pb :focus-visible { outline: 2px solid var(--rg-amber); outline-offset: 3px; }
 .pb button { font-family: inherit; }
 
-.pb-shell { position: relative; z-index: 1; width: min(1400px, 100%); margin: 0 auto; }
+/* fills the space beside the sidebar (no empty bands at the sides); capped only on very wide screens */
+.pb-shell { position: relative; z-index: 1; width: min(1800px, 100%); margin: 0 auto; }
 .pb-main { min-width: 0; }
 .pb-rail { display: none; }
-/* 1280px and up: posts on the left (4 columns at most), ads in a right column */
-@media (min-width: 1280px) {
+/* 1100px and up: posts on the left (4 columns at most), ads in a right column.
+   Desktop is drawn at 75% (App.css), so 1100px already leaves ~230px cards beside the column, e.g. a 1920 screen at 150% (1280px). */
+@media (min-width: 1100px) {
   .pb-shell { display: grid; grid-template-columns: minmax(0, 1fr) 240px; column-gap: 1rem; align-items: start; }
   .pb-top { grid-column: 1 / -1; }
   .pb-rail { display: flex; flex-direction: column; gap: 0.7rem; margin-top: 0.75rem; position: sticky; top: calc(var(--nav-height, 68px) + 0.6rem); }
   .pb-grid > .sp { display: none; } /* the right column has them */
   /* A traveller's upcoming trip tops the right column: the trip card stacks, picture strip then details */
   .pb-rail .ut { margin: 0; padding: 0.7rem; gap: 0.5rem; border-radius: 14px; }
-  .pb-rail .ut-head h2 { font-size: 0.82rem; }
-  .pb-rail .ut-all { font-size: 0.72rem; }
+  .pb-rail .ut-head h2 { font-size: 0.95rem; }
+  .pb-rail .ut-all { font-size: 0.82rem; }
   .pb-rail .ut .tc { flex-direction: column; gap: 0.5rem; padding: 0.6rem; border-radius: 12px; }
   .pb-rail .ut .tc-pic { width: 100%; height: 56px; border-radius: 10px; }
   .pb-rail .ut .tc-initial { font-size: 1.4rem; }
-  .pb-rail .ut .tc-top h3 { font-size: 0.85rem; }
-  .pb-rail .ut .tc-meta, .pb-rail .ut .tc-note { font-size: 0.733rem; }
-  .pb-rail .ut .tc-actions .rg-btn { padding: 0.35rem 0.7rem; font-size: 0.733rem; }
+  .pb-rail .ut .tc-top h3 { font-size: 1rem; }
+  .pb-rail .ut .tc-status { font-size: 0.78rem; }
+  .pb-rail .ut .tc-meta, .pb-rail .ut .tc-note { font-size: 0.867rem; }
+  .pb-rail .ut .tc-actions .rg-btn { padding: 0.4rem 0.8rem; font-size: 0.867rem; }
 }
-/* Below 1280px there's no right column: it shows only the traveller's upcoming trip, lifted above the posts */
-@media (max-width: 1279px) {
+/* Below 1100px there's no right column: it shows only the traveller's upcoming trip, lifted above the posts */
+@media (max-width: 1099px) {
   .pb-shell { display: flex; flex-direction: column; }
   .pb-rail { order: 1; display: block; }
   .pb-main { order: 2; }
@@ -73,7 +76,74 @@
 }
 .pb-howto:hover { color: var(--rg-ink); }
 
-/* ── Toolbar: tabs, search, filters, sort and view in one wrapping row ── */
+/* ── Home's search (NeedSearch.jsx): the question card, its one-line summary, and "Post this trip" ── */
+.nd-card {
+  display: grid; gap: 1rem; width: min(760px, 100%); margin: 1.5rem auto 0; padding: 1.5rem 1.6rem 1.4rem; border-radius: 22px;
+  background: var(--pb-glass, rgba(43, 26, 70, 0.9)); border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 30px 70px -36px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  animation: nd-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.nd-card.is-edit { width: 100%; margin: 0.75rem 0 0; padding: 1.1rem 1.2rem; gap: 0.85rem; }
+@keyframes nd-in { from { opacity: 0; transform: translateY(10px); } }
+.pb .nd-card h2 { font-size: 1.45rem; font-weight: 800; letter-spacing: -0.02em; }
+.pb .nd-card.is-edit h2 { font-size: 1.1rem; }
+.pb .nd-intro { margin-top: -0.6rem; font-size: 0.95rem; color: var(--rg-soft); }
+.nd-choice { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.nd-choice button {
+  display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.6rem 1.05rem; border-radius: 14px; cursor: pointer;
+  font: 700 0.95rem 'Plus Jakarta Sans', sans-serif; color: var(--rg-soft);
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.16); transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.nd-choice button:hover { color: var(--rg-ink); border-color: rgba(255, 255, 255, 0.3); }
+.nd-choice button.is-on { color: #2a1206; background: #ffc163; border-color: transparent; }
+.nd-choice--multi button { padding: 0.45rem 0.85rem; font-size: 0.88rem; }
+.nd-fields { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1.2fr) auto auto; gap: 0.9rem; align-items: start; }
+.nd-field { display: grid; gap: 0.4rem; min-width: 0; }
+.nd-field > span { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; font-weight: 700; letter-spacing: 0.02em; color: var(--rg-soft); }
+.nd-field > span svg { color: var(--rg-amber); }
+.nd-field small { font-size: 0.75rem; color: var(--rg-mute); }
+.nd-clear { justify-self: start; display: inline-flex; align-items: center; gap: 0.25rem; padding: 0; border: 0; background: none; cursor: pointer; font-size: 0.75rem; font-weight: 600; color: var(--rg-amber); }
+.nd-clear:hover { text-decoration: underline; }
+.nd-field .rg-input { padding: 0.65rem 0.85rem; font-size: 0.95rem; }
+.nd-field .rg-input::-webkit-calendar-picker-indicator { filter: invert(0.85); cursor: pointer; }
+.nd-actions { display: flex; justify-content: flex-end; gap: 0.6rem; }
+.nd-actions .rg-btn { flex: 0 0 auto; padding: 0.7rem 1.4rem; }
+
+.nd-summary { flex: 1 1 320px; min-width: 0; display: flex; align-items: center; gap: 0.6rem; padding: 0.2rem 0.3rem 0.2rem 0.6rem; }
+.nd-summary > svg { flex-shrink: 0; color: var(--rg-amber); }
+.pb .nd-summary p { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; font-size: 0.95rem; font-weight: 600; color: var(--rg-ink); }
+.nd-summary p span + span::before { content: '·'; margin: 0 0.45rem; color: var(--rg-mute); }
+.nd-edit {
+  flex-shrink: 0; margin-left: auto; display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.38rem 0.8rem; border-radius: 999px; cursor: pointer;
+  font: 700 0.85rem 'Inter', sans-serif; color: #ffd9a0; background: rgba(255, 193, 99, 0.12); border: 1px solid rgba(255, 193, 99, 0.45);
+}
+.nd-edit:hover { background: rgba(255, 193, 99, 0.2); }
+
+.nd-nudge {
+  display: flex; align-items: center; gap: 0.9rem; margin-top: 0.75rem; padding: 0.85rem 1rem; border-radius: 16px;
+  background: linear-gradient(120deg, rgba(255, 154, 77, 0.14), rgba(139, 108, 255, 0.12)); border: 1px solid rgba(255, 193, 99, 0.35);
+}
+.nd-nudge.is-big { padding: 1.3rem 1.3rem; }
+.nd-nudge.is-posted { background: rgba(52, 211, 153, 0.08); border-color: rgba(52, 211, 153, 0.4); }
+.nd-nudge.is-posted .nd-nudge-icon { color: #6ee7b7; background: rgba(52, 211, 153, 0.14); }
+.nd-nudge-icon { flex-shrink: 0; width: 42px; height: 42px; border-radius: 13px; display: grid; place-items: center; color: #ffc163; background: rgba(255, 193, 99, 0.14); }
+.nd-nudge > div { flex: 1; min-width: 0; }
+.nd-nudge strong { display: block; font: 700 1rem 'Plus Jakarta Sans', sans-serif; color: var(--rg-ink); }
+.pb .nd-nudge p { margin-top: 0.15rem; font-size: 0.88rem; color: var(--rg-soft); }
+.nd-nudge .rg-btn { flex: 0 0 auto; padding: 0.65rem 1.2rem; }
+@media (max-width: 720px) {
+  .nd-card { margin-top: 0.75rem; padding: 1.1rem; }
+  .nd-choice:not(.nd-choice--multi) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .nd-choice:not(.nd-choice--multi) button { flex-direction: column; justify-content: center; gap: 0.25rem; padding: 0.6rem 0.4rem; font-size: 0.85rem; text-align: center; }
+  .nd-fields { grid-template-columns: 1fr 1fr; }
+  .nd-field--where, .nd-fields > label:nth-child(2) { grid-column: 1 / -1; }
+  .nd-actions .rg-btn { flex: 1; }
+  .nd-nudge { flex-wrap: wrap; }
+  .nd-nudge .rg-btn { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .nd-card { animation: none; } }
+
+/* ── Toolbar: the search summary, price, sort and view in one row ── */
 .pb-toolbar {
   position: sticky; top: calc(var(--nav-height, 68px) + 0.6rem); z-index: 5;
   display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem;
@@ -87,40 +157,6 @@
 .pb-tabs button { flex: 0 0 auto; padding: 0.34rem 0.85rem; font-size: 0.867rem; }
 .pb-tabs button[aria-pressed='true'] { color: #24123a; }
 .pb-tabs .rg-seg-pill { background: rgba(255, 247, 240, 0.94); box-shadow: none; }
-.pb-search { position: relative; flex: 1 1 170px; min-width: 0; }
-.pb-search input {
-  width: 100%; padding: 0.42rem 2.2rem; border-radius: 10px;
-  border: 1.5px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.06);
-  font: 400 0.867rem 'Inter', sans-serif; color: var(--rg-ink);
-  outline: none; transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-}
-.pb-search input::placeholder { color: rgba(255, 240, 230, 0.4); }
-.pb-search input::-webkit-search-cancel-button { display: none; }
-.pb-search input:focus { border-color: #ff9a4d; background: rgba(255, 255, 255, 0.09); box-shadow: 0 0 0 4px rgba(255, 122, 61, 0.18); }
-.pb-search-icon { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--rg-amber); pointer-events: none; }
-.pb-search-clear {
-  position: absolute; right: 0.4rem; top: 50%; transform: translateY(-50%);
-  width: 26px; height: 26px; display: grid; place-items: center; padding: 0;
-  border: 0; border-radius: 50%; cursor: pointer; color: var(--rg-soft); background: rgba(255, 255, 255, 0.08);
-}
-.pb-search-clear:hover { color: var(--rg-ink); background: rgba(255, 255, 255, 0.16); }
-.pb-suggest {
-  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 20;
-  margin: 0; padding: 0.4rem; list-style: none; border-radius: 16px;
-  background: #22143a; border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.85);
-}
-.pb-suggest li {
-  display: flex; align-items: center; gap: 0.55rem; padding: 0.6rem 0.75rem;
-  border-radius: 10px; cursor: pointer; font-size: 0.9rem; color: var(--rg-ink);
-}
-.pb-suggest li svg { color: var(--rg-amber); flex-shrink: 0; }
-.pb-suggest li.is-active { background: rgba(255, 255, 255, 0.09); }
-.pb-suggest .pb-suggest-head {
-  padding: 0.4rem 0.75rem 0.3rem; cursor: default;
-  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--rg-mute);
-}
-.pb-suggest-n { margin-left: auto; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.72rem; font-weight: 700; color: var(--rg-amber); background: rgba(255, 193, 99, 0.14); }
 
 .pb-toolbar-row { display: contents; }
 .pb-quick { display: flex; flex-wrap: wrap; gap: 0.3rem; }
@@ -137,14 +173,16 @@
   background: linear-gradient(135deg, #ffd38a 0%, #ff9a4d 50%, #ff6b35 100%);
   box-shadow: 0 8px 18px -8px rgba(255, 107, 53, 0.8);
 }
-.pb-chip--guide { border-color: rgba(52, 211, 153, 0.45); color: #a7f3d0; }
 .pb-chip--guide.is-on { color: #052e1f; background: linear-gradient(135deg, #a7f3d0, #34d399); box-shadow: 0 8px 18px -8px rgba(52, 211, 153, 0.8); }
-.pb-chip--accent { border-style: dashed; border-color: rgba(255, 193, 99, 0.5); color: #ffe2b0; }
+.pb-chip--accent > svg { color: var(--rg-amber); }
 .pb-chip--removable svg:last-child { opacity: 0.7; }
-/* In the Posts toolbar: smaller, and a selected chip is a soft amber tint (orange is kept for actions). */
-.pb-toolbar .pb-chip { padding: 0.3rem 0.65rem; font-size: 0.8rem; border-width: 1px; }
-.pb-toolbar .pb-chip.is-on { color: #ffd9a0; border-color: rgba(255, 193, 99, 0.5); background: rgba(255, 193, 99, 0.14); box-shadow: none; }
-.pb-toolbar .pb-chip--guide.is-on { color: #a7f3d0; border-color: rgba(52, 211, 153, 0.55); background: rgba(52, 211, 153, 0.14); }
+/* In the Posts toolbar every chip reads the same way: off = a plain outline, on = solid fill with a ✓
+   (amber; green for "Needs a guide"), so what's selected is clear at a glance and not by colour alone. */
+.pb-toolbar .pb-chip { padding: 0.3rem 0.7rem; font-size: 0.867rem; border-width: 1px; }
+.pb-toolbar .pb-chip.is-on { color: #2a1206; border-color: transparent; background: #ffc163; box-shadow: none; }
+.pb-toolbar .pb-chip--guide.is-on { color: #052e1f; background: #6ee7b7; }
+.pb-toolbar .pb-chip.is-on > svg { color: inherit; }
+.pb-toolbar .pb-chip.is-on::before { content: "✓"; font-weight: 800; margin-right: -0.1rem; }
 .pb-toolbar-end { display: flex; align-items: center; gap: 0.45rem; }
 /* Sort menu (SortMenu.jsx): the same dark glass as the search suggestions, not the browser's blue list */
 .pb-sort { position: relative; }
@@ -178,14 +216,12 @@
   color: var(--rg-soft); transition: background 0.2s, color 0.2s;
 }
 .pb-view button[aria-pressed='true'] { color: var(--rg-ink); background: rgba(255, 255, 255, 0.14); }
-.pb-selected { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; flex-basis: 100%; }
-.pb-selected .rg-link-btn { margin-left: 0.35rem; }
 
 /* ── Cards ── */
 /* At least 220px a card, and never more than 4 across */
 .pb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(max(220px, calc((100% - 2.1rem) / 4)), 1fr)); gap: 0.7rem; margin-top: 0.75rem; }
 .pb-grid--below-map { margin-top: 1.25rem; }
-@media (min-width: 1280px) { .pb-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } } /* always 4 across next to the ads */
+@media (min-width: 1100px) { .pb-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } } /* always 4 across next to the ads */
 .pb-card {
   container-type: inline-size; /* lets a narrow card shrink its own text (see @container below) */
   position: relative; display: flex; flex-direction: column; gap: 0.45rem; min-width: 0;
@@ -199,24 +235,24 @@
 .pb-card-top { display: flex; align-items: flex-start; gap: 0.6rem; }
 .pb-card-head { flex: 1; min-width: 0; }
 .pb-card-title {
-  font-size: 0.867rem; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere;
+  font-size: 1.033rem; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere;
   display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
 }
 
 
 .pb-badge {
   padding: 0.1rem 0.45rem; border-radius: 999px;
-  font-size: 0.64rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--rg-soft); background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.14);
 }
 .pb-badge--new { color: #a7f3d0; background: rgba(52, 211, 153, 0.12); border-color: rgba(52, 211, 153, 0.4); }
 
 
 .pb-facts { display: flex; flex-wrap: wrap; gap: 0.25rem 0.7rem; margin: 0; padding: 0; list-style: none; }
-.pb-facts li { display: inline-flex; align-items: center; gap: 0.3rem; min-width: 0; font-size: 0.733rem; color: var(--rg-soft); overflow-wrap: anywhere; }
+.pb-facts li { display: inline-flex; align-items: center; gap: 0.3rem; min-width: 0; font-size: 0.9rem; color: var(--rg-soft); overflow-wrap: anywhere; }
 .pb-facts svg { flex-shrink: 0; color: var(--rg-amber); }
 .pb .pb-desc {
-  font-size: 0.767rem; line-height: 1.45; overflow-wrap: anywhere; min-height: 2.9em; /* always 2 lines on a card */
+  font-size: 0.933rem; line-height: 1.45; overflow-wrap: anywhere; min-height: 2.9em; /* always 2 lines on a card */
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
 .pb-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; }
@@ -226,7 +262,7 @@
 }
 
 /* Places on a card: one line of text, not chips */
-.pb-areas { display: flex; align-items: center; gap: 0.35rem; min-width: 0; font-size: 0.767rem; font-weight: 600; color: #ffe2b0; }
+.pb-areas { display: flex; align-items: center; gap: 0.35rem; min-width: 0; font-size: 0.933rem; font-weight: 600; color: #ffe2b0; }
 .pb-areas > svg { color: var(--rg-amber); flex-shrink: 0; }
 .pb-areas-list { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pb-areas-more { flex-shrink: 0; font-weight: 500; color: var(--rg-mute); }
@@ -250,19 +286,19 @@
 .pb-amen-tip {
   position: absolute; left: calc(100% + 7px); top: 50%; z-index: 3; pointer-events: none;
   padding: 0.08rem 0.5rem; border-radius: 999px; white-space: nowrap;
-  font-size: 0.733rem; font-weight: 600; color: var(--rg-ink);
+  font-size: 0.867rem; font-weight: 600; color: var(--rg-ink);
   background: #2b1b44; border: 1px solid rgba(255, 193, 99, 0.35); box-shadow: 0 6px 14px -6px rgba(0, 0, 0, 0.8);
   opacity: 0; transform: translate(-6px, -50%) scale(0.85); transform-origin: left center;
   transition: opacity 0.2s, transform 0.35s cubic-bezier(0.34, 1.8, 0.64, 1);
 }
 .pb-amen-i.is-left .pb-amen-tip { left: auto; right: calc(100% + 7px); transform: translate(6px, -50%) scale(0.85); transform-origin: right center; }
 .pb-amen-i.is-on .pb-amen-tip { opacity: 1; transform: translate(0, -50%) scale(1); }
-.pb-amen-more { font-size: 0.733rem; font-weight: 600; color: var(--rg-mute); }
+.pb-amen-more { font-size: 0.867rem; font-weight: 600; color: var(--rg-mute); }
 
 .pb-price { display: flex; align-items: baseline; gap: 0.2rem; flex-shrink: 0; }
-.pb-price strong { font: 800 0.867rem 'Plus Jakarta Sans', sans-serif; color: var(--rg-amber); }
-.pb-price span { font-size: 0.733rem; color: var(--rg-mute); }
-.pb .pb-host-line { margin-top: 0.1rem; font-size: 0.733rem; color: var(--rg-mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pb-price strong { font: 800 1.033rem 'Plus Jakarta Sans', sans-serif; color: var(--rg-amber); }
+.pb-price span { font-size: 0.867rem; color: var(--rg-mute); }
+.pb .pb-host-line { margin-top: 0.1rem; font-size: 0.9rem; color: var(--rg-mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pb-card--full .pb-host-line { white-space: normal; }
 
 .pb-card-foot {
@@ -277,7 +313,7 @@
 .pb-author:hover strong { text-decoration: underline; text-underline-offset: 2px; }
 .pb-author-link { padding: 0; border: 0; background: none; cursor: pointer; font-size: inherit; font-weight: 600; color: var(--rg-soft); }
 .pb-author-link:hover { color: var(--rg-ink); text-decoration: underline; text-underline-offset: 2px; }
-.pb-posted { font-size: 0.733rem; color: var(--rg-mute); }
+.pb-posted { font-size: 0.9rem; color: var(--rg-mute); }
 
 .pb-avatar {
   flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%;
@@ -300,24 +336,24 @@
 }
 .pb-contact:hover { transform: translateY(-1px); }
 /* On the board: smaller avatars, and a tinted Message button so a page of cards isn't a wall of orange. */
-.pb-grid .pb-avatar--lg { width: 28px; height: 28px; border-radius: 50%; font-size: 0.78rem; }
+.pb-grid .pb-avatar--lg { width: 32px; height: 32px; border-radius: 50%; font-size: 0.9rem; }
 .pb-grid .pb-card-foot .pb-avatar { width: 28px; height: 28px; font-size: 0.78rem; }
 .pb-grid .pb-contact {
-  gap: 0.3rem; padding: 0.36rem 0.7rem; font-size: 0.733rem; color: #ffcf9a;
+  gap: 0.3rem; padding: 0.42rem 0.8rem; font-size: 0.867rem; color: #ffcf9a;
   background: rgba(255, 154, 77, 0.13); border: 1px solid rgba(255, 154, 77, 0.4); box-shadow: none;
 }
 .pb-grid .pb-contact:hover { background: rgba(255, 154, 77, 0.22); }
 .pb-grid .pb-icon-btn { width: 28px; height: 28px; }
 .pb-grid .sv-btn--icon { width: 30px; height: 30px; }
 .pb-card-top > .sv-btn { flex-shrink: 0; margin: -0.15rem -0.2rem 0 0; } /* the heart, top-right */
-/* Narrow cards (4 across on a 1280–1450px screen): a step smaller so everything still fits on its line */
+/* Narrow cards (4 across beside the ads on a screen just over 1100px): a step smaller so everything still fits on its line */
 @container (max-width: 205px) { /* content width, i.e. cards under ~230px */
-  .pb-card-title { font-size: 0.8rem; }
-  .pb .pb-desc, .pb-areas { font-size: 0.733rem; }
-  .pb-facts li, .pb .pb-host-line, .pb-posted, .pb-price span, .pb-amen-tip { font-size: 0.7rem; }
-  .pb-price strong { font-size: 0.8rem; }
+  .pb-card-title { font-size: 0.967rem; }
+  .pb .pb-desc, .pb-areas { font-size: 0.867rem; }
+  .pb-facts li, .pb .pb-host-line, .pb-posted, .pb-price span, .pb-amen-tip { font-size: 0.833rem; }
+  .pb-price strong { font-size: 0.967rem; }
   .pb-amen { gap: 0.3rem; }
-  .pb-grid .pb-contact { padding: 0.32rem 0.6rem; font-size: 0.7rem; }
+  .pb-grid .pb-contact { padding: 0.36rem 0.65rem; font-size: 0.8rem; }
   .pb-grid .pb-meta .pb-facts li + li { display: none; } /* "From 26 Nov" — still in the full post */
   .pb-card-top > .pb-avatar { display: none; } /* the name is on the next line anyway; the title gets the room */
   .pb-grid .sv-btn--icon { width: 26px; height: 26px; }
@@ -370,7 +406,7 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 .pb-map-canvas { padding: 1rem; }
-.pb-map-canvas svg { display: block; width: 100%; height: auto; max-height: 66vh; margin: 0 auto; overflow: visible; }
+.pb-map-canvas svg { display: block; width: 100%; height: auto; max-height: calc(66vh / var(--z, 1)); margin: 0 auto; overflow: visible; }
 .pb-map-state { fill: rgba(255, 240, 230, 0.32); font: 700 11px 'Inter', sans-serif; letter-spacing: 0.08em; text-transform: uppercase; text-anchor: middle; pointer-events: none; }
 .pb-map-dot { fill: rgba(255, 240, 230, 0.28); }
 .pb-map-canvas polygon { pointer-events: none; }
@@ -382,7 +418,7 @@
 .pb-pin-core { filter: drop-shadow(0 4px 8px rgba(255, 107, 53, 0.6)); }
 .pb-pin-count { fill: #2a1206; font: 800 10px 'Plus Jakarta Sans', sans-serif; text-anchor: middle; }
 .pb-pin-label { fill: #fff7f0; font: 600 11px 'Inter', sans-serif; paint-order: stroke; stroke: #1a0f2b; stroke-width: 3px; stroke-linejoin: round; }
-.pb-map-list { padding: 1rem; align-self: start; max-height: 72vh; overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.22) transparent; }
+.pb-map-list { padding: 1rem; align-self: start; max-height: calc(72vh / var(--z, 1)); overflow-y: auto; scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.22) transparent; }
 .pb .pb-map-hint { margin-bottom: 0.75rem; font-size: 0.8rem; color: var(--rg-mute); }
 .pb .pb-map-empty { font-size: 0.86rem; }
 .pb-map-list ul { display: grid; gap: 0.35rem; margin: 0; padding: 0; list-style: none; }
@@ -437,7 +473,7 @@
 }
 .pb-chat-window {
   position: fixed; right: 1.25rem; bottom: 1.25rem; z-index: 1000;
-  width: 360px; height: min(520px, calc(100vh - var(--nav-height, 68px) - 2rem));
+  width: 360px; height: min(520px, calc(100vh / var(--z, 1) - var(--nav-height, 68px) - 2rem));
   border-radius: 20px; overflow: hidden;
   box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.85);
 }
@@ -449,6 +485,8 @@
 .pb-dialog--md { width: min(600px, 100%); }
 .pb-dialog--lg { width: min(760px, 100%); }
 .pb-dialog .rg-modal-foot { justify-content: flex-end; }
+.rg-modal-foot { flex-wrap: wrap; }
+.rg-modal-foot .pb-form-error { flex: 1 1 100%; margin: 0 0 0.2rem; }
 .pb-dialog-emoji { font-size: 1.25rem; }
 .pb-dialog input[type='date'] { color-scheme: dark; }
 .rg-portal .pb-hint { margin-top: 0.35rem; font-size: 0.76rem; color: rgba(255, 240, 230, 0.5); }
@@ -542,7 +580,6 @@
   .pb-toolbar { position: static; }
   .pb-tabs { flex: 1 1 auto; min-width: 0; }
   .pb-tabs button { flex: 1; padding: 0.5rem 0.9rem; }
-  .pb-search input { padding-block: 0.6rem; font-size: 0.9rem; }
   .pb-quick { flex: 1 1 100%; min-width: 0; flex-wrap: nowrap; overflow-x: auto; margin: 0 -0.45rem; padding: 0.1rem 0.45rem; scrollbar-width: none; }
   .pb-quick::-webkit-scrollbar { display: none; }
   .pb-toolbar-end { width: 100%; justify-content: space-between; }
@@ -701,20 +738,42 @@ button.sp { width: 100%; padding: 0; font: inherit; text-align: left; cursor: po
 .sp-pic img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .sp-body { flex: none; display: grid; align-content: start; gap: 0.3rem; padding: 0.6rem 0.8rem 0.7rem; }
 .sp-label {
-  justify-self: start; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.66rem; font-weight: 700; letter-spacing: 0.04em;
+  justify-self: start; padding: 0.1rem 0.5rem; border-radius: 999px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em;
   text-transform: uppercase; color: #ffe2b0; background: rgba(255, 193, 99, 0.14);
 }
-.sp-title { font-size: 0.867rem; color: #fff7f0; overflow-wrap: anywhere; }
+.sp-title { font-size: 1rem; color: #fff7f0; overflow-wrap: anywhere; }
 .sp-text {
-  font-size: 0.767rem; line-height: 1.45; color: rgba(255, 240, 230, 0.72); overflow-wrap: anywhere;
+  font-size: 0.867rem; line-height: 1.45; color: rgba(255, 240, 230, 0.72); overflow-wrap: anywhere;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-.sp-go { display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 0.1rem; font-size: 0.733rem; font-weight: 700; color: var(--rg-amber); }
+.sp-go { display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 0.1rem; font-size: 0.867rem; font-weight: 700; color: var(--rg-amber); }
 @media (prefers-reduced-motion: reduce) { .sp, .sp:hover { transition: none; transform: none; } }
 
-/* ── Trip cards: a travel ticket — date stub | the trip | a stub with the details ── */
-.pb-grid.pb-grid--tickets { grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); }
-.pb-card--trip { display: grid; grid-template-columns: 76px minmax(0, 1fr) 168px; gap: 0; padding: 0; }
+/* ── Already in touch: a tag (in place of the posted time) and an outline in the same colour, so the people
+   you've messaged, asked or confirmed stand out from the rest. Amber = waiting for your answer. ── */
+.pb-card.is-confirmed, .pb-tk-who.is-confirmed { --pb-contact: 52, 211, 153; }
+.pb-card.is-asked, .pb-tk-who.is-asked { --pb-contact: 255, 193, 99; }
+.pb-card.is-requested, .pb-tk-who.is-requested { --pb-contact: 96, 165, 250; }
+.pb-card.is-messaged, .pb-tk-who.is-messaged { --pb-contact: 167, 139, 250; }
+.pb-card.is-stayed, .pb-tk-who.is-stayed { --pb-contact: 255, 240, 230; }
+.pb-grid .pb-card.is-contact { border-color: rgba(var(--pb-contact), 0.55); box-shadow: 0 24px 50px -34px rgba(0, 0, 0, 0.9), inset 0 0 0 1px rgba(var(--pb-contact), 0.18); }
+.pb-grid .pb-card.is-stayed { border-color: rgba(var(--pb-contact), 0.3); }
+.pb-grid .pb-card.is-asked { box-shadow: 0 0 0 3px rgba(255, 193, 99, 0.12), 0 24px 50px -34px rgba(0, 0, 0, 0.9); }
+.pb-contact-tag {
+  display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.08rem 0.5rem; border-radius: 999px; white-space: nowrap; vertical-align: 1px;
+  font-size: 0.78rem; font-weight: 700; color: rgb(var(--pb-contact, 255, 240, 230));
+  background: rgba(var(--pb-contact, 255, 240, 230), 0.14); border: 1px solid rgba(var(--pb-contact, 255, 240, 230), 0.4);
+}
+.pb-card.is-stayed .pb-contact-tag { color: rgba(255, 240, 230, 0.75); }
+.pb-contact-new { margin-left: 0.15rem; padding: 0 0.35rem; border-radius: 999px; font-size: 0.7rem; line-height: 1.15rem; color: #fff; background: #ff4f8b; }
+/* On a ticket the tag never gets cut; the people/days give way first if the line is full */
+.pb-tk-posted:has(.pb-contact-tag) { flex-shrink: 0; overflow: visible; }
+.pb-tk-top:has(.pb-contact-tag) .pb-tk-facts { flex-shrink: 1; }
+
+/* ── Trip cards: a travel ticket — date stub | the trip: kind · people · days · when, title, where · who, the note,
+   then a bar with the amenities and the button. Slim enough for 3 across beside the ads. ── */
+.pb-grid.pb-grid--tickets { grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr)); }
+.pb-card--trip { display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 0; padding: 0; }
 .pb-tk-stub {
   position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center;
   padding: 0.75rem 0.25rem; text-align: center; color: var(--rg-ink);
@@ -723,62 +782,76 @@ button.sp { width: 100%; padding: 0; font: inherit; text-align: left; cursor: po
 .pb-tk-stub--soon { color: #2a1206; background: linear-gradient(160deg, #ffd38a 0%, #ff9a4d 55%, #ff6b35 100%); }
 .pb-tk-stub--flex { color: #d8ccff; background: rgba(139, 108, 255, 0.2); }
 .pb-tk-stub--past { opacity: 0.6; }
-.pb-tk-mon { font-size: 0.667rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--rg-amber); }
+.pb-tk-mon { font-size: 0.8rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--rg-amber); }
 .pb-tk-stub--soon .pb-tk-mon, .pb-tk-stub--flex .pb-tk-mon { color: inherit; }
-.pb-tk-day { font: 800 1.85rem/1.05 'Plus Jakarta Sans', sans-serif; }
-.pb-tk-wk { font-size: 0.667rem; font-weight: 600; text-transform: uppercase; opacity: 0.8; }
+.pb-tk-day { font: 800 2.1rem/1.05 'Plus Jakarta Sans', sans-serif; }
+.pb-tk-wk { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; opacity: 0.8; }
 .pb-tk-rule { width: 2.4rem; margin: 0.45rem 0 0.35rem; border-top: 1px solid currentColor; opacity: 0.3; }
-.pb-tk-when { font-size: 0.667rem; font-weight: 700; line-height: 1.25; }
+.pb-tk-when { font-size: 0.8rem; font-weight: 700; line-height: 1.25; }
 .pb-tk-soon {
   margin-top: 0.3rem; padding: 0.05rem 0.4rem; border-radius: 999px; background: rgba(42, 18, 6, 0.18);
-  font-size: 0.6rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
 }
-.pb-tk-main { min-width: 0; display: flex; flex-direction: column; gap: 0.3rem; padding: 0.75rem 0.9rem; }
-.pb-tk-kind { font-size: 0.633rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--rg-amber); }
+.pb-tk-main { min-width: 0; display: flex; flex-direction: column; gap: 0.22rem; padding: 0.6rem 0.8rem 0.6rem; }
+.pb .pb-tk-top { display: flex; align-items: center; gap: 0.55rem; min-width: 0; white-space: nowrap; font-size: 0.867rem; }
+.pb-tk-kind { flex-shrink: 0; font-size: 0.767rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--rg-amber); }
 .pb-tk-kind.is-guide { color: #86efac; }
+.pb-tk-facts { display: flex; gap: 0.55rem; min-width: 0; overflow: hidden; color: var(--rg-soft); }
+.pb-tk-facts { flex-shrink: 0; }
+.pb-tk-facts > span { display: inline-flex; align-items: center; gap: 0.2rem; }
+.pb-tk-posted { margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--rg-mute); }
+.pb-tk-posted .pb-badge { font-size: 0.667rem; }
+.pb-tk-facts svg { flex-shrink: 0; color: var(--rg-amber); }
+.pb-tk-facts .is-guide svg { color: #86efac; }
+/* words for screen readers only (a card shows "👥 2", the reader hears "2 people") */
+.pb-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .pb-tk-pin { color: var(--rg-amber); vertical-align: -1px; }
 .pb-tk-place { font-weight: 600; color: #ffe2b0; }
-.pb .pb-tk-guide {
-  margin-top: auto; min-height: 1.1rem; display: flex; align-items: center; gap: 0.35rem;
-  font-size: 0.733rem; font-weight: 600; color: #86efac; white-space: nowrap; overflow: hidden;
-}
+/* The note is always two description lines tall: a guide request's note gets one, its guide details the other,
+   so every ticket is the same height (one description line = 0.933rem × 1.45) */
+.pb-tk-note { display: grid; align-content: start; }
+.pb-card--trip.is-guide:not(.pb-card--full) .pb-desc { -webkit-line-clamp: 1; min-height: 1.45em; }
+.pb .pb-tk-guide { display: flex; align-items: center; gap: 0.35rem; height: 1.353rem; font-size: 0.9rem; font-weight: 600; color: #86efac; white-space: nowrap; overflow: hidden; }
+.pb-card--full .pb-tk-note { gap: 0.3rem; }
+.pb-card--full .pb-tk-guide { height: auto; }
 .pb-tk-guide svg { flex-shrink: 0; }
 .pb-tk-guide span { overflow: hidden; text-overflow: ellipsis; }
-.pb-tk-side {
-  position: relative; min-width: 0; display: flex; flex-direction: column; gap: 0.45rem; padding: 0.75rem 0.8rem;
-  background: rgba(255, 255, 255, 0.025); border-left: 1.5px dashed rgba(255, 255, 255, 0.2);
+/* Your own trip: host views, then a chip per member who messaged you about it (in their status colour) */
+.pb-tk-activity { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.45rem; margin-top: 0.45rem; font-size: 0.82rem; }
+.pb-tk-views { display: inline-flex; align-items: center; gap: 0.3rem; font-weight: 600; color: var(--rg-soft); }
+.pb-tk-views svg { color: var(--rg-amber); }
+.pb-tk-nobody { color: var(--rg-mute); }
+.pb-tk-views + .pb-tk-nobody::before, .pb-tk-views + .pb-tk-who::before { content: '·'; margin-right: 0.45rem; color: var(--rg-mute); }
+.pb-tk-who { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0; border: 0; background: none; cursor: pointer; font: inherit; font-weight: 700; color: var(--rg-ink); }
+.pb-tk-who > svg { color: rgb(var(--pb-contact)); }
+.pb-tk-who:hover .pb-tk-who-name { text-decoration: underline; }
+.pb-tk-bar {
+  margin-top: auto; padding-top: 0.4rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.5rem;
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
 }
-.pb-tk-side .pb-facts { flex-direction: column; flex-wrap: nowrap; gap: 0.3rem; }
-.pb-tk-side .pb-facts li { white-space: nowrap; }
-.pb-tk-side .pb-facts li.is-guide svg { color: #86efac; }
-/* All 8 amenity icons fit on one line in the stub; from the 4th icon on, the name opens to the left so it stays on the ticket */
-.pb-tk-side .pb-amen { gap: 0.3rem; }
-.pb-tk-side .pb-amen svg { width: 13px; height: 13px; }
-.pb-tk-side .pb-amen-i:nth-child(n+4) .pb-amen-tip { left: auto; right: calc(100% + 7px); transform: translate(6px, -50%) scale(0.85); transform-origin: right center; }
-.pb-tk-side .pb-amen-i.is-on:nth-child(n+4) .pb-amen-tip { transform: translate(0, -50%) scale(1); }
-.pb-tk-side .pb-contact, .pb-tk-side .pb-own-actions { margin-top: auto; }
-.pb-tk-side .pb-contact { justify-content: center; }
+.pb-tk-bar .pb-amen { min-width: 0; gap: 0.35rem; }
+.pb-tk-bar .pb-amen svg { width: 16px; height: 16px; }
+/* From the 4th icon on, the name opens to the left so it doesn't cover the button */
+.pb-tk-bar .pb-amen-i:nth-child(n+4) .pb-amen-tip { left: auto; right: calc(100% + 7px); transform: translate(6px, -50%) scale(0.85); transform-origin: right center; }
+.pb-tk-bar .pb-amen-i.is-on:nth-child(n+4) .pb-amen-tip { transform: translate(0, -50%) scale(1); }
+.pb-tk-bar .pb-contact, .pb-tk-bar .pb-own-actions { margin-left: auto; }
 /* Notches where the ticket tears */
-.pb-tk-stub::before, .pb-tk-stub::after, .pb-tk-side::before, .pb-tk-side::after {
-  content: ''; position: absolute; z-index: 1; width: 14px; height: 14px; border-radius: 50%; background: #120a1f;
+.pb-tk-stub::before, .pb-tk-stub::after {
+  content: ''; position: absolute; z-index: 1; right: -8px; width: 14px; height: 14px; border-radius: 50%; background: #120a1f;
 }
-.pb-tk-stub::before, .pb-tk-stub::after { right: -8px; }
-.pb-tk-side::before, .pb-tk-side::after { left: -8px; }
-.pb-tk-stub::before, .pb-tk-side::before { top: -8px; }
-.pb-tk-stub::after, .pb-tk-side::after { bottom: -8px; }
+.pb-tk-stub::before { top: -8px; }
+.pb-tk-stub::after { bottom: -8px; }
 /* Ads between tickets lie on their side too */
 .pb-grid--tickets > .sp { flex-direction: row; }
 .pb-grid--tickets > .sp .sp-pic { flex: 0 0 38%; min-height: 0; }
 .pb-grid--tickets > .sp .sp-body { align-content: center; }
-/* The full post: roomier stubs, everything unclamped, no notches (the dialog isn't the page colour) */
-.pb-card--full.pb-card--trip { grid-template-columns: 88px minmax(0, 1fr) 190px; border-radius: 14px; overflow: hidden; }
-.pb-card--full .pb-tk-stub::before, .pb-card--full .pb-tk-stub::after, .pb-card--full .pb-tk-side::before, .pb-card--full .pb-tk-side::after { display: none; }
+/* The full post: a roomier stub, everything unclamped and wrapping, no notches (the dialog isn't the page colour) */
+.pb-card--full.pb-card--trip { grid-template-columns: 88px minmax(0, 1fr); border-radius: 14px; overflow: hidden; }
+.pb-card--full .pb-tk-stub::before, .pb-card--full .pb-tk-stub::after { display: none; }
+.pb-card--full .pb-tk-top { flex-wrap: wrap; white-space: normal; }
+.pb-card--full .pb-tk-facts { flex-wrap: wrap; }
 .pb-card--full .pb-tk-guide { white-space: normal; }
-/* Phones: the details stub becomes a strip under the ticket */
+.pb-card--full .pb-tk-bar { padding-top: 0.7rem; margin-top: 0.4rem; }
 @media (max-width: 560px) {
-  .pb-card--trip, .pb-card--full.pb-card--trip { grid-template-columns: 68px minmax(0, 1fr); }
-  .pb-tk-side { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; align-items: center; border-left: 0; border-top: 1.5px dashed rgba(255, 255, 255, 0.2); }
-  .pb-tk-side .pb-facts { flex-direction: row; flex-wrap: wrap; gap: 0.3rem 0.8rem; }
-  .pb-tk-side .pb-contact, .pb-tk-side .pb-own-actions { margin: 0 0 0 auto; }
-  .pb-tk-stub::after, .pb-tk-side::before, .pb-tk-side::after { display: none; }
+  .pb-card--trip, .pb-card--full.pb-card--trip { grid-template-columns: 64px minmax(0, 1fr); }
 }

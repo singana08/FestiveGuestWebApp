@@ -20,7 +20,7 @@ function ReferralRedirect() {
       display: 'flex', 
       alignItems: 'center', 
       justifyContent: 'center', 
-      height: '100vh',
+      height: 'calc(100vh / var(--z, 1))',
       flexDirection: 'column',
       gap: '1rem'
     }}>

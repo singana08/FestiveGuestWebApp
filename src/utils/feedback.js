@@ -14,3 +14,10 @@ export const ask = (opts) => new Promise((resolve) => {
   if (!host) { resolve(window.confirm(opts.title)); return; }
   host({ ask: { ...opts, id: Date.now(), resolve } });
 });
+
+// Pages that are still loading report here (App's Suspense fallback); <LoaderHost /> shows the branded loader.
+let loaderHost = null;
+let loading = 0;
+export const connectLoader = (fn) => { loaderHost = fn; fn(loading > 0); return () => { if (loaderHost === fn) loaderHost = null; }; };
+export const loadingStarted = () => { loading += 1; loaderHost?.(true); };
+export const loadingDone = () => { loading = Math.max(0, loading - 1); loaderHost?.(loading > 0); };

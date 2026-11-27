@@ -2,7 +2,7 @@ import { Fragment, useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 import {
-  Plus, Search, X, LayoutGrid, Map as MapIcon, HelpCircle, Gift, Megaphone,
+  Plus, LayoutGrid, Map as MapIcon, HelpCircle, Gift, Megaphone,
   MapPin, Sparkles, RefreshCw, Trash2, AlertTriangle, Compass,
 } from 'lucide-react';
 import postsService from '../utils/postsService';
@@ -14,6 +14,7 @@ import useSEO from '../hooks/useSEO';
 import PostCard from '../components/posts/PostCard';
 import CityMap from '../components/posts/CityMap';
 import SortMenu from '../components/posts/SortMenu';
+import { NeedCard, HostNeedCard, NeedSummary, PostTripNudge } from '../components/posts/NeedSearch';
 import UpcomingTrip from '../components/UpcomingTrip';
 import PostFormModal from '../components/posts/PostFormModal';
 import ProfileModal from '../components/posts/ProfileModal';
@@ -24,7 +25,7 @@ import InviteFriendsModal from '../components/InviteFriendsModal';
 import api from '../utils/api';
 import { toast as showToast } from '../utils/feedback';
 import { CITY_COORDS } from '../components/posts/cityCoords';
-import { fmt, daysUntil, citiesInLocation, splitCsv } from '../components/posts/postUtils';
+import { fmt, daysUntil, citiesInLocation, splitCsv, contactStatus } from '../components/posts/postUtils';
 import '../styles/Register.css';
 import '../styles/PostsBoard.css';
 
@@ -40,6 +41,7 @@ const mapGuestPost = (post, fallbackName) => ({
   createdAt: new Date(post.createdAt), status: post.status, userVerified: !!post.userVerified,
   needType: post.needType || 'stay', guideHelpWith: splitCsv(post.guideHelpWith), guideHours: post.guideHours || null,
   guideLanguages: splitCsv(post.guideLanguages), guideBudgetPerHour: post.guideBudgetPerHour ?? null, poster: post.poster || null,
+  activity: post.activity || null, // only on your own trips (My posts): { views, contactedBy: [{ id, name }] }
 });
 const mapHostPost = (post, fallbackName) => ({
   id: post.rowKey, title: post.title, content: post.content, location: post.location,
@@ -88,15 +90,13 @@ const Posts = () => {
   }, { replace: true });
   const [locationData, setLocationData] = useState({});
 
-  const [query, setQuery] = useState('');
-  const [selectedLocations, setSelectedLocations] = useState([]);
-  const [timeFilter, setTimeFilter] = useState('any');
+  // What the member is looking for (Home's search). Remembered per member, so a return visit lands on the results.
+  const needKey = `fg-need:${user?.userId}`;
+  const [need, setNeed] = useState(() => { try { return JSON.parse(localStorage.getItem(needKey)); } catch { return null; } });
+  const [editingNeed, setEditingNeed] = useState(false);
   const [priceFilter, setPriceFilter] = useState(0);
-  const [guideOnly, setGuideOnly] = useState(false);
   const [sort, setSort] = useState(null);
   const [view, setView] = useState('cards');
-  const [suggestOpen, setSuggestOpen] = useState(false);
-  const [activeSuggestion, setActiveSuggestion] = useState(0);
 
   const [form, setForm] = useState({ open: false, key: 0 });
   const [deletingPost, setDeletingPost] = useState(null);
@@ -106,8 +106,8 @@ const Posts = () => {
   const [profile, setProfile] = useState(null);
   const [detail, setDetail] = useState(null); // post opened in full
   const [activeChat, setActiveChat] = useState(null);
+  const [contacts, setContacts] = useState({}); // who you're already in touch with, by member id
   const fetchId = useRef(0);
-  const searchWrap = useRef(null);
 
   // Trip requests (guest posts) are what hosts browse and what guests own.
   const viewingTrips = showMyPosts ? !isHost : isHost;
@@ -141,6 +141,18 @@ const Posts = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchPosts(); }, [showMyPosts]);
 
+  // Your chats and stays mark the cards of people you're already in touch with ("Messaged", "Confirmed"…).
+  // Loaded again each time a chat closes, so a message you just sent shows up.
+  const chatOpen = !!activeChat;
+  useEffect(() => {
+    if (!user?.userId || chatOpen) return undefined;
+    let live = true;
+    Promise.allSettled([api.get('chat/conversations'), api.get('stays/trips')]).then(([chats, stays]) => {
+      if (live) setContacts(contactStatus(user.userId, chats.value?.data || [], stays.value?.data || []));
+    });
+    return () => { live = false; };
+  }, [user?.userId, chatOpen]);
+
   useEffect(() => {
     locationService.getLocations().then(setLocationData).catch(() => {});
   }, []);
@@ -158,47 +170,62 @@ const Posts = () => {
     return () => { document.body.style.overflow = ''; };
   }, [anyDialogOpen]);
 
-  useEffect(() => {
-    const close = (e) => { if (!searchWrap.current?.contains(e.target)) setSuggestOpen(false); };
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, []);
-
   // ── Derived lists ──
   const hostingCities = useMemo(() => (user?.hostingAreas || []).flatMap((a) => a.cities || []), [user]);
+  // A host's search starts as "all trip requests in my cities, any time"; a guest's starts empty (the question card).
+  const activeNeed = useMemo(() => (showMyPosts ? null : isHost ? (need || { what: 'any', cities: hostingCities, when: 'any' }) : need), [showMyPosts, isHost, need, hostingCities]);
+  const needCities = !activeNeed ? [] : isHost ? activeNeed.cities : activeNeed.city ? [activeNeed.city] : [];
+  // A guest's own trips, so the search knows when it's already posted (the same rule the API uses to refuse a duplicate:
+  // same place, same day or both flexible, same need). Loaded again when the post form closes.
+  const [myTrips, setMyTrips] = useState([]);
+  useEffect(() => {
+    if (isHost || !user || form.open) return;
+    postsService.getMyGuestPosts().then((rows) => setMyTrips(rows)).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHost, form.open]);
+  const postedTrip = !isHost && need?.city && myTrips.find((p) => (p.needType || 'stay') === need.what
+    && (p.location || '').split(',')[0].trim().toLowerCase() === need.city.toLowerCase()
+    && String(p.planningDate || p.visitingDate || '').slice(0, 10) === (need.date || ''));
+  const saveNeed = (n) => { setNeed(n); setEditingNeed(false); localStorage.setItem(needKey, JSON.stringify(n)); window.scrollTo(0, 0); };
 
   // Sponsored cards for the cities being browsed, else the member's own city and hosting cities.
   const [ads, setAds] = useState([]);
-  const adCities = [...new Set(selectedLocations.length ? selectedLocations : [...citiesInLocation(user?.location), ...hostingCities])].join(',');
+  const adCities = [...new Set(needCities.length ? needCities : [...citiesInLocation(user?.location), ...hostingCities])].join(',');
   useEffect(() => {
     let live = true;
     api.get('sponsored', { params: { cities: adCities } }).then((r) => { if (live) setAds(Array.isArray(r.data) ? r.data : []); }).catch(() => {});
     return () => { live = false; };
   }, [adCities]);
 
-  const baseFiltered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return posts.filter((p) => {
-      if (q && ![p.title, p.content, p.location, p.userName].some((v) => v?.toLowerCase().includes(q))) return false;
-      if (viewingTrips && guideOnly && p.needType === 'stay') return false;
-      if (viewingTrips && timeFilter !== 'any') {
+  // Everything the search asks except the city (the map counts per city from this), then the city.
+  const baseFiltered = useMemo(() => posts.filter((p) => {
+    if (!activeNeed) return true;
+    if (isHost) {
+      if (activeNeed.what === 'stay' && p.needType === 'guide') return false;
+      if (activeNeed.what === 'guide' && p.needType === 'stay') return false;
+      if (activeNeed.when !== 'any') {
         const d = daysUntil(p.planningDate);
         if (d === null || d < 0) return false;
-        if (timeFilter === 'week' && d > 6) return false;
-        if (timeFilter === 'month' && d > 30) return false;
-        if (timeFilter === 'later' && d <= 30) return false;
+        if (activeNeed.when === 'week' && d > 6) return false;
+        if (activeNeed.when === 'month' && d > 30) return false;
+        if (activeNeed.when === 'later' && d <= 30) return false;
       }
-      if (!viewingTrips && priceFilter && !(p.pricePerNight > 0 && p.pricePerNight <= priceFilter)) return false;
       return true;
-    });
-  }, [posts, query, viewingTrips, timeFilter, priceFilter, guideOnly]);
+    }
+    if ((p.maxGuests || 1) < activeNeed.people) return false; // room for everyone
+    if (activeNeed.date && p.commenceDate && String(p.commenceDate).slice(0, 10) > activeNeed.date) return false; // free by then
+    if (priceFilter && !(p.pricePerNight > 0 && p.pricePerNight <= priceFilter)) return false;
+    return true;
+  }), [posts, activeNeed, isHost, priceFilter]);
 
+  const cityKey = needCities.join('|');
   const results = useMemo(() => {
-    const list = selectedLocations.length
-      ? baseFiltered.filter((p) => selectedLocations.some((loc) => p.location?.toLowerCase().includes(loc.toLowerCase())))
+    const cities = cityKey ? cityKey.split('|') : [];
+    const list = cities.length
+      ? baseFiltered.filter((p) => cities.some((loc) => p.location?.toLowerCase().includes(loc.toLowerCase())))
       : baseFiltered;
     return [...list].sort(SORTERS[effectiveSort]);
-  }, [baseFiltered, selectedLocations, effectiveSort]);
+  }, [baseFiltered, cityKey, effectiveSort]);
 
   const cityCounts = useMemo(() => {
     const counts = {};
@@ -212,27 +239,24 @@ const Posts = () => {
     return { total: posts.length, fresh: posts.filter((p) => p.createdAt.getTime() > weekAgo).length, cities: cities.size };
   }, [posts]);
 
-  const suggestions = useMemo(() => {
-    const all = [...new Set([...hostingCities, ...Object.values(locationData).flat()])].filter((ci) => ci && ci !== 'Other' && !selectedLocations.includes(ci));
-    const q = query.trim().toLowerCase();
-    const list = q
-      ? all.filter((ci) => ci.toLowerCase().includes(q))
-      : all.filter((ci) => cityCounts[ci]).sort((a, b) => cityCounts[b] - cityCounts[a]);
-    return list.slice(0, 6);
-  }, [hostingCities, locationData, selectedLocations, query, cityCounts]);
-
-  const filtersActive = query || selectedLocations.length || timeFilter !== 'any' || priceFilter || guideOnly;
+  const filtersActive = !!activeNeed || !!priceFilter;
 
   // ── Actions ──
-  const toggleLocation = (city) => setSelectedLocations((prev) => (prev.includes(city) ? prev.filter((l) => l !== city) : [...prev, city]));
-  const addCity = (city) => { if (!selectedLocations.includes(city)) setSelectedLocations((p) => [...p, city]); setQuery(''); setSuggestOpen(false); };
-  const clearFilters = () => { setQuery(''); setSelectedLocations([]); setTimeFilter('any'); setPriceFilter(0); setGuideOnly(false); };
-  const allHostingSelected = hostingCities.length > 0 && hostingCities.every((ci) => selectedLocations.includes(ci));
-  const toggleHostingAreas = () => setSelectedLocations(allHostingSelected ? selectedLocations.filter((ci) => !hostingCities.includes(ci)) : [...new Set([...selectedLocations, ...hostingCities])]);
+  // The map picks cities too: a guest's one city (tap again for anywhere), a host's set.
+  const toggleLocation = (city) => saveNeed(isHost
+    ? { ...activeNeed, cities: activeNeed.cities.includes(city) ? activeNeed.cities.filter((l) => l !== city) : [...activeNeed.cities, city] }
+    : { ...activeNeed, city: activeNeed.city === city ? '' : city });
+  const allCities = useMemo(() => [...new Set([...hostingCities, ...Object.values(locationData).flat()])].filter((ci) => ci && ci !== 'Other').sort(), [hostingCities, locationData]);
 
   const switchTab = (mine) => { if (mine !== showMyPosts) { setShowMyPosts(mine); setSort(null); } };
 
   const openCreate = () => setForm({ open: true, key: Date.now(), kind: isHost ? 'Host' : 'Guest', isEditing: false, initialData: null });
+  // "Post this trip": the trip form, filled in from the guest's search.
+  const postFromNeed = () => {
+    const state = Object.keys(locationData).find((st) => locationData[st]?.includes(need.city));
+    setForm({ open: true, key: Date.now(), kind: 'Guest', isEditing: false, initialData: {
+      needType: need.what, planningDate: need.date || null, location: state ? `${need.city}, ${state}` : '', visitors: need.people, days: need.nights } });
+  };
   const openEdit = (post) => setForm({ open: true, key: Date.now(), kind: post.userType, isEditing: true, initialData: post });
   const closeForm = () => setForm((f) => ({ ...f, open: false }));
 
@@ -285,18 +309,27 @@ const Posts = () => {
   };
   const closeProfile = () => { setProfile(null); navigate(-1); };
 
-  const openChat = (id, name) => {
+  // about: the post it's opened from, so the message says "About: (title)" and the traveller sees who got in touch about their trip.
+  const openChat = (id, name, about = null) => {
     setActiveChat(null);
-    setTimeout(() => setActiveChat({ id, name, imageUrl: null }), 50);
+    setTimeout(() => setActiveChat({ id, name, imageUrl: null, about }), 50);
   };
+  const aboutPost = (p) => ({ postId: p.id, kind: p.userType === 'Guest' ? 'trip' : 'listing', title: p.title });
 
-  const onSearchKey = (e) => {
-    if (!suggestOpen || !suggestions.length) { if (e.key === 'ArrowDown') setSuggestOpen(true); return; }
-    if (e.key === 'ArrowDown') { e.preventDefault(); setActiveSuggestion((i) => (i + 1) % suggestions.length); }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveSuggestion((i) => (i - 1 + suggestions.length) % suggestions.length); }
-    else if (e.key === 'Enter' && query.trim()) { e.preventDefault(); addCity(suggestions[activeSuggestion] || suggestions[0]); }
-    else if (e.key === 'Escape') setSuggestOpen(false);
+  // A host opening a trip in full, or offering on it, counts as a view on the traveller's My posts.
+  // Once per trip on this browser; only the total is kept on the server.
+  const countView = (p) => {
+    if (!isHost || p.userType !== 'Guest' || p.userId === user?.userId) return;
+    const key = `fg-viewed:${user?.userId}`;
+    try {
+      const seen = JSON.parse(localStorage.getItem(key) || '[]');
+      if (seen.includes(p.id)) return;
+      localStorage.setItem(key, JSON.stringify([...seen, p.id].slice(-300)));
+    } catch { /* no storage: count it anyway */ }
+    api.post(`guestposts/${encodeURIComponent(p.id)}/view`).catch(() => {});
   };
+  const openDetail = (p) => { setDetail(p); countView(p); };
+  const contactAbout = (p) => { countView(p); openChat(p.userId, p.userName, aboutPost(p)); };
 
   // ── View helpers ──
   const hour = new Date().getHours();
@@ -307,11 +340,9 @@ const Posts = () => {
     ? (results.length === 1 ? c.oneResult : fmt(c.results, { n: results.length }))
     : [fmt(c.statAvailable, { n: stats.total }), stats.fresh > 0 && fmt(c.statNew, { n: stats.fresh }),
       stats.cities > 0 && (stats.cities === 1 ? c.statCity : fmt(c.statCities, { n: stats.cities }))].filter(Boolean).join(' · ');
-  const quickFilters = viewingTrips
-    ? [['any', c.any], ['week', c.thisWeek], ['month', c.thisMonth], ['later', c.later]]
-    : [[0, c.anyPrice], [500, c.under500], [1000, c.under1000], [2000, c.under2000]];
-  const quickValue = viewingTrips ? timeFilter : priceFilter;
-  const setQuick = viewingTrips ? setTimeFilter : setPriceFilter;
+  const priceChips = [[0, c.anyPrice], [500, c.under500], [1000, c.under1000], [2000, c.under2000]];
+  const askingGuest = !isHost && !showMyPosts && !need; // first visit: just the questions
+  const showNudge = !isHost && !!activeNeed && !loading && !loadError && (results.length < 3 || activeNeed.what === 'guide');
   const sortOptions = viewingTrips ? [['soonest', c.sortSoonest], ['newest', c.sortNewest]] : [['newest', c.sortNewest], ['price', c.sortPrice]];
 
   // Ad spots: advertisers' cards first; our own cards fill whatever is left.
@@ -326,8 +357,8 @@ const Posts = () => {
     : <SponsoredCard key={card.id} ad={card} label={c.sponsored} visit={c.sponsoredVisit} />);
 
   const emptyState = () => {
-    if (filtersActive && posts.length) {
-      return { icon: <Compass size={28} />, title: c.emptyFilteredTitle, text: c.emptyFilteredText, action: <button type="button" className="rg-btn rg-btn-ghost" onClick={clearFilters}>{c.clearAll}</button> };
+    if (isHost && activeNeed) {
+      return { icon: <Compass size={28} />, title: c.hostEmptyNeedTitle, text: c.hostEmptyNeedText, action: <button type="button" className="rg-btn rg-btn-ghost" onClick={() => setEditingNeed(true)}>{c.edit}</button> };
     }
     if (showMyPosts) {
       return { icon: <Sparkles size={28} />, title: isHost ? c.emptyMineHost : c.emptyMineGuest, text: c.emptyMineText, action: <button type="button" className="rg-btn rg-btn-primary pb-inline-btn" onClick={openCreate}><Plus size={17} /> {isHost ? c.ctaHost : c.ctaGuest}</button> };
@@ -365,57 +396,27 @@ const Posts = () => {
             </motion.section>
 
             <VerifyPhoneBanner />
-            {/* Hosts: "Your next guest" across the top. Travellers see their upcoming trip in the right column (below). */}
-            {user && !showMyPosts && isHost && <UpcomingTrip meId={user.userId} isHost />}
           </div>
 
           <main className="pb-main">
-            {/* ═════ Toolbar: search, filters, sort and view in one wrapping row ═════ */}
-            <div className="pb-toolbar">
-              <div className="pb-search" ref={searchWrap}>
-                <Search size={16} className="pb-search-icon" aria-hidden="true" />
-                <input
-                  type="search" value={query} placeholder={c.search} aria-label={c.search}
-                  role="combobox" aria-expanded={suggestOpen && suggestions.length > 0} aria-controls="pb-suggest" aria-autocomplete="list"
-                  onChange={(e) => { setQuery(e.target.value); setSuggestOpen(true); setActiveSuggestion(0); }}
-                  onFocus={() => setSuggestOpen(true)} onKeyDown={onSearchKey}
-                />
-                {query && <button type="button" className="pb-search-clear" onClick={() => setQuery('')} aria-label="Clear search"><X size={16} /></button>}
-                <AnimatePresence>
-                  {suggestOpen && suggestions.length > 0 && (
-                    <motion.ul id="pb-suggest" role="listbox" className="pb-suggest"
-                      initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18 }}>
-                      <li className="pb-suggest-head" role="presentation">{c.citiesHeading}</li>
-                      {suggestions.map((city, i) => (
-                        <li key={city} role="option" aria-selected={i === activeSuggestion}
-                          className={i === activeSuggestion ? 'is-active' : ''}
-                          onMouseEnter={() => setActiveSuggestion(i)}
-                          onMouseDown={(e) => { e.preventDefault(); addCity(city); }}>
-                          <MapPin size={14} /> <span>{city}</span>
-                          {cityCounts[city] > 0 && <span className="pb-suggest-n">{cityCounts[city]}</span>}
-                        </li>
-                      ))}
-                    </motion.ul>
-                  )}
-                </AnimatePresence>
-              </div>
+            {askingGuest ? (
+              <NeedCard c={c} cities={allCities} onSubmit={saveNeed} />
+            ) : <>
+            {activeNeed && editingNeed && (isHost
+              ? <HostNeedCard c={c} initial={activeNeed} hostingCities={hostingCities} onSubmit={saveNeed} onCancel={() => setEditingNeed(false)} />
+              : <NeedCard c={c} initial={activeNeed} cities={allCities} onSubmit={saveNeed} onCancel={() => setEditingNeed(false)} />)}
 
+            {/* ═════ Toolbar: the search in one line, then price (guests), sort and view ═════ */}
+            <div className="pb-toolbar">
+              {activeNeed && !editingNeed && <NeedSummary c={c} need={activeNeed} isHost={isHost} locale={locale} onEdit={() => setEditingNeed(true)} />}
               <div className="pb-toolbar-row">
-                <div className="pb-quick" role="group" aria-label={viewingTrips ? c.any : c.anyPrice}>
-                  {isHost && !showMyPosts && hostingCities.length > 0 && (
-                    <button type="button" className={`pb-chip pb-chip--accent${allHostingSelected ? ' is-on' : ''}`} aria-pressed={allHostingSelected} onClick={toggleHostingAreas}>
-                      <MapPin size={13} /> {c.myAreas}
-                    </button>
-                  )}
-                  {viewingTrips && (
-                    <button type="button" className={`pb-chip pb-chip--guide${guideOnly ? ' is-on' : ''}`} aria-pressed={guideOnly} onClick={() => setGuideOnly((v) => !v)}>
-                      <span aria-hidden="true">🧭</span> {c.filterGuide}
-                    </button>
-                  )}
-                  {quickFilters.map(([value, label]) => (
-                    <button key={value} type="button" className={`pb-chip${quickValue === value ? ' is-on' : ''}`} aria-pressed={quickValue === value} onClick={() => setQuick(value)}>{label}</button>
-                  ))}
-                </div>
+                {!viewingTrips && !showMyPosts && (
+                  <div className="pb-quick" role="group" aria-label={c.anyPrice}>
+                    {priceChips.map(([value, label]) => (
+                      <button key={value} type="button" className={`pb-chip${priceFilter === value ? ' is-on' : ''}`} aria-pressed={priceFilter === value} onClick={() => setPriceFilter(value)}>{label}</button>
+                    ))}
+                  </div>
+                )}
                 <div className="pb-toolbar-end">
                   <SortMenu value={effectiveSort} options={sortOptions} onChange={setSort} />
                   <div className="pb-view" role="group" aria-label="View">
@@ -424,18 +425,10 @@ const Posts = () => {
                   </div>
                 </div>
               </div>
-
-              {selectedLocations.length > 0 && (
-                <div className="pb-selected">
-                  {selectedLocations.map((city) => (
-                    <button key={city} type="button" className="pb-chip is-on pb-chip--removable" onClick={() => toggleLocation(city)} aria-label={`Remove ${city}`}>
-                      <MapPin size={13} /> {city} <X size={13} />
-                    </button>
-                  ))}
-                  <button type="button" className="rg-link-btn" onClick={clearFilters}>{c.clearAll}</button>
-                </div>
-              )}
             </div>
+
+            {/* A guide request, or few/no hosts: offer to post the search as a trip, above the results */}
+            {showNudge && <PostTripNudge c={c} need={activeNeed} big={results.length === 0} posted={!!postedTrip} onPost={postFromNeed} onOpenPosted={() => setShowMyPosts(true)} />}
 
             {/* ═════ Results ═════ */}
             {loadError ? (
@@ -448,17 +441,17 @@ const Posts = () => {
               <div className="pb-grid">{Array.from({ length: 6 }, (_, i) => <SkeletonCard key={i} />)}</div>
             ) : view === 'map' ? (
               <>
-                <CityMap counts={cityCounts} selected={selectedLocations} onToggle={toggleLocation} c={c} />
-                {selectedLocations.length > 0 && results.length > 0 && (
+                <CityMap counts={cityCounts} selected={needCities} onToggle={toggleLocation} c={c} />
+                {needCities.length > 0 && results.length > 0 && (
                   <div className={`pb-grid pb-grid--below-map${viewingTrips ? ' pb-grid--tickets' : ''}`}>
                     {results.map((post, i) => (
-                      <PostCard key={post.id} index={i} post={post} c={c} locale={locale} focusCities={selectedLocations} isOwn={user && post.userId === user.userId}
-                        onOpen={setDetail} onContact={(p) => openChat(p.userId, p.userName)} onProfile={openProfile} onEdit={openEdit} onDelete={setDeletingPost} />
+                      <PostCard key={post.id} index={i} post={post} c={c} locale={locale} focusCities={needCities} isOwn={user && post.userId === user.userId} contact={contacts[post.userId]}
+                        onOpen={openDetail} onContact={contactAbout} onChatWith={(id, name, p) => openChat(id, name, aboutPost(p))} contacts={contacts} onProfile={openProfile} onEdit={openEdit} onDelete={setDeletingPost} />
                     ))}
                   </div>
                 )}
               </>
-            ) : results.length === 0 ? (() => {
+            ) : results.length === 0 && showNudge ? null : results.length === 0 ? (() => {
               const e = emptyState();
               return (
                 <motion.div className="pb-empty" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
@@ -471,36 +464,38 @@ const Posts = () => {
             })() : (
               <div className={`pb-grid${viewingTrips ? ' pb-grid--tickets' : ''}`}>
                 {results.map((post, i) => {
-                  // Below 1280px (no right column): an ad after every 6 posts, or after the last one when there are fewer.
+                  // Below 1100px (no right column): an ad after every 6 posts, or after the last one when there are fewer.
                   const slot = (i + 1) % 6 === 0 ? (i + 1) / 6 - 1 : results.length < 6 && i === results.length - 1 ? 0 : -1;
                   const ad = !showMyPosts && slot >= 0 ? feedCards[slot % feedCards.length] : null;
                   return (
                     <Fragment key={post.id}>
-                      <PostCard index={i} post={post} c={c} locale={locale} focusCities={selectedLocations} isOwn={user && post.userId === user.userId}
-                        onOpen={setDetail} onContact={(p) => openChat(p.userId, p.userName)} onProfile={openProfile} onEdit={openEdit} onDelete={setDeletingPost} />
+                      <PostCard index={i} post={post} c={c} locale={locale} focusCities={needCities} isOwn={user && post.userId === user.userId} contact={contacts[post.userId]}
+                        onOpen={openDetail} onContact={contactAbout} onChatWith={(id, name, p) => openChat(id, name, aboutPost(p))} contacts={contacts} onProfile={openProfile} onEdit={openEdit} onDelete={setDeletingPost} />
                       {ad && adCard(ad)}
                     </Fragment>
                   );
                 })}
               </div>
             )}
+            </>}
           </main>
 
-          {/* ═════ Right column (1280px and up): two ads, topped up with our own cards ═════ */}
+          {/* ═════ Right column (1100px and up): two ads, topped up with our own cards ═════ */}
           <aside className="pb-rail" aria-label={c.sponsored}>
-            {user && !showMyPosts && !isHost && <UpcomingTrip meId={user.userId} isHost={false} />}
+            {/* "Your upcoming trip" / "Your next guest" tops the right column (above the posts on smaller screens) */}
+            {user && !showMyPosts && <UpcomingTrip meId={user.userId} isHost={isHost} />}
             {railCards.map(adCard)}
           </aside>
         </div>
 
-        {/* Mobile: create button always within reach */}
-        {!activeChat && (
+        {/* Mobile: create button always within reach (not over the first-visit questions, whose button is the action) */}
+        {!activeChat && !askingGuest && (
           <button type="button" className="pb-fab" onClick={openCreate} aria-label={isHost ? c.ctaHost : c.ctaGuest}><Plus size={24} /></button>
         )}
 
         {activeChat && (
           <div className="pb-chat-window">
-            <ChatWidget recipientId={activeChat.id} recipientName={activeChat.name} recipientImageUrl={activeChat.imageUrl} onClose={() => setActiveChat(null)} />
+            <ChatWidget recipientId={activeChat.id} recipientName={activeChat.name} recipientImageUrl={activeChat.imageUrl} about={activeChat.about} onClose={() => setActiveChat(null)} />
           </div>
         )}
 
@@ -536,8 +531,9 @@ const Posts = () => {
 
         <GlassDialog open={!!detail} onClose={() => setDetail(null)} size="md" title={detail?.userType === 'Host' ? c.detailHost : c.detailTrip}>
           {detail && (
-            <PostCard post={detail} c={c} locale={locale} full isOwn={user && detail.userId === user.userId}
-              onContact={(p) => { setDetail(null); openChat(p.userId, p.userName); }}
+            <PostCard post={detail} c={c} locale={locale} full isOwn={user && detail.userId === user.userId} contact={contacts[detail.userId]}
+              onContact={(p) => { setDetail(null); contactAbout(p); }}
+              onChatWith={(id, name, p) => { setDetail(null); openChat(id, name, aboutPost(p)); }} contacts={contacts}
               onProfile={(p) => { setDetail(null); openProfile(p); }}
               onEdit={(p) => { setDetail(null); openEdit(p); }}
               onDelete={(p) => { setDetail(null); setDeletingPost(p); }} />

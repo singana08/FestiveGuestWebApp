@@ -14,8 +14,8 @@
   position: relative; isolation: isolate;
   flex: 1; min-height: 0;
   display: flex; gap: 0.85rem;
-  width: min(1340px, 100%); margin: 0 auto;
-  padding: 0.75rem 1.25rem 1rem;
+  width: min(1800px, 100%); margin: 0 auto;
+  padding: 0.75rem 1rem 1rem;
   color: var(--rg-ink); font-family: 'Inter', sans-serif;
 }
 .ch :focus-visible { outline: 2px solid var(--rg-amber); outline-offset: 2px; }

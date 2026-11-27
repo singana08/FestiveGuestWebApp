@@ -16,7 +16,7 @@
 .jm-sheet {
   position: relative;
   width: min(760px, 100%);
-  max-height: min(88vh, 880px);
+  max-height: min(calc(88vh / var(--z, 1)), 880px);
   display: flex; flex-direction: column;
   overflow: hidden;
   border-radius: 28px;
@@ -168,7 +168,7 @@ button.jm-hint:hover { color: #ffc163; }
 @media (max-width: 600px) {
   .jm-overlay { align-items: flex-end; padding: 0; }
   .jm-sheet {
-    width: 100%; max-height: 92vh; max-height: 92dvh;
+    width: 100%; max-height: calc(92vh / var(--z, 1)); max-height: calc(92dvh / var(--z, 1));
     border-radius: 26px 26px 0 0; border-bottom: 0;
   }
   .jm-handle { display: block; position: relative; width: 44px; height: 5px; margin: 0.6rem auto 0; border-radius: 999px; background: rgba(255, 255, 255, 0.25); }

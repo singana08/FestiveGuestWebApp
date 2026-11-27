@@ -120,7 +120,7 @@
 /* ═══════════════ HERO ═══════════════ */
 .hm-hero {
   position: relative;
-  min-height: calc(100svh - var(--nav-height, 68px));
+  min-height: calc(100svh / var(--z, 1) - var(--nav-height, 68px));
   display: flex; align-items: center;
   padding: clamp(2rem, 4.5vw, 3.25rem) 0 clamp(2.5rem, 4.5vw, 3.75rem);
 }

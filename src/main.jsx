@@ -24,6 +24,21 @@ if (location.hostname === 'www.festiveguest.com') {
   document.head.appendChild(beacon)
 }
 
+// The start-up loader (index.html) plays at least one full round (1.8s), counted from when its image arrived;
+// if the app took longer, it finishes the round in progress. Then it fades out over the app.
+const boot = document.getElementById('boot')
+if (boot) {
+  const ROUND = 1800
+  const img = boot.querySelector('img')
+  const started = performance.getEntriesByName(img.src)[0]?.responseEnd ?? performance.now()
+  requestAnimationFrame(() => {
+    const ran = performance.now() - started
+    setTimeout(() => {
+      boot.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 350, easing: 'ease-out' }).onfinish = () => boot.remove()
+    }, ran < ROUND ? ROUND - ran : ROUND - (ran % ROUND))
+  })
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <GoogleOAuthProvider clientId={googleClientId}>
