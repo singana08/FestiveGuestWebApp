@@ -120,6 +120,8 @@ const Registration = () => {
   const [phoneOtpError, setPhoneOtpError] = useState('');
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [phoneVerificationToken, setPhoneVerificationToken] = useState('');
+  // Only when the server has no SMS set up at all — then nobody can verify, so sign-up isn't blocked.
+  const [smsUnavailable, setSmsUnavailable] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
@@ -353,9 +355,14 @@ const Registration = () => {
       const res = await api.post('phone-otp/send', { phone: formData.phone });
       if (res.data.success) { setPhoneOtpSent(true); setPhoneOtpSessionId(res.data.sessionId); showToast('OTP sent to your phone', 'success'); }
     } catch (err) {
-      // Sign-up isn't blocked when SMS fails — the number is saved unverified and can be verified later.
-      setPhoneOtpError("We couldn't send the code right now. You can continue and verify your number later from your profile.");
-      console.error('Phone OTP send failed:', err.response?.data?.message || err.message);
+      const msg = err.response?.data?.message || err.message || '';
+      if (/not configured/i.test(msg)) {
+        setSmsUnavailable(true);
+        setPhoneOtpError("Phone codes aren't available right now. You can continue and verify your number later from your profile.");
+      } else {
+        setPhoneOtpError("We couldn't send the code. Check the number and try again in a minute.");
+      }
+      console.error('Phone OTP send failed:', msg);
     } finally {
       setPhoneOtpSending(false);
     }
@@ -368,7 +375,7 @@ const Registration = () => {
       const res = await api.post('phone-otp/verify', { sessionId: phoneOtpSessionId, otp: phoneOtpCode, phone: formData.phone, purpose: 'register' });
       if (res.data.success) {
         setPhoneVerificationToken(res.data.verificationToken);
-        setPhoneVerified(true); setPhoneOtpSent(false); setPhoneOtpCode('');
+        setPhoneVerified(true); setPhoneOtpSent(false); setPhoneOtpCode(''); setValidationErrors(p => ({ ...p, phone: '' }));
         showToast(res.data?.message || 'Phone verified', 'success');
       }
     } catch (err) {
@@ -406,6 +413,7 @@ const Registration = () => {
     if (!formData.email.trim() || !emailVerified) errors.email = emailVerified ? 'Email is required' : 'Please verify your email';
     if (!isGoogleUser && (!formData.password.trim() || !passwordRequirements.every(r => r.test(formData.password)))) errors.password = 'Password must meet all requirements';
     if (!formData.phone.trim() || phoneError) errors.phone = phoneError || 'Phone number is required';
+    else if (!phoneVerified && !smsUnavailable) errors.phone = 'Please verify your number with the code we text you';
     if (!ageConfirmed) errors.ageConfirmed = 'You must confirm you are at least 18 years old';
     setValidationErrors(prev => ({ ...prev, ...errors }));
     if (Object.keys(errors).length > 0) { showToast('Please complete all required fields', 'error'); return; }
@@ -752,7 +760,7 @@ const Registration = () => {
                           {!phoneVerified && !phoneOtpSent && (
                             phoneOtpError
                               ? <p className="rg-error" role="alert">{phoneOtpError}</p>
-                              : <p className="rg-note rg-note--soft">Verifying now is optional — you can do it later from your profile to get a ✓ Verified badge.</p>
+                              : !validationErrors.phone && <p className="rg-note rg-note--soft">We’ll text you a 6-digit code. Every member verifies their phone, so others know you’re real.</p>
                           )}
                           <AnimatePresence initial={false}>
                             {phoneOtpSent && !phoneVerified && (

@@ -7,6 +7,7 @@ import {
 import {
   ArrowRight, Sparkles, MapPin, CalendarDays, CheckCircle2, BadgeCheck, ShieldCheck, Home as HomeIcon,
   Briefcase, Hospital, NotebookPen, Luggage, Flame, Building2, Smartphone, MessageCircle, Star,
+  Handshake, Compass, CalendarCheck, IndianRupee, IdCard,
 } from 'lucide-react';
 import DisclaimerModal from '../components/DisclaimerModal';
 import { useLanguage } from '../i18n/LanguageContext';
@@ -15,7 +16,7 @@ import useSEO from '../hooks/useSEO';
 import '../styles/Home.css';
 
 // Line icons for the tiles (the copy keeps its emoji as the key, so both languages share them).
-const TILE_ICONS = { '💼': Briefcase, '🏥': Hospital, '📝': NotebookPen, '🧳': Luggage, '🪔': Flame, '🏙️': Building2, '📱': Smartphone, '💬': MessageCircle, '⭐': Star, '🛡️': ShieldCheck, '🏡': HomeIcon };
+const TILE_ICONS = { '💼': Briefcase, '🏥': Hospital, '📝': NotebookPen, '🧳': Luggage, '🪔': Flame, '🏙️': Building2, '📱': Smartphone, '💬': MessageCircle, '⭐': Star, '🛡️': ShieldCheck, '🏡': HomeIcon, '🤝': Handshake, '🧭': Compass, '🗓️': CalendarCheck, '₹': IndianRupee, '🪪': IdCard };
 const TileIcon = ({ icon }) => { const Icon = TILE_ICONS[icon]; return Icon ? <Icon size={26} strokeWidth={1.75} /> : icon; };
 
 const EASE = [0.22, 1, 0.36, 1];
@@ -202,6 +203,7 @@ const HeroScene = ({ s, interactive }) => {
           </div>
         </motion.div>
       </div>
+      <span className="hm-scene-note">{s.example}</span>
     </div>
   );
 };
@@ -209,7 +211,7 @@ const HeroScene = ({ s, interactive }) => {
 const Home = ({ user }) => {
   useSEO({
     title: 'Find a Trusted Local Host Across India',
-    description: 'A community network for interviews, hospital visits, job joining, exams, festivals, and life transitions — not tourism. Connect with a trusted local host anywhere in India.',
+    description: 'A community network for interviews, hospital visits, job joining, exams, festivals, and life transitions. Connect with a trusted local host anywhere in India.',
   });
   const { language, t } = useLanguage();
   const c = homeCopy[language] || homeCopy.en;
@@ -294,6 +296,11 @@ const Home = ({ user }) => {
                     </>
                   )}
                 </motion.div>
+                {!user && (
+                  <motion.div {...enter(0.46)}>
+                    <Link to="/explore" className="hm-link hm-browse">{c.browseLink} <ArrowRight size={16} /></Link>
+                  </motion.div>
+                )}
 
                 <motion.ul className="hm-trust" {...enter(0.52)}>
                   {c.trust.map((item) => (
@@ -376,6 +383,34 @@ const Home = ({ user }) => {
             </div>
           </section>
 
+          {/* ═════════ WHY HOST ═════════ */}
+          <section className="hm-section">
+            <div className="hm-container">
+              <Reveal className="hm-head">
+                <h2 className="hm-h2">{c.hostWhyTitle}</h2>
+                <p className="hm-lead">{c.hostWhySub}</p>
+              </Reveal>
+              <div className="hm-purpose-grid hm-why-grid">
+                {c.hostWhy.map((p, i) => (
+                  <Reveal key={i} delay={i * 0.08}>
+                    <article className="hm-glass hm-pc">
+                      <span className="hm-icon-tile" aria-hidden="true"><TileIcon icon={p.icon} /></span>
+                      <h3>{p.title}</h3>
+                      <p>{p.desc}</p>
+                    </article>
+                  </Reveal>
+                ))}
+              </div>
+              {!user && (
+                <Reveal className="hm-seg-wrap hm-why-cta">
+                  <button className="hm-btn hm-btn-glass" onClick={() => setModalRole('Host')}>
+                    <HomeIcon size={18} /> {c.hostWhyCta}
+                  </button>
+                </Reveal>
+              )}
+            </div>
+          </section>
+
           {/* ═════════ SAFETY ═════════ */}
           <section className="hm-section">
             <div className="hm-container">
@@ -406,12 +441,13 @@ const Home = ({ user }) => {
             <div className="hm-container">
               <Reveal className="hm-head">
                 <h2 className="hm-h2">{c.storiesTitle}</h2>
+                <p className="hm-lead">{c.storiesSub}</p>
               </Reveal>
               <div className="hm-stories">
                 {[1, 2, 3, 4].map((n, i) => (
                   <Reveal key={n} delay={(i % 2) * 0.1}>
                     <figure className="hm-glass hm-story" style={{ margin: 0 }}>
-                      <div className="hm-story-mark" aria-hidden="true">“</div>
+                      <div className="hm-story-top"><span className="hm-story-mark" aria-hidden="true">“</span><span className="hm-story-tag">{c.storyTag}</span></div>
                       <blockquote style={{ margin: 0 }}>
                         <p>{t(`testimonial${n}`).replace(/^"|"$/g, '')}</p>
                       </blockquote>

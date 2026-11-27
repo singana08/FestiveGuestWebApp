@@ -2,17 +2,14 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   MapPin, Users, Moon, CalendarDays, MessageCircle, Pencil, Trash2, Compass, Star, Clock, Sparkle,
-  Wifi, SquareParking, Utensils, Snowflake, CookingPot, WashingMachine, Tv, ShowerHead, Check,
   CheckCircle2, BellRing, Send, History, Eye,
 } from 'lucide-react';
-import { GUIDE_HELP, fmt, daysUntil, isNewPost, citiesInLocation } from './postUtils';
+import { GUIDE_HELP, fmt, daysUntil, isNewPost, citiesInLocation, iconFor } from './postUtils';
 import { VerifiedTick, TrustShield } from '../VerifiedBadge';
 import SaveButton from '../SaveButton';
 
 const EASE = [0.22, 1, 0.36, 1];
 
-const AMENITY_ICONS = { WiFi: Wifi, Parking: SquareParking, Meals: Utensils, AC: Snowflake, Kitchen: CookingPot, Laundry: WashingMachine, TV: Tv, 'Hot Water': ShowerHead };
-const iconFor = (tag) => AMENITY_ICONS[tag] || Check;
 
 // All 8 amenity types fit on one card row; "+N" only covers anything beyond that.
 const MAX_ICONS = 8;

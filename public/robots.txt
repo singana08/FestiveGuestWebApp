@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
+Allow: /explore
 Allow: /help
 Allow: /privacy-policy
 Allow: /terms-of-service

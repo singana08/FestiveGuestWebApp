@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import { Menu, X, HelpCircle, Globe, MessageSquare, LogOut, Gift } from 'lucide-react';
+import { Menu, X, HelpCircle, Globe, MessageSquare, LogOut, Gift, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotificationProvider, useNotifications } from './contexts/NotificationContext';
 import { LanguageProvider, useLanguage } from './i18n/LanguageContext';
@@ -26,6 +26,7 @@ const Admin           = page(() => import('./pages/Admin'));
 const Profile         = page(() => import('./pages/Profile'));
 const PublicProfile   = page(() => import('./pages/PublicProfile'));
 const Help            = page(() => import('./pages/Help'));
+const Explore         = page(() => import('./pages/Explore'));
 const Posts           = page(() => import('./pages/Posts'));
 const PrivacyPolicy   = page(() => import('./pages/PrivacyPolicy'));
 const ReferralRedirect = page(() => import('./pages/ReferralRedirect'));
@@ -228,6 +229,9 @@ const AppContent = () => {
         </button>
 
         <div className={`nav-links ${menuOpen ? 'mobile-open' : ''}`} data-lang={language}>
+              <Link to="/explore" className={`nav-item ${isActive('/explore') ? 'active' : ''}`}>
+                <Search size={17} /> {t('browseHosts')}
+              </Link>
               <Link to="/help" className={`nav-item ${isActive('/help') ? 'active' : ''}`}>
                 <HelpCircle size={17} /> {t('help')}
               </Link>
@@ -313,6 +317,7 @@ const AppContent = () => {
               <Route path="/saved" element={user ? <PageTransition><Saved /></PageTransition> : <Navigate to="/login" />} />
               <Route path="/profile/:userName" element={<PageTransition><PublicProfile /></PageTransition>} />
               <Route path="/admin" element={isAdmin ? <PageTransition><Admin /></PageTransition> : <Navigate to="/login" />} />
+              <Route path="/explore" element={user ? <Navigate to="/posts" replace /> : <PageTransition><Explore /></PageTransition>} />
               <Route path="/help" element={<PageTransition><Help /></PageTransition>} />
               <Route path="/privacy-policy" element={<PageTransition><PrivacyPolicy /></PageTransition>} />
               <Route path="/terms-of-service" element={<PageTransition><TermsOfService /></PageTransition>} />

@@ -12,6 +12,7 @@ export const translations = {
     submit: 'Submit',
     close: 'Close',
     help: 'Help',
+    browseHosts: 'Browse hosts',
     
     // Navigation
     home: 'Home',
@@ -455,6 +456,7 @@ export const translations = {
     submit: 'సమర్పించు',
     close: 'మూసివేయి',
     help: 'సహాయం',
+    browseHosts: 'హోస్ట్‌లను చూడండి',
     
     // Navigation
     home: 'హోమ్',

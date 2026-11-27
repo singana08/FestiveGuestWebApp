@@ -1,3 +1,4 @@
+import { Wifi, SquareParking, Utensils, Snowflake, CookingPot, WashingMachine, Tv, ShowerHead, Check } from 'lucide-react';
 // Shared helpers for the Posts board.
 
 // How an admin checked a member before marking them "Verified by FestiveGuest" (keys match the API's AdminVerification).
@@ -31,6 +32,10 @@ export const GUIDE_HELP_OPTIONS = [
 export const GUIDE_HELP = Object.fromEntries(GUIDE_HELP_OPTIONS.map((o) => [o.key, o]));
 export const GUIDE_LANGUAGES = ['Telugu', 'English', 'Hindi', 'Tamil', 'Kannada', 'Malayalam', 'Marathi', 'Bengali', 'Urdu'];
 export const splitCsv = (v) => (Array.isArray(v) ? v : (v || '').split(',').map((x) => x.trim()).filter(Boolean));
+
+/** An amenity's line icon (cards, the public preview). */
+const AMENITY_ICONS = { WiFi: Wifi, Parking: SquareParking, Meals: Utensils, AC: Snowflake, Kitchen: CookingPot, Laundry: WashingMachine, TV: Tv, 'Hot Water': ShowerHead };
+export const iconFor = (tag) => AMENITY_ICONS[tag] || Check;
 
 export const fmt = (str, vars = {}) => str.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
 
