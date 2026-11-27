@@ -10,7 +10,7 @@ const TermsOfService = () => {
     <div className="legal-document">
       <div className="container">
         <h1>Terms of Service</h1>
-        <p className="last-updated">Last Updated: 21 November 2026</p>
+        <p className="last-updated">Last Updated: 27 November 2026</p>
         <LegalToc />
 
         <section>
@@ -29,14 +29,14 @@ const TermsOfService = () => {
             <li>Host and guest matching services</li>
             <li>Secure messaging system</li>
             <li>Review and rating system</li>
-            <li>Premium subscription management</li>
+            <li>Safety tools for reporting and blocking members</li>
             <li>Customer support services</li>
           </ul>
 
           <h3>2.2 IMPORTANT: We Are an Introduction Service Only</h3>
           <p><strong>FestiveGuest operates solely as an introduction and communication platform. We explicitly disclaim any responsibility for:</strong></p>
           <ul>
-            <li><strong>User Verification:</strong> We do not conduct background checks, criminal record searches, or verify the identity, character, or existence of users</li>
+            <li><strong>User Verification:</strong> Apart from the phone, email and optional team checks described in Section 4.2, we do not verify the identity, character, or existence of users, and we never conduct background checks or criminal record searches</li>
             <li><strong>User Behavior:</strong> We are not responsible for the conduct, actions, or behavior of any user on or off the platform</li>
             <li><strong>Communication Quality:</strong> We do not monitor, moderate, or take responsibility for the quality, tone, or content of communications between users</li>
             <li><strong>Meeting Arrangements:</strong> We are not involved in or responsible for any in-person meetings, accommodations, or arrangements made between users</li>
@@ -74,10 +74,11 @@ const TermsOfService = () => {
           </ul>
 
           <h3>4.2 Identity Verification</h3>
-          <p>We verify your identity through phone (OTP) and email verification at registration. We may request additional verification where needed. Failure to provide required verification may result in account suspension or termination.</p>
+          <p>Every member confirms their email address and mobile number with a one-time code when they join. (Members who joined before the phone code was required may not have a verified number; a ✓ next to a name shows a verified phone.)</p>
+          <p>Some members are also checked by our team, by an identity document, a video call or meeting in person, and show an amber "Verified by FestiveGuest" shield. These checks confirm contact details and, for the shield, that a person is who they say they are. They are not background or criminal-record checks, and they do not guarantee anyone's behaviour. We may request additional verification where needed. Failure to provide required verification may result in account suspension or termination.</p>
 
           <h3>4.3 Account Termination</h3>
-          <p>You may terminate your account at any time. We reserve the right to suspend or terminate accounts that violate these Terms.</p>
+          <p>You may close your account at any time by contacting us (Section 20). We reserve the right to suspend or terminate accounts that violate these Terms.</p>
         </section>
 
         <section>
@@ -105,7 +106,7 @@ const TermsOfService = () => {
             <li>Comply with local laws, regulations, and tax obligations</li>
             <li>Maintain appropriate insurance coverage</li>
             <li>Treat guests with respect and without discrimination</li>
-            <li>Honor confirmed bookings or provide adequate notice of cancellation</li>
+            <li>Honor confirmed stays or give adequate notice of cancellation (see Section 6.4)</li>
           </ul>
 
           <h3>5.3 Guest Responsibilities</h3>
@@ -115,12 +116,12 @@ const TermsOfService = () => {
             <li>Respect the host's property and house rules</li>
             <li>Comply with local laws and customs</li>
             <li>Leave the accommodation in good condition</li>
-            <li>Honor confirmed bookings or provide adequate notice of cancellation</li>
+            <li>Honor confirmed stays or give adequate notice of cancellation (see Section 6.4)</li>
           </ul>
         </section>
 
         <section>
-          <h2>6. Booking and Communication</h2>
+          <h2>6. Arranging a Stay, Fees and Cancellations</h2>
           
           <h3>6.1 Privacy-Protected Communication</h3>
           <p>All initial communication between users occurs through our secure in-app messaging system. We do not share personal contact details (email, phone) between users. Contact sharing is entirely voluntary and at the discretion of individual users.</p>
@@ -128,27 +129,18 @@ const TermsOfService = () => {
           <h3>6.2 Booking Process</h3>
           <p>Connections and arrangements are facilitated through our platform messaging system. We provide the tools for communication but are not a party to agreements between users.</p>
 
-          <h3>6.3 Premium Subscription Payments</h3>
-          <p>FestiveGuest is currently free to use during its launch period, and no Premium subscriptions are being sold. If paid subscriptions are offered again, the terms in this section will apply.</p>
-          <p>The only payments processed through FestiveGuest are optional Premium subscription payments. We do not process payments, bookings, or any financial transaction between Hosts and Guests — any such arrangement is made directly between users and is outside our platform.</p>
-          <ul>
-            <li><strong>Payment Method:</strong> Subscription payments are made via UPI/bank transfer directly to FestiveGuest, verified manually from a payment screenshot sent via WhatsApp (see our <Link to="/privacy-policy" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Privacy Policy</Link>, Section 14)</li>
-            <li><strong>Currency:</strong> All payments are processed in Indian Rupees (INR)</li>
-            <li><strong>Taxes:</strong> All payments are subject to applicable GST and other taxes as per Indian law</li>
-            <li><strong>Verification Delay:</strong> Verification is manual and may take up to 24-48 hours; features unlock only after verification is complete</li>
-            <li><strong>Unverified Payments:</strong> We are not liable for screenshots that cannot be verified due to incorrect, incomplete, or fraudulent submissions</li>
-          </ul>
+          <h3>6.3 Fees and Payments</h3>
+          <p>FestiveGuest is free to use. We do not charge members and we do not take a commission. A Host may set a price per night, or leave the price to be discussed. Any payment for a stay or for guiding is agreed and made directly between the Guest and the Host, outside FestiveGuest. We never receive or hold that money, so we cannot refund it.</p>
+          <p>If we introduce paid features in future, we will publish their price and refund terms here and tell you before charging anything.</p>
 
-          <h3>6.4 Refund Policy</h3>
+          <h3>6.4 Cancellations between Guests and Hosts</h3>
           <ul>
-            <li><strong>Eligibility:</strong> Refunds may be considered where a Premium subscription payment was made in error, charged incorrectly, or could not be activated due to a platform error</li>
-            <li><strong>How to Request:</strong> Refund requests must be raised via WhatsApp or email (see Section 20) within 14 days of payment</li>
-            <li><strong>Processing Time:</strong> Approved refunds are processed within 5-10 business days to the original payment source</li>
-            <li><strong>Non-Refundable:</strong> Subscription fees are non-refundable once the Premium period has been activated and used, except where required by law</li>
+            <li><strong>Either of you can cancel:</strong> A Guest can withdraw a request, a Host can decline one, and either can cancel a confirmed stay from My trips (Hosts: My guests). The other person is told by email straight away.</li>
+            <li><strong>Notice:</strong> Give as much notice as you can, and at least 24 hours before the stay starts except in an emergency.</li>
+            <li><strong>Agree refund terms before paying:</strong> If a Guest pays anything in advance, agree in chat what happens to that money if either of you cancels. We recommend paying on arrival.</li>
+            <li><strong>Refunds between members:</strong> Refunds of payments made between members are a matter between you. FestiveGuest cannot issue or enforce them.</li>
+            <li><strong>No-shows:</strong> Repeated last-minute cancellations or no-shows can be reported, and may lead to a warning or suspension.</li>
           </ul>
-
-          <h3>6.5 Payment Disputes</h3>
-          <p>If you believe a subscription payment was processed in error, contact us via WhatsApp or email (Section 20) before raising a dispute with your bank or payment provider, so we can investigate and resolve it directly.</p>
         </section>
 
         <section>
@@ -179,7 +171,7 @@ const TermsOfService = () => {
           <ul>
             <li>Conduct background checks on users</li>
             <li>Verify criminal records or legal history</li>
-            <li>Confirm the identity, age, or personal details of users</li>
+            <li>Confirm the identity, age, or personal details of users, beyond the phone, email and optional team checks in Section 4.2</li>
             <li>Investigate the character, reputation, or trustworthiness of users</li>
             <li>Verify the existence or legitimacy of users or their accommodations</li>
             <li>Confirm the accuracy of profile information, photos, or descriptions</li>
@@ -281,9 +273,8 @@ const TermsOfService = () => {
           <h3>10.1 Data Collection and Use</h3>
           <p>We collect and process personal data as outlined in our Privacy Policy, including:</p>
           <ul>
-            <li>Account information (name, email, phone, date of birth)</li>
+            <li>Account information (name, email, phone, city and profile details)</li>
             <li>Phone/email verification (OTP)</li>
-            <li>Premium subscription payment screenshots (manually verified via WhatsApp)</li>
             <li>Usage data and analytics</li>
             <li>Communication records</li>
           </ul>
@@ -298,7 +289,7 @@ const TermsOfService = () => {
           <h3>11.1 Introduction Service Disclaimer</h3>
           <p><strong>CRITICAL NOTICE: FestiveGuest is ONLY an introduction and communication platform. We explicitly disclaim all responsibility for:</strong></p>
           <ul>
-            <li><strong>No Background Checks:</strong> We do not conduct background checks, criminal record searches, identity verification, or character assessments of any users</li>
+            <li><strong>No Background Checks:</strong> We do not conduct background checks, criminal record searches, or character assessments of any users, and apart from the checks in Section 4.2 we do not verify identity</li>
             <li><strong>No User Monitoring:</strong> We do not monitor, supervise, or control user behavior, communications, or interactions</li>
             <li><strong>No Safety Guarantees:</strong> We do not guarantee the safety, security, reliability, or trustworthiness of any user</li>
             <li><strong>No Verification of Information:</strong> We do not verify the accuracy, completeness, or truthfulness of user profiles, descriptions, or communications</li>
@@ -362,7 +353,7 @@ const TermsOfService = () => {
           <h2>15. Termination</h2>
           
           <h3>15.1 Termination by Users</h3>
-          <p>You may terminate your account at any time by following the account deletion process in your settings.</p>
+          <p>You may close your account at any time by contacting us (Section 20).</p>
 
           <h3>15.2 Termination by Us</h3>
           <p>We may suspend or terminate your account immediately if you:</p>
@@ -370,7 +361,6 @@ const TermsOfService = () => {
             <li>Violate these Terms</li>
             <li>Engage in fraudulent or illegal activities</li>
             <li>Pose a safety risk to other users</li>
-            <li>Fail to pay applicable fees</li>
           </ul>
 
           <h3>15.3 Effect of Termination</h3>
@@ -424,6 +414,8 @@ const TermsOfService = () => {
             <p>Email: customer-support@festiveguest.com</p>
             <p>WhatsApp: <a href="https://wa.me/919966888484" target="_blank" rel="noopener noreferrer">+91 99668 88484</a></p>
             <p>For general questions, visit our <Link to="/help" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Help & Support page</Link>.</p>
+            <p><strong>Grievance Officer:</strong></p>
+            <p>Complaints about content on FestiveGuest, another member, or how we handle your data can be sent to our Grievance Officer at customer-support@festiveguest.com or on WhatsApp at +91 99668 88484. We acknowledge every complaint within 24 hours and resolve it within 15 days, as required by the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021.</p>
             <p><strong>Registered Office:</strong></p>
             <p>FestiveGuest<br/>
             India</p>

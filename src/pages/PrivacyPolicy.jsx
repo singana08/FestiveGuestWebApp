@@ -10,7 +10,7 @@ const PrivacyPolicy = () => {
     <div className="legal-document">
       <div className="container">
         <h1>Privacy Policy</h1>
-        <p className="last-updated">Last Updated: 22 November 2026</p>
+        <p className="last-updated">Last Updated: 27 November 2026</p>
         <LegalToc />
 
         <section>
@@ -198,6 +198,7 @@ const PrivacyPolicy = () => {
             <p>Email: customer-support@festiveguest.com</p>
             <p>WhatsApp: <a href="https://wa.me/919966888484" target="_blank" rel="noopener noreferrer">+91 99668 88484</a></p>
             <p>For general inquiries, please visit our <Link to="/help" style={{ color: 'var(--primary)', textDecoration: 'none' }}>Help & Support page</Link>.</p>
+            <p><strong>Grievance Officer:</strong> complaints about how we handle your personal data can be sent to customer-support@festiveguest.com. We acknowledge every complaint within 24 hours and resolve it within 15 days.</p>
           </div>
         </section>
 

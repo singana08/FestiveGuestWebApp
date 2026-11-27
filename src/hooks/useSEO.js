@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 
 const SITE_NAME = 'FestiveGuest';
 const SITE_URL = 'https://www.festiveguest.com';
-const DEFAULT_DESCRIPTION = "A community network for interviews, hospital visits, job joining, exams, festivals, and life transitions — not tourism. Connect with a trusted local host anywhere in India.";
+const DEFAULT_DESCRIPTION = "A community network for interviews, hospital visits, job joining, exams, festivals, and life transitions. Connect with a trusted local host anywhere in India.";
 
 function setMetaTag(attr, key, content) {
   if (!content) return;
