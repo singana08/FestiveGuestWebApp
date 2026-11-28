@@ -22,8 +22,6 @@ const POINTS = [
 
 const COPY = {
   en: {
-    joiningAs: 'Joining as',
-    roles: { Guest: '🧳 I need a stay', Host: '🏡 I can host' },
     title: 'Important Disclaimer',
     subtitle: 'Please read carefully — this is how FestiveGuest works.',
     pointTitles: [
@@ -40,8 +38,6 @@ const COPY = {
     close: 'Close',
   },
   te: {
-    joiningAs: 'ఇలా చేరుతున్నారు',
-    roles: { Guest: '🧳 నాకు చోటు కావాలి', Host: '🏡 నేను హోస్ట్ చేస్తాను' },
     title: 'ముఖ్యమైన నిరాకరణ',
     subtitle: 'దయచేసి జాగ్రత్తగా చదవండి — ఫెస్టివ్ గెస్ట్ ఇలా పనిచేస్తుంది.',
     pointTitles: [
@@ -63,7 +59,8 @@ const JoinSheet = ({ initialRole, onClose }) => {
   const { language, t } = useLanguage();
   const c = COPY[language] || COPY.en;
   const navigate = useNavigate();
-  const [role, setRole] = useState(initialRole);
+  // The role only pre-selects the sign-up form's own "I want to join as" picker; the disclaimer is the same for both.
+  const role = initialRole;
   const [agreed, setAgreed] = useState(false);
   const [isSheet] = useState(() => window.matchMedia('(max-width: 600px)').matches);
   const sheetRef = useRef(null);
@@ -155,31 +152,15 @@ const JoinSheet = ({ initialRole, onClose }) => {
         <div className="jm-handle" aria-hidden="true" />
 
         <header className="jm-head">
-          <div className="jm-topbar">
-            <div className="jm-role">
-              <span className="jm-role-label">{c.joiningAs}</span>
-              <div className="jm-seg">
-                {['Guest', 'Host'].map((r) => (
-                  <button key={r} type="button" aria-pressed={role === r} onClick={() => setRole(r)}>
-                    {role === r && (
-                      <motion.span layoutId="jm-role-pill" className="jm-seg-pill" transition={{ type: 'spring', stiffness: 420, damping: 32 }} />
-                    )}
-                    {c.roles[r]}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <button type="button" className="jm-close" onClick={onClose} aria-label={c.close}>
-              <X size={19} />
-            </button>
-          </div>
-
           <div className="jm-title-row">
             <span className="jm-badge-icon" aria-hidden="true"><ShieldAlert size={26} /></span>
             <div>
               <h2 id="jm-title" className="jm-title">{c.title}</h2>
               <p className="jm-sub">{c.subtitle}</p>
             </div>
+            <button type="button" className="jm-close" onClick={onClose} aria-label={c.close}>
+              <X size={19} />
+            </button>
           </div>
         </header>
 

@@ -276,6 +276,8 @@ const Registration = () => {
         name: formData.name,
         phone: formData.phone,
         phoneVerificationToken: phoneVerificationToken || undefined,
+        ageConfirmed,
+        termsAccepted: true, // the join pop-up's consent box (checked above), which covers the Terms and Privacy Policy
         userType: formData.role,
         location: `${finalLocation}, ${formData.state}`,
         bio: formData.bio,
